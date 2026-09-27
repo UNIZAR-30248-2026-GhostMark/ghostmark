@@ -1,0 +1,41 @@
+# Java / Maven (backend/)
+target/
+*.class
+*.jar
+*.log
+hs_err_pid*
+
+# IntelliJ IDEA y VS Code
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# Node / React Native / Expo (mobile/)
+node_modules/
+.expo/
+dist/
+web-build/
+npm-debug.*
+yarn-error.*
+*.tsbuildinfo
+
+# Builds nativos y claves de firma
+android/
+ios/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Variables de entorno y secretos (van en el servicio de despliegue, nunca aquí)
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
