@@ -16,7 +16,7 @@ Aquí solo se guarda lo que GitHub no registra por sí mismo. La pila, las tarea
 | Manual de usuario | `manual-usuario/` |
 | Memoria del proyecto, por capítulos | `memoria/` |
 
-`pilaDeProducto/pantallas/` guarda las pantallas del prototipo que enlazan los issues de las PBI 1-5 (#2-#6).
+`pilaDeProducto/pantallas/` guarda las pantallas del prototipo que enlazan los issues de las PBI más prioritarias.
 
 ## Qué hay que hacer en cada sprint
 
