@@ -14,6 +14,8 @@ tags:
     description: Cuenta del jugador (PBI 1, #2)
   - name: sesion
     description: Inicio y cierre de sesión (PBI 1, #2)
+  - name: partida
+    description: Crear, configurar y compartir una partida (PBI 2, #3)
 security:
   - bearerAuth: []
 paths:
@@ -118,6 +120,7 @@ paths:
       description: |
         Borrado físico de la cuenta, su horario y sus sesiones. En los eventos de partidas en curso
         el jugador pasa a «cuenta eliminada». Después ya no se puede iniciar sesión y el alias queda libre.
+        Si es máster, sus partidas en inscripción se cancelan y las que están en juego siguen sin máster.
       responses:
         '204': { description: Cuenta borrada }
         '401': { $ref: '#/components/responses/NoAutenticado' }
@@ -173,6 +176,108 @@ paths:
               schema: { $ref: '#/components/schemas/Horario' }
         '400': { $ref: '#/components/responses/DatosNoValidos' }
         '401': { $ref: '#/components/responses/NoAutenticado' }
+  /api/v1/partidas:
+    post:
+      tags: [partida]
+      operationId: crearPartida
+      summary: Crear una partida
+      description: |
+        Quien la crea es el máster. Se guarda el evento PARTIDA_CREADA y se genera el código de invitación.
+        El inicio tiene que estar al menos 15 min en el futuro y el fin, después del inicio.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfiguracionPartida' }
+            example: { nombre: Killer Bienvenida EINA, inicioEn: '2026-10-20T08:00:00Z', finEn: '2026-10-27T20:00:00Z', tipoMisiones: BIBLIOTECA, plazoDisputaHoras: 6, entradasTardias: false, masterJuega: true }
+      responses:
+        '201':
+          description: Partida creada, con su código y su enlace
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Partida' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /api/v1/cuentas/yo/partidas:
+    get:
+      tags: [partida]
+      operationId: listarMisPartidas
+      summary: Mis partidas (pestaña «Partidas»)
+      description: Las partidas en las que soy máster o estoy inscrito, de cualquier estado.
+      responses:
+        '200':
+          description: Lista de partidas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PartidaResumen' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /api/v1/partidas/{partidaId}:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [partida]
+      operationId: obtenerPartida
+      summary: Ver una partida
+      description: |
+        El máster recibe la configuración completa con el código y el enlace (`Partida`).
+        Un inscrito recibe el resumen (`PartidaResumen`). A cualquier otro se le responde 404.
+      responses:
+        '200':
+          description: La partida
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Partida'
+                  - $ref: '#/components/schemas/PartidaResumen'
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+    patch:
+      tags: [partida]
+      operationId: editarPartida
+      summary: Cambiar la configuración (solo el máster, antes del arranque)
+      description: Se envían solo los campos que cambian. Mismas reglas que al crearla.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CambiosPartida' }
+      responses:
+        '200':
+          description: Configuración guardada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Partida' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/NoEsMaster' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida ya no está en inscripción (`PARTIDA_NO_EDITABLE`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/codigo/{codigo}:
+    get:
+      tags: [partida]
+      operationId: obtenerPartidaPorCodigo
+      summary: Ver una partida por su código (al abrir el enlace o escanear el QR)
+      description: Cualquier jugador con sesión ve los datos públicos, para decidir si se une (PBI 3).
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/CodigoInvitacion' }
+      responses:
+        '200':
+          description: Datos públicos de la partida
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PartidaPublica' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
 components:
   securitySchemes:
     bearerAuth:
@@ -180,6 +285,12 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Token de acceso de 15 minutos.
+  parameters:
+    PartidaId:
+      name: partidaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
   responses:
     DatosNoValidos:
       description: Algún campo no cumple sus reglas (`DATOS_NO_VALIDOS`); `errores` dice cuáles.
@@ -197,7 +308,83 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Error' }
+    NoEncontrada:
+      description: No existe o no tienes acceso (`NO_ENCONTRADA`). No se distingue entre los dos casos.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NoEsMaster:
+      description: Solo el máster puede hacerlo (`NO_ES_MASTER`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Error' }
   schemas:
+    CodigoInvitacion:
+      type: string
+      pattern: '^[2-9A-HJKMNP-Z]{8}$'
+      description: 8 caracteres sin 0, O, 1, I ni L
+      example: K7PX4MQ2
+    EstadoPartida:
+      type: string
+      enum: [EN_INSCRIPCION, EN_JUEGO, CANCELADA, CERRADA]
+    ConfiguracionPartida:
+      type: object
+      required: [nombre, inicioEn, finEn, tipoMisiones, plazoDisputaHoras, entradasTardias, masterJuega]
+      properties:
+        nombre: { type: string, minLength: 3, maxLength: 40 }
+        inicioEn: { type: string, format: date-time, description: Al menos 15 min en el futuro }
+        finEn: { type: string, format: date-time, description: Posterior a inicioEn }
+        tipoMisiones: { type: string, enum: [BIBLIOTECA, IA] }
+        plazoDisputaHoras: { type: integer, enum: [2, 6, 12, 24] }
+        entradasTardias: { type: boolean }
+        masterJuega: { type: boolean }
+    CambiosPartida:
+      type: object
+      minProperties: 1
+      properties:
+        nombre: { type: string, minLength: 3, maxLength: 40 }
+        inicioEn: { type: string, format: date-time }
+        finEn: { type: string, format: date-time }
+        tipoMisiones: { type: string, enum: [BIBLIOTECA, IA] }
+        plazoDisputaHoras: { type: integer, enum: [2, 6, 12, 24] }
+        entradasTardias: { type: boolean }
+        masterJuega: { type: boolean }
+    Partida:
+      description: Vista del máster
+      allOf:
+        - $ref: '#/components/schemas/ConfiguracionPartida'
+        - type: object
+          required: [id, estado, codigoInvitacion, enlace, numInscritos, creadaEn]
+          properties:
+            id: { type: string, format: uuid }
+            estado: { $ref: '#/components/schemas/EstadoPartida' }
+            codigoInvitacion: { $ref: '#/components/schemas/CodigoInvitacion' }
+            enlace: { type: string, example: 'ghostmark://unirse/K7PX4MQ2', description: Lo que contiene el QR }
+            numInscritos: { type: integer, minimum: 0 }
+            creadaEn: { type: string, format: date-time }
+    PartidaResumen:
+      description: Tarjeta de la pestaña «Partidas»
+      type: object
+      required: [id, nombre, estado, inicioEn, finEn, soyMaster, numInscritos]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        estado: { $ref: '#/components/schemas/EstadoPartida' }
+        inicioEn: { type: string, format: date-time }
+        finEn: { type: string, format: date-time }
+        soyMaster: { type: boolean }
+        numInscritos: { type: integer, minimum: 0 }
+    PartidaPublica:
+      description: Lo que ve quien abre el enlace antes de unirse
+      type: object
+      required: [nombre, estado, inicioEn, finEn, aliasMaster, numInscritos]
+      properties:
+        nombre: { type: string }
+        estado: { $ref: '#/components/schemas/EstadoPartida' }
+        inicioEn: { type: string, format: date-time }
+        finEn: { type: string, format: date-time }
+        aliasMaster: { type: [string, 'null'], description: Nulo si el máster borró su cuenta }
+        numInscritos: { type: integer, minimum: 0 }
     Alias:
       type: string
       pattern: '^[A-Za-z0-9_]{3,20}$'
@@ -278,7 +465,7 @@ components:
         detail: { type: string }
         codigo:
           type: string
-          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO]
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE]
         errores:
           type: array
           items:
