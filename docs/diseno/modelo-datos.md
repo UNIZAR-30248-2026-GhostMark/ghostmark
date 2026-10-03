@@ -72,7 +72,7 @@ Clave primaria: `(cuenta_id, dia, hora_inicio)`. Al inscribirse en una partida, 
 
 ### Borrar la cuenta
 
-Borrado físico: se borra la fila de `cuenta` y, en cascada, su horario y sus tokens. En los eventos de las partidas en curso sus ids pasan a `null` y la app muestra «cuenta eliminada». El alias y el email quedan libres. Si es máster de alguna partida, ver «Partida».
+Borrado físico: se borra la fila de `cuenta` y, en cascada, su horario y sus tokens. Sus inscripciones en partidas en curso se quedan con `cuenta_id` a `null` y la app muestra «cuenta eliminada» (ver «Inscripción»). El alias y el email quedan libres. Si es máster de alguna partida, ver «Partida».
 
 ## Partida (PBI 2, #3)
 
@@ -139,3 +139,53 @@ stateDiagram-v2
 | `CERRADA` | Ver el Wrapped; los datos individuales y secretos se han borrado | 8, 14 |
 
 El detalle del arranque, del ciclo de objetivos y de los eventos que se guardan va en la tarea 4.1.
+
+## Inscripción (PBI 3, #4)
+
+Un jugador entra en una partida con el código de invitación (QR o enlace) y acepta sus normas. Puede estar en varias partidas a la vez, cada una con su propia inscripción y su propio horario.
+
+```mermaid
+erDiagram
+    partida ||--o{ inscripcion : "jugadores"
+    cuenta |o--o{ inscripcion : "se inscribe"
+    inscripcion ||--o{ franja_horario_inscripcion : "horario en esta partida"
+    inscripcion {
+        uuid id PK
+        uuid partida_id FK
+        uuid cuenta_id FK "nulo si borró su cuenta"
+        timestamptz normas_aceptadas_en
+        timestamptz inscrita_en
+    }
+    franja_horario_inscripcion {
+        uuid inscripcion_id PK, FK
+        smallint dia PK
+        time hora_inicio PK
+    }
+```
+
+### `inscripcion`
+
+| Columna | Tipo | Restricciones | Regla de producto |
+|--|--|--|--|
+| `id` | `uuid` | clave primaria | Es el id con el que los eventos identifican al jugador |
+| `partida_id` | `uuid` | clave ajena a `partida`, `on delete cascade`; índice | |
+| `cuenta_id` | `uuid` | clave ajena a `cuenta`, `on delete set null`; índice | Nulo si el jugador borró su cuenta |
+| `normas_aceptadas_en` | `timestamptz` | no nulo | Sin aceptar las normas no hay inscripción (criterio 2) |
+| `inscrita_en` | `timestamptz` | no nulo | |
+
+- Índice único sobre `(partida_id, cuenta_id)`: una cuenta se inscribe una sola vez en cada partida, y en tantas partidas como quiera (criterio 4).
+- Solo se puede inscribir en partidas `EN_INSCRIPCION`. Las entradas tardías llegan con la PBI 16.
+- **Si el máster juega,** tiene su inscripción como cualquier otro: se crea al crear la partida (o al activar «Yo también juego») con las normas aceptadas en ese momento, y se borra si lo desactiva antes del arranque. Un máster que no juega no puede inscribirse con el código.
+- **Si un jugador borra su cuenta:** antes del arranque, su inscripción se borra; con la partida en juego, se queda con `cuenta_id` a `null`. Qué pasa con su lugar en la cadena se decide con la PBI 12 (abandonar).
+
+### `franja_horario_inscripcion`
+
+Copia del horario lectivo de la cuenta en el momento de inscribirse. El jugador la revisa y la cambia desde la sala de espera hasta el arranque, sin tocar el horario de su cuenta ni el de sus otras partidas; al arrancar se congela (criterio 3).
+
+| Columna | Tipo | Restricciones |
+|--|--|--|
+| `inscripcion_id` | `uuid` | clave ajena a `inscripcion`, `on delete cascade` |
+| `dia` | `smallint` | `check (dia between 1 and 5)` |
+| `hora_inicio` | `time` | mismas restricciones que en `franja_horario` |
+
+Clave primaria: `(inscripcion_id, dia, hora_inicio)`.
