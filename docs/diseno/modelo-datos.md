@@ -138,7 +138,7 @@ stateDiagram-v2
 | `CANCELADA` | Nada: los inscritos la ven cancelada al abrir la app | 4 |
 | `CERRADA` | Ver el Wrapped; los datos individuales y secretos se han borrado | 8, 14 |
 
-El detalle del arranque, del ciclo de objetivos y de los eventos que se guardan va en la tarea 4.1.
+El detalle del arranque, del ciclo de objetivos y de los eventos que se guardan está en «Arranque, ciclo y eventos».
 
 ## Inscripción (PBI 3, #4)
 
@@ -194,3 +194,65 @@ Copia del horario lectivo de la cuenta en el momento de inscribirse. El jugador 
 | `hora_inicio` | `time` | mismas restricciones que en `franja_horario` |
 
 Clave primaria: `(inscripcion_id, dia, hora_inicio)`.
+
+## Arranque, ciclo y eventos (PBI 4, #5, y PBI 5, #31)
+
+### Arranque
+
+- **Programado:** una tarea programada del servidor revisa cada minuto las partidas `EN_INSCRIPCION` con `inicio_en` ya pasado. Una partida arranca, como mucho, un minuto después de su hora.
+- **Adelantado:** el máster pulsa «Arrancar ya» en la sala de espera; el botón solo está activo con 3 o más jugadores.
+- **Jugadores** son las inscripciones de la partida, incluida la del máster si juega.
+- **Con 3 o más jugadores**, en una sola transacción: se guardan los eventos `PARTIDA_ARRANCADA`, `CICLO_FORMADO` y `MISIONES_REPARTIDAS`, `estado` pasa a `EN_JUEGO` y los horarios de las inscripciones quedan congelados (la API ya no deja cambiarlos).
+- **Con menos de 3** al llegar `inicio_en`: se guarda `PARTIDA_CANCELADA` y `estado` pasa a `CANCELADA`. Los inscritos la ven cancelada al abrir la app (el aviso al móvil llega con la PBI 13).
+- **Arranque doble:** si el máster pulsa «Arrancar ya» mientras la tarea programada arranca la misma partida, la segunda operación ve que ya no está `EN_INSCRIPCION` y no hace nada. La fila de `partida` se bloquea (`select … for update`) mientras se arranca.
+
+### Ciclo de objetivos
+
+1. Se toman los ids de las inscripciones de la partida.
+2. Se barajan con Fisher-Yates usando `SecureRandom`, para que nadie pueda deducir el orden.
+3. Cada jugador persigue al siguiente de la lista, y el último al primero: `objetivo(orden[i]) = orden[(i + 1) % n]`.
+
+Con `n ≥ 3` esto da siempre **un único ciclo cerrado**: cada jugador tiene exactamente un objetivo, es objetivo de exactamente otro y nadie se persigue a sí mismo (criterio 2 de la PBI 4). El orden solo se guarda en el evento `CICLO_FORMADO`; la API nunca lo devuelve entero, solo el objetivo propio a cada jugador.
+
+### Reparto de misiones (PBI 5)
+
+Al arrancar, cada jugador recibe una misión activa de la biblioteca, al azar y sin repetir mientras queden; si hay más jugadores que misiones, se vuelve a empezar. Con `tipo_misiones = IA` también se usa la biblioteca hasta la PBI 6.
+
+### `mision`
+
+Biblioteca curada (tarea 5.1). Las misiones se cargan con una migración y ya vienen revisadas: ninguna implica contacto físico ni objetos que simulen armas.
+
+| Columna | Tipo | Restricciones |
+|--|--|--|
+| `id` | `uuid` | clave primaria |
+| `texto` | `varchar(200)` | no nulo; único |
+| `activa` | `boolean` | no nulo; por defecto `true`. Una misión retirada se desactiva, no se borra |
+| `creada_en` | `timestamptz` | no nulo |
+
+### `evento`
+
+Lista de lo que pasa en cada partida (la crea la tarea 1.1). El estado de la partida y quién persigue a quién se obtienen reproduciendo sus eventos en orden.
+
+| Columna | Tipo | Restricciones |
+|--|--|--|
+| `id` | `uuid` | clave primaria |
+| `partida_id` | `uuid` | clave ajena a `partida`, `on delete cascade` |
+| `secuencia` | `bigint` | no nulo; único con `partida_id`; empieza en 1 y sube de uno en uno en cada partida |
+| `tipo` | `varchar(40)` | no nulo |
+| `datos` | `jsonb` | no nulo; contenido según el tipo |
+| `ocurrido_en` | `timestamptz` | no nulo |
+
+Los eventos no se modifican ni se borran, salvo al cerrar la partida, cuando se borran todos y queda solo el resumen (PBI 8 y 14). Identifican a los jugadores por `inscripcionId`, nunca por la cuenta.
+
+| Tipo | Cuándo | `datos` | Tarea |
+|--|--|--|--|
+| `PARTIDA_CREADA` | El máster crea la partida | La configuración: `nombre`, `inicioEn`, `finEn`, `tipoMisiones`, `plazoDisputaHoras`, `entradasTardias`, `masterJuega` | 2.2 |
+| `CONFIGURACION_CAMBIADA` | El máster edita antes del arranque | Solo los campos que cambian, con su valor nuevo | 2.2 |
+| `JUGADOR_INSCRITO` | Alguien se inscribe, o el máster activa «Yo también juego» | `inscripcionId` | 3.2 |
+| `INSCRIPCION_RETIRADA` | El máster desactiva «Yo también juego» o un inscrito borra su cuenta antes del arranque | `inscripcionId`, `motivo` (`MASTER_NO_JUEGA`, `CUENTA_BORRADA`) | 3.2 |
+| `PARTIDA_ARRANCADA` | Llega `inicio_en` con 3 o más, o «Arrancar ya» | `modo` (`PROGRAMADO`, `ADELANTADO`), `numJugadores` | 4.2 |
+| `CICLO_FORMADO` | Justo después de arrancar | `orden`: lista de `inscripcionId` en el orden del ciclo | 4.3 |
+| `PARTIDA_CANCELADA` | Llega `inicio_en` con menos de 3, o el máster borra su cuenta antes del arranque | `motivo` (`POCOS_JUGADORES`, `MASTER_SIN_CUENTA`), `numJugadores` | 4.4, 2.2 |
+| `MISIONES_REPARTIDAS` | Justo después de `CICLO_FORMADO` | `asignaciones`: lista de `{inscripcionId, misionId}` | 5.2 |
+
+**Reconstruir el estado** (test de la tarea 4.6): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado` y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (eliminación, disputa, abandono…) a esta tabla.
