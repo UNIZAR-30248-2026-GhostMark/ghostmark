@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "GhostMark",
+    "slug": "ghostmark",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#1A0B2E"
+    }
+  }
+}
