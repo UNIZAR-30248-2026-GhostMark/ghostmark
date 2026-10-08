@@ -1,0 +1,30 @@
+# Blueprint de Render para la  tarea 1.4 (#37): api Docker + Postgres gratis.
+# La DB gratis caduca a los 30 dias, tenemos que tener cuidado: ver planning 1.4 y doc interna sobre cuando recrearla.
+# PostGIS se activa con CREATE EXTENSION postgis tras crear la DB.
+services:
+  - type: web
+    name: ghostmark-api
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: ghostmark-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: ghostmark-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: ghostmark-db
+          property: password
+      - key: JWT_SECRETO
+        generateValue: true
+databases:
+  - name: ghostmark-db
+    databaseName: ghostmark
+    user: ghostmark
+    plan: free
