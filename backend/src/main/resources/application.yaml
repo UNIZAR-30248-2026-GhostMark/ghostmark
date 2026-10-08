@@ -1,7 +1,7 @@
 server.port: 8080
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ghostmark
-    username: ghostmark
-    password: ghostmark
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ghostmark}}
+    username: ${DB_USER:ghostmark}
+    password: ${DB_PASSWORD:ghostmark}
   jpa.hibernate.ddl-auto: validate

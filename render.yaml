@@ -10,15 +10,23 @@ services:
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /api/v1/health
     envVars:
-      - key: SPRING_DATASOURCE_URL
+      - key: DB_HOST
         fromDatabase:
           name: ghostmark-db
-          property: connectionString
-      - key: SPRING_DATASOURCE_USERNAME
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: ghostmark-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: ghostmark-db
+          property: databaseName
+      - key: DB_USER
         fromDatabase:
           name: ghostmark-db
           property: user
-      - key: SPRING_DATASOURCE_PASSWORD
+      - key: DB_PASSWORD
         fromDatabase:
           name: ghostmark-db
           property: password
