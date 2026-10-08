@@ -21,7 +21,7 @@ services:
       - key: DB_NAME
         fromDatabase:
           name: ghostmark-db
-          property: databaseName
+          property: database
       - key: DB_USER
         fromDatabase:
           name: ghostmark-db
