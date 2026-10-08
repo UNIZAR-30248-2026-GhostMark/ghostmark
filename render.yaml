@@ -5,6 +5,7 @@ services:
   - type: web
     name: ghostmark-api
     runtime: docker
+    plan: free
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /api/v1/health
