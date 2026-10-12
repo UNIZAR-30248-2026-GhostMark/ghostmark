@@ -1,0 +1,13 @@
+# Responsables de revisión (definición de hecho). GitHub pide la revisión a todos los de la zona
+# y main exige la aprobación de uno que no sea el autor. Revisa el primero; si es el autor, el
+# segundo. Imad (@901421), el último de cada línea, sustituye a quien no esté disponible.
+# Gana la última línea que coincide con el fichero.
+
+# Documentación, integración continua y el resto de la raíz: Sergio, luego Diego.
+*          @sergiosaura @Simon30804 @901421
+
+# Servidor: Diego, luego Alejo.
+/backend/  @Simon30804 @AlejoBeamonte @901421
+
+# Aplicación móvil: Alejo, luego Imad.
+/mobile/   @AlejoBeamonte @901421

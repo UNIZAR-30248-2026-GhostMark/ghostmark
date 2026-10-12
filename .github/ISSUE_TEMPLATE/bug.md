@@ -6,9 +6,8 @@ labels: bug
 ---
 
 **PBI afectada:** #
-**Gravedad:** bloqueante | crítico | leve
-<!-- bloqueante: impide usar la funcionalidad · crítico: pierde datos o expone información privada · leve: el resto.
-     Pon también la etiqueta gravedad:bloqueante, gravedad:critico o gravedad:leve. -->
+**Encontrado en:** revisión de la PR # | comprobación en producción | uso
+<!-- Se corrige antes de cerrar la PBI. Solo puede quedar abierto en la pila si no impide cumplir ningún criterio ni pierde o expone datos. -->
 
 ## Pasos para reproducirlo
 
