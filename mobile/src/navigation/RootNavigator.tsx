@@ -7,6 +7,7 @@ import { restoreSession, setSessionExpiredHandler } from "../api/auth";
 import { ApiStatusScreen } from "../screens/ApiStatusScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SignInScreen } from "../screens/SignInScreen";
+import { ScheduleScreen } from "../screens/ScheduleScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { colors } from "../theme/colors";
 import type { RootStackParamList } from "../types/navigation";
@@ -55,6 +56,7 @@ export function RootNavigator() {
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false, animation: "fade" }}>
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="SignIn" component={SignInScreen} />
+        <Stack.Screen name="Schedule" component={ScheduleScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="ApiStatus" component={ApiStatusScreen} />
       </Stack.Navigator>
