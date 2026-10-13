@@ -74,4 +74,18 @@ public class Cuenta {
     public Instant getCreadaEn() {
         return creadaEn;
     }
+
+    public void aceptarUbicacion(Instant ahora) {
+        if (ubicacionAceptadaEn == null) {
+            ubicacionAceptadaEn = ahora;
+            actualizadaEn = ahora;
+        }
+    }
+
+    public void aceptarAvisoDisponibilidad(Instant ahora) {
+        if (avisoDisponibilidadAceptadoEn == null) {
+            avisoDisponibilidadAceptadoEn = ahora;
+            actualizadaEn = ahora;
+        }
+    }
 }
