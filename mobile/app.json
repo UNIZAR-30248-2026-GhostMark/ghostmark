@@ -16,6 +16,22 @@
           "locationWhenInUsePermission": "GhostMark usa tu ubicación solo para comprobar zonas seguras al eliminar."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c091aa49-6c50-4e7e-a7df-625224efe8e8"
+      }
+    },
+    "owner": "ghostmark",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c091aa49-6c50-4e7e-a7df-625224efe8e8"
+    },
+    "android": {
+      "package": "com.ghostmark.ghostmark"
+    },
+    "ios": {}
   }
 }

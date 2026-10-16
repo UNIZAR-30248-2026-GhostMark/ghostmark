@@ -27,7 +27,7 @@ La posición del jugador nunca sale del móvil. Cuando se introduce un código d
 
 | Decisión | Cuándo se toma | Opciones | Decidido |
 |--|--|--|--|
-| PaaS del despliegue | Sprint 1 | Render, Railway, Fly.io (PostGIS, coste, continuidad) | |
+| PaaS del despliegue | Sprint 1 | Render, Railway, Fly.io (PostGIS, coste, continuidad) | Render (tarea 1.4, #37): servicio web con la imagen Docker del servidor y PostgreSQL gestionado con PostGIS (activado por migración), HTTPS automático y secretos en variables de entorno del servicio, todo descrito en `render.yaml`. Plan gratuito: el servicio se duerme tras un rato sin peticiones y la base de datos caduca a los 30 días (riesgo Ri19). |
 | Proveedor de IA | Sprint 1 | Según coste y condiciones de uso | |
 | Biblioteca del mapa | Primera PBI con mapa | OpenLayers, Leaflet | |
 | Migración a la nube | Ensayo en el sprint 3 | Azure, AWS | |
