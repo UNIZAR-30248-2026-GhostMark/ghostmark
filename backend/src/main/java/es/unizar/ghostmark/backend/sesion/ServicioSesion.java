@@ -54,12 +54,8 @@ public class ServicioSesion {
         if (alias == null || !alias.matches("^[A-Za-z0-9_]{3,20}$")) {
             errores.put("alias", "De 3 a 20: letras sin tildes, números y guion bajo");
         }
-        if (email == null || email.length() > 254 || !email.matches(PATRON_EMAIL)) {
-            errores.put("email", "Debe ser un email válido");
-        }
-        if (contrasena == null || contrasena.length() < 8 || contrasena.length() > 72) {
-            errores.put("contrasena", "Debe tener entre 8 y 72 caracteres");
-        }
+        validarEmail(email, errores);
+        validarContrasena(contrasena, errores);
         if (!errores.isEmpty()) {
             throw new DatosNoValidosException(errores);
         }
@@ -77,6 +73,12 @@ public class ServicioSesion {
 
     @Transactional
     public Map<String, Object> iniciarSesion(String email, String contrasena, Instant ahora) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        validarEmail(email, errores);
+        validarContrasena(contrasena, errores);
+        if (!errores.isEmpty()) {
+            throw new DatosNoValidosException(errores);
+        }
         Cuenta cuenta =
                 cuentas
                         .findByEmail(email == null ? null : email.toLowerCase())
@@ -85,6 +87,18 @@ public class ServicioSesion {
                         .orElseThrow(
                                 () -> new CredencialesException("Email o contraseña incorrectos"));
         return sesion(cuenta, ahora);
+    }
+
+    private static void validarEmail(String email, Map<String, String> errores) {
+        if (email == null || email.length() > 254 || !email.matches(PATRON_EMAIL)) {
+            errores.put("email", "Debe ser un email válido");
+        }
+    }
+
+    private static void validarContrasena(String contrasena, Map<String, String> errores) {
+        if (contrasena == null || contrasena.length() < 8 || contrasena.length() > 72) {
+            errores.put("contrasena", "Debe tener entre 8 y 72 caracteres");
+        }
     }
 
     @Transactional

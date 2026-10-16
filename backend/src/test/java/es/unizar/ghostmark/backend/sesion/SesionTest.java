@@ -1,6 +1,7 @@
 package es.unizar.ghostmark.backend.sesion;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -12,11 +13,9 @@ import es.unizar.ghostmark.backend.cuenta.CuentaRepository;
 import es.unizar.ghostmark.backend.cuenta.TokenRefresco;
 import es.unizar.ghostmark.backend.cuenta.TokenRefrescoRepository;
 import io.restassured.http.ContentType;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -131,6 +130,33 @@ class SesionTest {
                 .then()
                 .statusCode(401)
                 .body("codigo", equalTo("CREDENCIALES_INCORRECTAS"));
+    }
+
+    @Test
+    void loginConDatosMalFormadosDa400() {
+        given()
+                .port(puerto)
+                .contentType(ContentType.JSON)
+                .body(Map.of("email", "no-es-email", "contrasena", "123"))
+                .when()
+                .post("/api/v1/sesiones")
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("DATOS_NO_VALIDOS"));
+    }
+
+    @Test
+    void rutaProtegidaSinTokenDa401NoAutenticado() {
+        given()
+                .port(puerto)
+                .contentType(ContentType.JSON)
+                .body(Map.of("tokenRefresco", "cualquiera"))
+                .when()
+                .post("/api/v1/sesiones/cierre")
+                .then()
+                .statusCode(401)
+                .header("Content-Type", containsString("application/problem+json"))
+                .body("codigo", equalTo("NO_AUTENTICADO"));
     }
 
     @Test
