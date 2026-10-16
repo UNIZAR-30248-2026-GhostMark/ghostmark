@@ -6,9 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CuentaRepository extends JpaRepository<Cuenta, UUID> {
 
-  Optional<Cuenta> findByEmail(String email);
+    Optional<Cuenta> findByEmail(String email);
 
-  boolean existsByAliasIgnoreCase(String alias);
+    boolean existsByAliasIgnoreCase(String alias);
 
-  boolean existsByEmailIgnoreCase(String email);
+    boolean existsByEmailIgnoreCase(String email);
 }

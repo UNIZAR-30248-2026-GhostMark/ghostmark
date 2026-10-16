@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TokenRefrescoRepository extends JpaRepository<TokenRefresco, UUID> {
 
-  Optional<TokenRefresco> findByHashToken(String hashToken);
+    Optional<TokenRefresco> findByHashToken(String hashToken);
 
-  long deleteByCaducaEnBefore(Instant limite);
+    long deleteByCaducaEnBefore(Instant limite);
 }

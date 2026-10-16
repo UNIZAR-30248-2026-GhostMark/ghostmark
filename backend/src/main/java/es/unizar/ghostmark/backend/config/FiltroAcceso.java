@@ -20,36 +20,36 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class FiltroAcceso extends OncePerRequestFilter {
 
-  private final SecretKey firma;
+    private final SecretKey firma;
 
-  public FiltroAcceso(@Value("${JWT_SECRETO:}") String secreto) {
-    if (secreto.getBytes(StandardCharsets.UTF_8).length < 32) {
-      throw new IllegalStateException("Falta JWT_SECRETO de al menos 32 bytes en el entorno");
+    public FiltroAcceso(@Value("${JWT_SECRETO:}") String secreto) {
+        if (secreto.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("Falta JWT_SECRETO de al menos 32 bytes en el entorno");
+        }
+        this.firma = Keys.hmacShaKeyFor(secreto.getBytes(StandardCharsets.UTF_8));
     }
-    this.firma = Keys.hmacShaKeyFor(secreto.getBytes(StandardCharsets.UTF_8));
-  }
 
-  @Override
-  protected void doFilterInternal(
-      HttpServletRequest peticion, HttpServletResponse respuesta, FilterChain cadena)
-      throws ServletException, IOException {
-    String cabecera = peticion.getHeader(HttpHeaders.AUTHORIZATION);
-    if (cabecera != null && cabecera.startsWith("Bearer ")) {
-      try {
-        String cuentaId =
-            Jwts.parser()
-                .verifyWith(firma)
-                .build()
-                .parseSignedClaims(cabecera.substring(7))
-                .getPayload()
-                .getSubject();
-        SecurityContextHolder.getContext()
-            .setAuthentication(
-                new UsernamePasswordAuthenticationToken(cuentaId, null, List.of()));
-      } catch (RuntimeException invalido) {
-        SecurityContextHolder.clearContext();
-      }
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest peticion, HttpServletResponse respuesta, FilterChain cadena)
+            throws ServletException, IOException {
+        String cabecera = peticion.getHeader(HttpHeaders.AUTHORIZATION);
+        if (cabecera != null && cabecera.startsWith("Bearer ")) {
+            try {
+                String cuentaId =
+                        Jwts.parser()
+                                .verifyWith(firma)
+                                .build()
+                                .parseSignedClaims(cabecera.substring(7))
+                                .getPayload()
+                                .getSubject();
+                SecurityContextHolder.getContext()
+                        .setAuthentication(
+                                new UsernamePasswordAuthenticationToken(cuentaId, null, List.of()));
+            } catch (RuntimeException invalido) {
+                SecurityContextHolder.clearContext();
+            }
+        }
+        cadena.doFilter(peticion, respuesta);
     }
-    cadena.doFilter(peticion, respuesta);
-  }
 }

@@ -14,36 +14,38 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class ControladorSesion {
 
-  private final ServicioSesion sesiones;
-  private final Clock reloj;
+    private final ServicioSesion sesiones;
+    private final Clock reloj;
 
-  public ControladorSesion(ServicioSesion sesiones, Clock reloj) {
-    this.sesiones = sesiones;
-    this.reloj = reloj;
-  }
+    public ControladorSesion(ServicioSesion sesiones, Clock reloj) {
+        this.sesiones = sesiones;
+        this.reloj = reloj;
+    }
 
-  @PostMapping("/cuentas")
-  public ResponseEntity<Map<String, Object>> crearCuenta(@RequestBody Map<String, String> cuerpo) {
-    Map<String, Object> sesion =
-        sesiones.registrar(
-            cuerpo.get("alias"), cuerpo.get("email"), cuerpo.get("contrasena"), Instant.now(reloj));
-    return ResponseEntity.status(HttpStatus.CREATED).body(sesion);
-  }
+    @PostMapping("/cuentas")
+    public ResponseEntity<Map<String, Object>> crearCuenta(
+            @RequestBody Map<String, String> cuerpo) {
+        Map<String, Object> sesion =
+                sesiones.registrar(
+                        cuerpo.get("alias"), cuerpo.get("email"), cuerpo.get("contrasena"),
+                        Instant.now(reloj));
+        return ResponseEntity.status(HttpStatus.CREATED).body(sesion);
+    }
 
-  @PostMapping("/sesiones")
-  public Map<String, Object> iniciarSesion(@RequestBody Map<String, String> cuerpo) {
-    return sesiones.iniciarSesion(
-        cuerpo.get("email"), cuerpo.get("contrasena"), Instant.now(reloj));
-  }
+    @PostMapping("/sesiones")
+    public Map<String, Object> iniciarSesion(@RequestBody Map<String, String> cuerpo) {
+        return sesiones.iniciarSesion(
+                cuerpo.get("email"), cuerpo.get("contrasena"), Instant.now(reloj));
+    }
 
-  @PostMapping("/sesiones/refresco")
-  public Map<String, Object> refrescar(@RequestBody Map<String, String> cuerpo) {
-    return sesiones.refrescar(cuerpo.get("tokenRefresco"), Instant.now(reloj));
-  }
+    @PostMapping("/sesiones/refresco")
+    public Map<String, Object> refrescar(@RequestBody Map<String, String> cuerpo) {
+        return sesiones.refrescar(cuerpo.get("tokenRefresco"), Instant.now(reloj));
+    }
 
-  @PostMapping("/sesiones/cierre")
-  public ResponseEntity<Void> cerrar(@RequestBody Map<String, String> cuerpo) {
-    sesiones.cerrarSesion(cuerpo.get("tokenRefresco"), Instant.now(reloj));
-    return ResponseEntity.noContent().build();
-  }
+    @PostMapping("/sesiones/cierre")
+    public ResponseEntity<Void> cerrar(@RequestBody Map<String, String> cuerpo) {
+        sesiones.cerrarSesion(cuerpo.get("tokenRefresco"), Instant.now(reloj));
+        return ResponseEntity.noContent().build();
+    }
 }
