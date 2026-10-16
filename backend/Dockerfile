@@ -3,6 +3,7 @@ WORKDIR /build
 COPY mvnw ./
 COPY .mvn/ .mvn/
 COPY pom.xml ./
+COPY checkstyle.xml ./
 COPY src/ ./src/
 RUN chmod +x mvnw && ./mvnw -B -DskipTests package
 
