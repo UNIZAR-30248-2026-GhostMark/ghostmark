@@ -1,0 +1,41 @@
+name: formato-pr
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+jobs:
+  formato:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar título, rama y descripción
+        env:
+          TITULO: ${{ github.event.pull_request.title }}
+          RAMA: ${{ github.event.pull_request.head.ref }}
+          CUERPO: ${{ github.event.pull_request.body }}
+        run: |
+          fallos=0
+          falla() { echo "::error::$1"; fallos=1; }
+
+          if [[ "$RAMA" == feature/* ]]; then
+            [[ "$RAMA" =~ ^feature/([0-9]+)-[a-z0-9-]+$ ]] \
+              || falla "La rama debe llamarse feature/<n.º de issue>-<descripción>, en minúsculas y sin tildes."
+            n_rama="${BASH_REMATCH[1]}"
+            [[ "$TITULO" =~ ^Tarea\ \#([0-9]+):\ .+ ]] \
+              || falla "El título debe ser «Tarea #N: <número de tarea> <nombre>», por ejemplo «Tarea #35: 1.2 Esqueleto de la app»."
+            n_titulo="${BASH_REMATCH[1]}"
+            [[ -n "$n_rama" && -n "$n_titulo" && "$n_rama" != "$n_titulo" ]] \
+              && falla "El número de la rama (#$n_rama) y el del título (#$n_titulo) no coinciden."
+            [[ -n "$n_titulo" ]] && ! grep -qiE "closes #$n_titulo\b" <<< "$CUERPO" \
+              && falla "Falta «Closes #$n_titulo» en la descripción."
+          elif [[ "$RAMA" =~ ^fix/([0-9]+)-[a-z0-9-]+$ ]]; then
+            n_fix="${BASH_REMATCH[1]}"
+            grep -qiE "closes #$n_fix\b" <<< "$CUERPO" \
+              || falla "Falta «Closes #$n_fix» (el issue del defecto) en la descripción."
+          elif [[ ! "$RAMA" =~ ^docs/[a-z0-9-]+$ ]]; then
+            falla "La rama debe ser feature/<n.º>-… (tarea), fix/<n.º>-… (defecto) o docs/<tema> (documentación)."
+          fi
+
+          grep -qE "Revisa:\**[[:space:]]*@[A-Za-z0-9-]+" <<< "$CUERPO" \
+            || falla "Falta la línea «Revisa: @usuario» con el responsable de lo que toca (.github/CODEOWNERS)."
+
+          [[ $fallos -eq 0 ]] && echo "Formato correcto."
+          exit $fallos

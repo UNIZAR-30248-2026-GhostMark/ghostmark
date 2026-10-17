@@ -12,6 +12,7 @@ Aquí solo se guarda lo que GitHub no registra por sí mismo. La pila, las tarea
 | Instantáneas de la pila | `pilaDeProducto/instantaneas/` |
 | *Burndown*, revisión y retrospectiva de cada sprint | `sprints/SN.md` |
 | Gantt planificado y real | `gestion/calendario-y-gantt.md` |
+| Formato del comentario de revisión de las PR | `gestion/revision-pr.md` |
 | Arquitectura y decisiones técnicas | `diseno/` |
 | Manual de usuario | `manual-usuario/` |
 | Memoria del proyecto, por capítulos | `memoria/` |
@@ -27,8 +28,8 @@ Aquí solo se guarda lo que GitHub no registra por sí mismo. La pila, las tarea
 
 ## Convenciones
 
-- Nadie sube cambios directamente a `main`. Se trabaja en ramas `feature/<n.º de issue>-<descripción>`, o `docs/<tema>` para la documentación, y se integran por *pull request* con la aprobación de otra persona del equipo.
-- Los mensajes de commit citan el issue: `… (#14)`.
+- Nadie sube cambios directamente a `main`. Se trabaja en ramas `feature/<n.º de issue>-<descripción>`, o `docs/<tema>` para la documentación, y se integran por *pull request* con la aprobación del responsable de lo que tocan (`.github/CODEOWNERS`).
+- La PR de una tarea se titula «Tarea #N: <número de tarea> <nombre>», sale de una rama `feature/N-…` y lleva «Closes #N» y «Revisa: @…» en la descripción; la que corrige un defecto sale de `fix/N-…` (N, el issue del defecto) y lleva «Closes #N» y «Revisa: @…»; la de documentación sale de `docs/…` y lleva «Revisa: @…». Lo comprueba el flujo `formato-pr`, que deja la PR en rojo si falta algo. Se fusiona con «Squash and merge», así que el título es también el mensaje del commit (GitHub le añade el número de la PR).
 - Las tareas se titulan «Tarea de #N: …». Llevan el mismo milestone que su PBI y se añaden como *sub-issue* de ella.
 - En la hoja de esfuerzos, la columna Tarea lleva el número del issue.
 - Fechas en formato AAAA-MM-DD. Nombres de fichero en minúsculas y sin tildes.
