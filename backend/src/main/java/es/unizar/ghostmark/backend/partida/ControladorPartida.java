@@ -1,0 +1,34 @@
+package es.unizar.ghostmark.backend.partida;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/partidas")
+public class ControladorPartida {
+
+    private final ServicioPartida partidas;
+    private final Clock reloj;
+
+    public ControladorPartida(ServicioPartida partidas, Clock reloj) {
+        this.partidas = partidas;
+        this.reloj = reloj;
+    }
+
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> crear(Authentication autenticacion,
+            @RequestBody ConfiguracionPartida configuracion) {
+        Map<String, Object> partida = partidas.crear(
+                UUID.fromString(autenticacion.getName()), configuracion, Instant.now(reloj));
+        return ResponseEntity.status(HttpStatus.CREATED).body(partida);
+    }
+}
