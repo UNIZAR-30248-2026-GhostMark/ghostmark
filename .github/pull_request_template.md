@@ -1,4 +1,5 @@
-<!-- Título: qué cambia, en una línea. Rama: feature/<n.º de issue>-<descripción> -->
+<!-- Tarea: título «Tarea #N: <número de tarea> <nombre>» y rama feature/N-<descripción>.
+     Documentación: título con qué cambia y rama docs/<tema>. El flujo formato-pr lo comprueba. -->
 
 **PBI:** #
 **Tareas que cierra:** Closes #
