@@ -45,10 +45,10 @@ public class FranjaHorarioId implements Serializable {
     @Override
     public boolean equals(Object otro) {
         if (this == otro) {
-        return true;
+            return true;
         }
         if (!(otro instanceof FranjaHorarioId id)) {
-        return false;
+            return false;
         }
         return dia == id.dia
             && Objects.equals(cuentaId, id.cuentaId)

@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice(
-    assignableTypes = {
-        ControladorCuenta.class,
-        ControladorHorario.class
-    })
+        assignableTypes = {
+            ControladorCuenta.class,
+            ControladorHorario.class
+        })
 public class ErroresCuenta {
 
     @ExceptionHandler(ResponseStatusException.class)
