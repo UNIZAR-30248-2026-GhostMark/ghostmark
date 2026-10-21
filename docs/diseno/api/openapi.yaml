@@ -1,0 +1,288 @@
+openapi: 3.1.0
+info:
+  title: GhostMark API
+  version: 0.1.0
+  description: |
+    Contrato de la API del servidor de GhostMark. Se escribe antes que el código y manda:
+    servidor y app se programan contra él (ver docs/diseno/convenciones-modelo-datos.md).
+    Errores en application/problem+json con el campo `codigo`.
+servers:
+  - url: http://localhost:8080
+    description: Local (Docker Compose)
+tags:
+  - name: cuenta
+    description: Cuenta del jugador (PBI 1, #2)
+  - name: sesion
+    description: Inicio y cierre de sesión (PBI 1, #2)
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/cuentas:
+    post:
+      tags: [cuenta]
+      operationId: crearCuenta
+      summary: Crear la cuenta e iniciar sesión
+      description: Crea la cuenta con alias, email y contraseña y devuelve una sesión abierta.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuevaCuenta' }
+            example: { alias: imad_h, email: imad@example.com, contrasena: fantasma2026 }
+      responses:
+        '201':
+          description: Cuenta creada y sesión abierta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sesion' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '409':
+          description: El alias (`ALIAS_OCUPADO`) o el email (`EMAIL_OCUPADO`) ya están en uso
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { type: about:blank, title: Conflict, status: 409, codigo: ALIAS_OCUPADO, detail: Ese alias ya está en uso }
+  /api/v1/sesiones:
+    post:
+      tags: [sesion]
+      operationId: iniciarSesion
+      summary: Iniciar sesión con email y contraseña
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Credenciales' }
+      responses:
+        '200':
+          description: Sesión abierta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sesion' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401':
+          description: Email o contraseña incorrectos (`CREDENCIALES_INCORRECTAS`). No se dice cuál de los dos falla.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/sesiones/refresco:
+    post:
+      tags: [sesion]
+      operationId: refrescarSesion
+      summary: Obtener tokens nuevos con el token de refresco
+      description: El token de refresco usado deja de valer y se devuelve otro.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRefresco' }
+      responses:
+        '200':
+          description: Sesión renovada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sesion' }
+        '401': { $ref: '#/components/responses/TokenNoValido' }
+  /api/v1/sesiones/cierre:
+    post:
+      tags: [sesion]
+      operationId: cerrarSesion
+      summary: Cerrar sesión en este móvil
+      description: Revoca el token de refresco indicado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRefresco' }
+      responses:
+        '204': { description: Sesión cerrada }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /api/v1/cuentas/yo:
+    get:
+      tags: [cuenta]
+      operationId: obtenerMiCuenta
+      summary: Datos de mi cuenta
+      responses:
+        '200':
+          description: Mi cuenta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cuenta' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+    delete:
+      tags: [cuenta]
+      operationId: borrarMiCuenta
+      summary: Borrar mi cuenta y todos sus datos
+      description: |
+        Borrado físico de la cuenta, su horario y sus sesiones. En los eventos de partidas en curso
+        el jugador pasa a «cuenta eliminada». Después ya no se puede iniciar sesión y el alias queda libre.
+      responses:
+        '204': { description: Cuenta borrada }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /api/v1/cuentas/yo/aceptaciones:
+    put:
+      tags: [cuenta]
+      operationId: aceptarAvisos
+      summary: Aceptar el permiso de ubicación y el aviso de disponibilidad
+      description: |
+        Se acepta una sola vez, al crear la cuenta. Repetir la llamada no cambia la fecha de la primera
+        aceptación. Solo admite `true`: no se puede retirar desde aquí.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Aceptaciones' }
+      responses:
+        '200':
+          description: Aceptaciones guardadas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cuenta' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /api/v1/cuentas/yo/horario:
+    get:
+      tags: [cuenta]
+      operationId: obtenerMiHorario
+      summary: Mi horario lectivo
+      responses:
+        '200':
+          description: Franjas marcadas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Horario' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+    put:
+      tags: [cuenta]
+      operationId: guardarMiHorario
+      summary: Guardar mi horario lectivo
+      description: Sustituye el horario entero por las franjas enviadas. Una lista vacía deja la cuenta sin horas de clase.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Horario' }
+            example: { franjas: [ { dia: 1, horaInicio: '08:00' }, { dia: 1, horaInicio: '08:30' }, { dia: 3, horaInicio: '15:00' } ] }
+      responses:
+        '200':
+          description: Horario guardado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Horario' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token de acceso de 15 minutos.
+  responses:
+    DatosNoValidos:
+      description: Algún campo no cumple sus reglas (`DATOS_NO_VALIDOS`); `errores` dice cuáles.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { type: about:blank, title: Bad Request, status: 400, codigo: DATOS_NO_VALIDOS, errores: [ { campo: contrasena, mensaje: Debe tener al menos 8 caracteres } ] }
+    NoAutenticado:
+      description: Falta el token de acceso o no vale (`NO_AUTENTICADO`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TokenNoValido:
+      description: El token de refresco no existe, ha caducado o ya se usó (`TOKEN_NO_VALIDO`)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Alias:
+      type: string
+      pattern: '^[A-Za-z0-9_]{3,20}$'
+      description: Único sin distinguir mayúsculas; letras sin tildes, números y guion bajo.
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+    Contrasena:
+      type: string
+      minLength: 8
+      maxLength: 72
+      writeOnly: true
+    NuevaCuenta:
+      type: object
+      required: [alias, email, contrasena]
+      properties:
+        alias: { $ref: '#/components/schemas/Alias' }
+        email: { $ref: '#/components/schemas/Email' }
+        contrasena: { $ref: '#/components/schemas/Contrasena' }
+    Credenciales:
+      type: object
+      required: [email, contrasena]
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+        contrasena: { $ref: '#/components/schemas/Contrasena' }
+    TokenRefresco:
+      type: object
+      required: [tokenRefresco]
+      properties:
+        tokenRefresco: { type: string }
+    Sesion:
+      type: object
+      required: [tokenAcceso, tokenRefresco, accesoCaducaEn, cuenta]
+      properties:
+        tokenAcceso: { type: string, description: JWT de 15 minutos }
+        tokenRefresco: { type: string, description: 'Opaco, 30 días, un solo uso' }
+        accesoCaducaEn: { type: string, format: date-time }
+        cuenta: { $ref: '#/components/schemas/Cuenta' }
+    Cuenta:
+      type: object
+      required: [id, alias, email, ubicacionAceptada, avisoDisponibilidadAceptado, creadaEn]
+      properties:
+        id: { type: string, format: uuid }
+        alias: { $ref: '#/components/schemas/Alias' }
+        email: { $ref: '#/components/schemas/Email' }
+        ubicacionAceptada: { type: boolean }
+        avisoDisponibilidadAceptado: { type: boolean }
+        creadaEn: { type: string, format: date-time }
+    Aceptaciones:
+      type: object
+      required: [ubicacion, avisoDisponibilidad]
+      properties:
+        ubicacion: { type: boolean, const: true }
+        avisoDisponibilidad: { type: boolean, const: true }
+    Franja:
+      type: object
+      required: [dia, horaInicio]
+      properties:
+        dia: { type: integer, minimum: 1, maximum: 5, description: 1 lunes … 5 viernes }
+        horaInicio: { type: string, pattern: '^(0[89]|1[0-9]|20):(00|30)$', description: 'Inicio de la franja de 30 min, de 08:00 a 20:30' }
+    Horario:
+      type: object
+      required: [franjas]
+      properties:
+        franjas:
+          type: array
+          maxItems: 130
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Franja' }
+    Error:
+      type: object
+      required: [status, codigo]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        codigo:
+          type: string
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO]
+        errores:
+          type: array
+          items:
+            type: object
+            properties:
+              campo: { type: string }
+              mensaje: { type: string }

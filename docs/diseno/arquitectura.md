@@ -16,6 +16,13 @@ La posición del jugador nunca sale del móvil. Cuando se introduce un código d
 
 <!-- S1: módulos creados, modelo de datos, decisiones (PaaS, proveedor de IA, biblioteca del mapa)… Lo de cada sprint va a N.2 de la memoria. -->
 
+### Sprint 1
+
+- Convenciones comunes de tablas, migraciones y API: [`convenciones-modelo-datos.md`](convenciones-modelo-datos.md). Nombres en español sin tildes ni ñ, claves UUID, instantes en UTC y migraciones con Flyway.
+- Modelo de datos de la cuenta: [`modelo-datos.md`](modelo-datos.md).
+- Contrato de la API, escrito antes que el código: [`api/openapi.yaml`](api/openapi.yaml).
+- Sesión con token de acceso JWT de 15 minutos y token de refresco de 30 días, de un solo uso y revocable.
+
 ## Decisiones técnicas abiertas
 
 | Decisión | Cuándo se toma | Opciones | Decidido |

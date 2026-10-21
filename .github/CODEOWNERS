@@ -11,3 +11,9 @@
 
 # Aplicación móvil: Alejo, luego Imad.
 /mobile/   @AlejoBeamonte @901421
+
+# Migraciones y modelo de datos: Imad y el responsable de la zona. A Imad se le pide revisión
+# siempre y aprueba las de los demás; las suyas las aprueba el responsable.
+/backend/src/main/resources/db/migration/  @901421 @Simon30804 @AlejoBeamonte
+/docs/diseno/modelo-datos.md               @901421 @sergiosaura @Simon30804
+/docs/diseno/convenciones-modelo-datos.md  @901421 @sergiosaura @Simon30804
