@@ -1,0 +1,14 @@
+name: despliegue-backend
+on:
+  push: {branches: [main], paths: ["backend/**"]}
+  workflow_dispatch:
+permissions: {contents: read}
+concurrency: {group: despliegue-backend, cancel-in-progress: false}
+jobs:
+  render:
+    if: github.repository == 'UNIZAR-30248-2026-GhostMark/ghostmark' || github.repository == 'Simon30804/GhostMark-Desarrollo'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lanzar el despliegue en Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
