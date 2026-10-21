@@ -6,7 +6,7 @@ permissions: {contents: read}
 concurrency: {group: despliegue-mobile, cancel-in-progress: false}
 jobs:
   update:
-    if: github.repository == 'UNIZAR-30248-2026-GhostMark/ghostmark' || github.repository == 'Simon30804/GhostMark-Desarrollo'
+    if: github.repository == 'UNIZAR-30248-2026-GhostMark/ghostmark'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults: {run: {working-directory: mobile}}
