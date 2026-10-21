@@ -120,4 +120,9 @@ public class Partida {
     public Instant getCreadaEn() {
         return creadaEn;
     }
+
+    public void cancelar(Instant ahora) {
+        this.estado = "CANCELADA";
+        this.actualizadaEn = ahora;
+    }
 }

@@ -28,6 +28,11 @@ public class ServicioPartida {
             + "'nombre', ?::text, 'inicioEn', ?::text, 'finEn', ?::text,"
             + " 'tipoMisiones', ?::text, 'plazoDisputaHoras', ?::int,"
             + " 'entradasTardias', ?::boolean, 'masterJuega', ?::boolean), ?)";
+    private static final String INSERTAR_PARTIDA_CANCELADA = "insert into evento"
+            + " (id, partida_id, secuencia, tipo, datos, ocurrido_en)"
+            + " select ?, ?, coalesce(max(secuencia), 0) + 1, 'PARTIDA_CANCELADA',"
+            + " jsonb_build_object('motivo', 'MASTER_SIN_CUENTA', 'numJugadores', ?::int), ?"
+            + " from evento where partida_id = ?";
 
     private final PartidaRepository partidas;
     private final JdbcTemplate jdbc;
@@ -57,6 +62,15 @@ public class ServicioPartida {
                 partida.isMasterJuega(),
                 OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC));
         return vistaMaster(partida);
+    }
+
+    @Transactional
+    public void cancelarPorBorradoDeMaster(UUID masterId, Instant ahora) {
+        for (Partida partida : partidas.findByMasterIdAndEstado(masterId, "EN_INSCRIPCION")) {
+            partida.cancelar(ahora);
+            jdbc.update(INSERTAR_PARTIDA_CANCELADA, UUID.randomUUID(), partida.getId(),
+                    0, OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC), partida.getId());
+        }
     }
 
     private static void validar(ConfiguracionPartida configuracion, Instant ahora) {
