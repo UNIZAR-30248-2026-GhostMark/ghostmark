@@ -26,7 +26,7 @@ Reglas comunes para que las tablas, migraciones y endpoints que crea cada person
 | Datos de una cuenta | `on delete cascade` desde la cuenta, para que borrarla borre todo lo suyo | `franja_horario.cuenta_id` |
 
 - **Ninguna tabla guarda posiciones.** La API no acepta coordenadas (definición de hecho).
-- **Eventos de partida** (tabla `evento`, tarea 1.1): no se modifican salvo para quitar los datos de quien borra su cuenta. Identifican a los jugadores por el id de su inscripción, nunca copian el alias ni el email; al borrar una cuenta sus ids de inscripción en los eventos se sustituyen por `null` y la app muestra «cuenta eliminada».
+- **Eventos de partida** (tabla `evento`, tarea 1.1): no se modifican nunca. Identifican a los jugadores por el id de su inscripción (`inscripcion_id`), nunca por el de la cuenta, y no copian el alias ni el email. Al borrar una cuenta, sus inscripciones se quedan con `cuenta_id` a `null`: los eventos siguen intactos, nada en ellos identifica a esa persona y la app muestra «cuenta eliminada».
 
 ## Migraciones
 
