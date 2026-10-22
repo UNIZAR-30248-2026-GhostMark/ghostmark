@@ -21,7 +21,13 @@ La posición del jugador nunca sale del móvil. Cuando se introduce un código d
 - Convenciones comunes de tablas, migraciones y API: [`convenciones-modelo-datos.md`](convenciones-modelo-datos.md). Nombres en español sin tildes ni ñ, claves UUID, instantes en UTC y migraciones con Flyway.
 - Modelo de datos de la cuenta y de la partida, con sus estados: [`modelo-datos.md`](modelo-datos.md).
 - Contrato de la API, escrito antes que el código: [`api/openapi.yaml`](api/openapi.yaml).
-- Sesión con token de acceso JWT de 15 minutos y token de refresco de 30 días, de un solo uso y revocable.
+- **Cuenta y sesión (PBI 1).** En el servidor, el módulo `sesion` registra la cuenta e inicia, renueva y cierra la sesión, y el módulo `cuenta` guarda el horario lectivo, las aceptaciones y el borrado.
+  - La contraseña se guarda con bcrypt y ninguna respuesta la devuelve.
+  - El token de acceso es un JWT de 15 minutos firmado con HMAC; la clave sale de la variable de entorno `JWT_SECRETO` (al menos 32 bytes) y el servidor no arranca sin ella. Las rutas protegidas lo exigen en la cabecera `Authorization`.
+  - El token de refresco dura 30 días y sirve una sola vez: al usarlo se entrega uno nuevo. El servidor guarda solo su hash SHA-256, lo revoca al cerrar sesión o al borrar la cuenta, y una tarea programada borra una vez al día los que caducaron hace más de 30 días.
+  - El permiso de ubicación y el aviso de disponibilidad guardan el instante de la primera aceptación; aceptarlos otra vez no cambia nada.
+  - Borrar la cuenta es un borrado físico: la fila de `cuenta` y, en cascada, su horario y sus tokens.
+  - En la app, el alta tiene cuatro pasos (alias y acceso, horario lectivo, permiso de ubicación y aviso de disponibilidad) y el token de refresco se guarda en el almacenamiento seguro del móvil (SecureStore).
 
 ## Decisiones técnicas abiertas
 
