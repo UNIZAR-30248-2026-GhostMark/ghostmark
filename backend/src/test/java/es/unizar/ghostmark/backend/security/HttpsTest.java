@@ -1,4 +1,3 @@
-
 package es.unizar.ghostmark.backend.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,11 +9,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+/**
+ * Comprueba en producción que la API solo responde por HTTPS. Se ejecuta solo si existe la
+ * variable {@code URL_PRODUCCION} (por ejemplo {@code ghostmark-api-kx1q.onrender.com}, sin
+ * esquema): la pasa el flujo de despliegue después de desplegar, no la integración continua de
+ * cada pull request.
+ */
+@EnabledIfEnvironmentVariable(named = "URL_PRODUCCION", matches = ".+")
 class HttpsTest {
 
-    private static final String SERVIDOR =
-            "ghostmark-api-kx1q.onrender.com/api/v1/health";
+    private static final String SERVIDOR = System.getenv("URL_PRODUCCION") + "/api/v1/health";
 
     private static final HttpClient CLIENTE = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NEVER)
