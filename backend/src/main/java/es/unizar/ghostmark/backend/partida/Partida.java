@@ -31,10 +31,10 @@ public class Partida {
     @Column(name = "fin_en", nullable = false)
     private Instant finEn;
 
-    @Column(name = "tipo_misiones", length = 10)
+    @Column(name = "tipo_misiones", nullable = false, length = 10)
     private String tipoMisiones;
 
-    @Column(name = "plazo_disputa_horas")
+    @Column(name = "plazo_disputa_horas", nullable = false)
     private Short plazoDisputaHoras;
 
     @Column(name = "entradas_tardias", nullable = false)

@@ -9,8 +9,8 @@ create table partida (
     master_juega boolean not null,
     inicio_en timestamptz not null,
     fin_en timestamptz not null check (fin_en > inicio_en),
-    tipo_misiones varchar(10) check (tipo_misiones in ('BIBLIOTECA', 'IA')),
-    plazo_disputa_horas smallint check (plazo_disputa_horas in (2, 6, 12, 24)),
+    tipo_misiones varchar(10) not null check (tipo_misiones in ('BIBLIOTECA', 'IA')),
+    plazo_disputa_horas smallint not null check (plazo_disputa_horas in (2, 6, 12, 24)),
     entradas_tardias boolean not null,
     codigo_invitacion char(8) not null unique check (codigo_invitacion ~ '^[2-9A-HJKMNP-Z]{8}$'),
     estado varchar(20) not null default 'EN_INSCRIPCION'
