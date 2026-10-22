@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -64,6 +65,13 @@ public class ServicioPartida {
         return vistaMaster(partida);
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> misPartidas(UUID masterId) {
+        return partidas.findByMasterId(masterId).stream()
+                .map(ServicioPartida::vistaResumen)
+                .toList();
+    }
+
     @Transactional
     public void cancelarPorBorradoDeMaster(UUID masterId, Instant ahora) {
         for (Partida partida : partidas.findByMasterIdAndEstado(masterId, "EN_INSCRIPCION")) {
@@ -114,6 +122,18 @@ public class ServicioPartida {
             codigo = texto.toString();
         } while (partidas.existsByCodigoInvitacion(codigo));
         return codigo;
+    }
+
+    private static Map<String, Object> vistaResumen(Partida partida) {
+        Map<String, Object> vista = new LinkedHashMap<>();
+        vista.put("id", partida.getId().toString());
+        vista.put("nombre", partida.getNombre());
+        vista.put("estado", partida.getEstado());
+        vista.put("inicioEn", partida.getInicioEn().toString());
+        vista.put("finEn", partida.getFinEn().toString());
+        vista.put("soyMaster", true);
+        vista.put("numInscritos", 0);
+        return vista;
     }
 
     private static Map<String, Object> vistaMaster(Partida partida) {

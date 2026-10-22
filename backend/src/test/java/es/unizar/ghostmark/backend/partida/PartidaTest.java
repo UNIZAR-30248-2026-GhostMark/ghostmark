@@ -137,6 +137,53 @@ class PartidaTest {
                 .body("codigo", equalTo("NO_AUTENTICADO"));
     }
 
+    @Test
+    void misPartidasDevuelveLasQueSoyMaster() {
+        String token = registrar("fito_t", "fito@example.com");
+        String id = crear(token, configuracion("Killer Propio"))
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+        String otro = registrar("gema_u", "gema@example.com");
+
+        given()
+                .port(puerto)
+                .auth()
+                .oauth2(token)
+                .when()
+                .get("/api/v1/cuentas/yo/partidas")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].id", equalTo(id))
+                .body("[0].nombre", equalTo("Killer Propio"))
+                .body("[0].estado", equalTo("EN_INSCRIPCION"))
+                .body("[0].soyMaster", equalTo(true))
+                .body("[0].numInscritos", equalTo(0));
+
+        given()
+                .port(puerto)
+                .auth()
+                .oauth2(otro)
+                .when()
+                .get("/api/v1/cuentas/yo/partidas")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(0));
+    }
+
+    @Test
+    void misPartidasSinTokenDa401() {
+        given()
+                .port(puerto)
+                .when()
+                .get("/api/v1/cuentas/yo/partidas")
+                .then()
+                .statusCode(401)
+                .body("codigo", equalTo("NO_AUTENTICADO"));
+    }
+
     private Response crear(String token, Map<String, Object> cuerpo) {
         return given()
                 .port(puerto)
