@@ -18,6 +18,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ghostmark
       SPRING_DATASOURCE_USERNAME: ghostmark
       SPRING_DATASOURCE_PASSWORD: ghostmark
+      JWT_SECRETO: ${JWT_SECRETO:?Falta exportar JWT_SECRETO con al menos 32 bytes}
     depends_on:
       db:
         condition: service_healthy

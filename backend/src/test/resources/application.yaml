@@ -1,0 +1,2 @@
+# Secreto de mentira solo para los tests. En despliegue va en variable de entorno.
+JWT_SECRETO: "test-secreto-de-al-menos-32-bytes-123456"
