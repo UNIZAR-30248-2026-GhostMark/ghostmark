@@ -26,6 +26,7 @@ jobs:
             sleep 10
           done
           exit 1
+      # HttpsTest llega con la tarea 1.11 (#44); hasta entonces este paso no ejecuta ningún test.
       - name: Comprobar el HTTPS en produccion
         run: ./mvnw -B test -Dtest=HttpsTest -Dsurefire.failIfNoSpecifiedTests=false
         working-directory: backend

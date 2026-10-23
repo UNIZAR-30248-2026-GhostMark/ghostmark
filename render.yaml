@@ -1,11 +1,12 @@
-# Blueprint de Render para la  tarea 1.4 (#37): api Docker + Postgres gratis.
-# La DB gratis caduca a los 30 dias, tenemos que tener cuidado: ver planning 1.4 y doc interna sobre cuando recrearla.
-# PostGIS se activa con CREATE EXTENSION postgis tras crear la DB.
+# Blueprint de Render (tarea 1.4, #37): servidor en Docker y PostgreSQL en el plan gratuito.
+# La base de datos gratuita caduca a los 30 días (riesgo Ri19); PostGIS lo activa la migración
+# V202610240900__postgis.sql. Solo despliega el flujo despliegue-backend, con el deploy hook.
 services:
   - type: web
     name: ghostmark-api
     runtime: docker
     plan: free
+    autoDeploy: false
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /api/v1/health
