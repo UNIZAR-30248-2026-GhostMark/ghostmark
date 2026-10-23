@@ -18,6 +18,8 @@ import org.springframework.context.annotation.Import;
  * sustituirYVaciarHorario: comprueba que se puede sustituir un horario por otro y luego vaciarlo.
  * rechazarHorarioInvalidoSinModificarAnterior: comprueba que si se intenta guardar un horario inválido, no se modifica el horario anterior.
  * cadaUsuarioTieneSuPropioHorario: comprueba que cada usuario tiene su propio horario y no se mezclan.
+ * cuerpoNoValidoDa400: comprueba que un JSON que no es un horario da 400 y no 401.
+ * cuentaBorradaDa401ConCodigo: comprueba que con la cuenta borrada el 401 lleva su código.
  */
 
 @Import(TestcontainersConfiguration.class)
@@ -172,6 +174,44 @@ class HorarioTest {
         .then()
         .statusCode(200)
         .body("franjas.size()", equalTo(0));
+  }
+
+  @Test
+  void cuerpoNoValidoDa400() {
+    String token = registrar("horario_g", "horario_g@example.com");
+
+    given()
+        .port(puerto)
+        .header("Authorization", "Bearer " + token)
+        .contentType(ContentType.JSON)
+        .body("{\"franjas\": 3}")
+        .when()
+        .put(RUTA)
+        .then()
+        .statusCode(400)
+        .body("codigo", equalTo("DATOS_NO_VALIDOS"));
+  }
+
+  @Test
+  void cuentaBorradaDa401ConCodigo() {
+    String token = registrar("horario_h", "horario_h@example.com");
+
+    given()
+        .port(puerto)
+        .header("Authorization", "Bearer " + token)
+        .when()
+        .delete("/api/v1/cuentas/yo")
+        .then()
+        .statusCode(204);
+
+    given()
+        .port(puerto)
+        .header("Authorization", "Bearer " + token)
+        .when()
+        .get(RUTA)
+        .then()
+        .statusCode(401)
+        .body("codigo", equalTo("NO_AUTENTICADO"));
   }
 
   private String registrar(String alias, String email) {
