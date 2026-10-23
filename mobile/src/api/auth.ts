@@ -23,6 +23,9 @@ export type AuthResponse = {
   };
 };
 
+type AccountConsents = Pick<AuthResponse["cuenta"], "ubicacionAceptada" | "avisoDisponibilidadAceptado">;
+
+let currentAccount: AuthResponse["cuenta"] | undefined;
 const refreshKey = "ghostmark_refresh_token";
 let restoration: Promise<boolean> | undefined;
 let onSessionExpired: (() => void) | undefined;
@@ -42,6 +45,7 @@ export function login(payload: LoginRequest) {
 export async function saveSession(session: AuthResponse) {
   await SecureStore.setItemAsync(refreshKey, session.tokenRefresco);
   setAccessToken(session.tokenAcceso);
+  currentAccount = session.cuenta;
 }
 
 export function restoreSession() {
@@ -72,7 +76,28 @@ setSessionRefresher(async () => {
   }
 });
 
+export function needsAccountConsents() {
+  return !currentAccount?.ubicacionAceptada || !currentAccount?.avisoDisponibilidadAceptado;
+}
+
+export function nextAccountScreen(): "Home" | "LocationConsent" | "AvailabilityConsent" {
+  if (!currentAccount?.ubicacionAceptada) return "LocationConsent";
+  if (!currentAccount.avisoDisponibilidadAceptado) return "AvailabilityConsent";
+  return "Home";
+}
+
+export function saveAccountConsents(consents: AccountConsents) {
+  if (currentAccount) {
+    currentAccount = { ...currentAccount, ...consents };
+  }
+}
+
+export function getCurrentAccount() {
+  return currentAccount;
+}
+
 export async function clearSession() {
+  currentAccount = undefined;
   setAccessToken(undefined);
   await SecureStore.deleteItemAsync(refreshKey);
 }

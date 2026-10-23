@@ -2,7 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
 import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { login, saveSession } from "../api/auth";
+import { login, nextAccountScreen, saveSession } from "../api/auth";
 import { ApiError } from "../api/client";
 import { FormTextInput } from "../components/FormTextInput";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -37,7 +37,7 @@ export function SignInScreen({ navigation }: Props) {
     try {
       const session = await login({ email: email.trim(), contrasena: password });
       await saveSession(session);
-      navigation.replace("Home");
+      navigation.replace(nextAccountScreen());
     } catch (requestError) {
       if (requestError instanceof ApiError) setError([requestError.message, ...requestError.fieldErrors].join("\n"));
       else setError("No hemos podido iniciar sesión. Revisa la conexión e inténtalo de nuevo.");

@@ -9,7 +9,14 @@
       "backgroundColor": "#1A0B2E"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GhostMark usa tu ubicación solo para comprobar zonas seguras al eliminar."
+        }
+      ],
+      "expo-notifications"
     ]
   }
 }

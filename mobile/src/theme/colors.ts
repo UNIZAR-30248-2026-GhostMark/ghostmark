@@ -7,8 +7,10 @@ export const colors = {
   textMuted: "#CDB8FF",
   ink: "#12061F",
   lime: "#B8F24A",
+  limePale: "#E4F8BF",
   danger: "#FF5A5F",
   white: "#FFF8EC",
   signInArtwork: "#A98CE8",
   signInDecoration: "#C7B3F5",
+  availabilityArtwork: "#AEE8FF",
 } as const;

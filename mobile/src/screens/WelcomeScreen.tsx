@@ -51,7 +51,7 @@ export function WelcomeScreen({ navigation }: Props) {
     try {
       const session = await registerAccount({ alias: alias.trim(), email: email.trim(), contrasena: password });
       await saveSession(session);
-      navigation.replace("Schedule");
+      navigation.replace("Schedule", { onboarding: true });
     } catch (requestError) {
       setError(errorMessage(requestError));
     } finally {
