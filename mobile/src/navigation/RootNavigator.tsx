@@ -6,6 +6,8 @@ import { Alert, Button, Text, View } from "react-native";
 import { nextAccountScreen, restoreSession, setSessionExpiredHandler } from "../api/auth";
 import { ApiStatusScreen } from "../screens/ApiStatusScreen";
 import { AvailabilityConsentScreen } from "../screens/AvailabilityConsentScreen";
+import { CreateGameDataScreen } from "../screens/CreateGameDataScreen";
+import { CreateGameRulesScreen } from "../screens/CreateGameRulesScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LocationConsentScreen } from "../screens/LocationConsentScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
@@ -34,6 +36,7 @@ export function RootNavigator() {
   const [initialRoute, setInitialRoute] = useState<"Welcome" | "Home" | "LocationConsent" | "AvailabilityConsent">();
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     setSessionExpiredHandler(() => {
       if (navigationRef.isReady()) {
@@ -43,6 +46,7 @@ export function RootNavigator() {
     });
     return () => setSessionExpiredHandler(undefined);
   }, []);
+
   useEffect(() => {
     let active = true;
     restoreSession().then((restored) => {
@@ -50,10 +54,13 @@ export function RootNavigator() {
     }).catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [attempt]);
-  if (!initialRoute) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}>
-    <Text style={{ color: colors.text, textAlign: "center" }}>{error ? "No se ha podido recuperar la sesión. Comprueba tu conexión." : "Recuperando sesión…"}</Text>
-    {error ? <Button title="Reintentar" onPress={() => { setError(false); setAttempt((value) => value + 1); }} /> : null}
-  </View>;
+
+  if (!initialRoute) {
+    return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}>
+      <Text style={{ color: colors.text, textAlign: "center" }}>{error ? "No se ha podido recuperar la sesión. Comprueba tu conexión." : "Recuperando sesión…"}</Text>
+      {error ? <Button title="Reintentar" onPress={() => { setError(false); setAttempt((value) => value + 1); }} /> : null}
+    </View>;
+  }
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false, animation: "fade" }}>
@@ -64,6 +71,8 @@ export function RootNavigator() {
         <Stack.Screen name="AvailabilityConsent" component={AvailabilityConsentScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="CreateGameData" component={CreateGameDataScreen} />
+        <Stack.Screen name="CreateGameRules" component={CreateGameRulesScreen} />
         <Stack.Screen name="ApiStatus" component={ApiStatusScreen} />
       </Stack.Navigator>
     </NavigationContainer>
