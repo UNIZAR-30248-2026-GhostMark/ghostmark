@@ -27,3 +27,31 @@ Esqueleto de la app de GhostMark para la tarea #35. Incluye Expo con TypeScript,
    ```
 
 En la pantalla inicial, «COMPROBAR SERVIDOR» llama a `GET /api/v1/health`. Una respuesta `UP` confirma la integración inicial con la API.
+
+## Compartir con QR y enlace (#50)
+
+Después de crear una partida aparece el paso **Compartir** (`f2-e5`). El QR, la copia y el menú de compartir usan `ghostmark://unirse/<codigo>`. El botón **Ir a la partida** consulta la información pública del servidor de la tarea #48. No se implementan todavía el escáner ni la inscripción de la PBI 3.
+
+Para ejecutar las comprobaciones:
+
+```powershell
+npm ci
+npm run typecheck
+npm run lint
+npm run test:sharing
+node tests/session.test.cjs
+```
+
+Las pruebas de la #50 verifican el flujo de creación, el enlace usado en QR/copia/compartir, el contrato de consulta, el reintento, las respuestas tardías y la recepción de enlaces antes y después de iniciar sesión. Las APIs nativas y HTTP se simulan en estas pruebas.
+
+Para probar el esquema `ghostmark://`, instala una compilación nativa que incluya el nuevo `scheme` (por ejemplo `npx expo run:android` con Android Studio/SDK y un emulador o dispositivo conectado). Si Expo solicita un identificador de aplicación, coordínalo con el responsable del despliegue. Cambiar `app.json` o reiniciar Metro no registra el esquema dentro de Expo Go. Reconstruye el binario si ya tenías una compilación anterior.
+
+Con Expo Go puedes comprobar las pantallas, el QR, copiar y compartir. Para probar la navegación por invitación usa `exp://<IP-del-ordenador>:8081/--/unirse/<codigo>` con la dirección real de Metro. El QR compartido sigue conteniendo la URL oficial `ghostmark://` y requiere una instalación nativa de GhostMark para abrirse.
+
+En Android, con el binario instalado y Metro accesible, se puede abrir un código real desde PowerShell:
+
+```powershell
+adb shell am start -W -a android.intent.action.VIEW -d "ghostmark://unirse/CODIGO_REAL"
+```
+
+Sustituye `CODIGO_REAL` por el código de ocho caracteres devuelto al crear la partida. Comprueba la apertura con la app abierta, cerrada y sin sesión, además de un código válido que no exista (404). El móvil físico debe usar la IP LAN del ordenador en `EXPO_PUBLIC_API_URL`; el emulador Android usa `http://10.0.2.2:8080`.

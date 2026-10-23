@@ -21,3 +21,7 @@ export type Game = GameConfiguration & {
 
 export type GameSummary = Pick<Game, "id" | "nombre" | "estado" | "inicioEn" | "finEn" | "numInscritos"> & { soyMaster: boolean };
 export type GameDraft = Pick<GameConfiguration, "nombre" | "inicioEn" | "finEn">;
+
+export type PublicGame = Pick<Game, "nombre" | "estado" | "inicioEn" | "finEn" | "numInscritos"> & {
+  aliasMaster: string | null;
+};
