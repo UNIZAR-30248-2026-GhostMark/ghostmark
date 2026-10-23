@@ -9,4 +9,6 @@ export const colors = {
   lime: "#B8F24A",
   danger: "#FF5A5F",
   white: "#FFF8EC",
+  signInArtwork: "#A98CE8",
+  signInDecoration: "#C7B3F5",
 } as const;

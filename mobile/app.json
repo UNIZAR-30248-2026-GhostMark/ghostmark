@@ -7,6 +7,9 @@
     "userInterfaceStyle": "dark",
     "splash": {
       "backgroundColor": "#1A0B2E"
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
