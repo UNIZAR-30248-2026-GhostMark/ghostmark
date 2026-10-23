@@ -247,7 +247,7 @@ Los eventos no se modifican ni se borran, salvo al cerrar la partida, cuando se 
 | Tipo | Cuándo | `datos` | Tarea |
 |--|--|--|--|
 | `PARTIDA_CREADA` | El máster crea la partida | La configuración: `nombre`, `inicioEn`, `finEn`, `tipoMisiones`, `plazoDisputaHoras`, `entradasTardias`, `masterJuega` | 2.2 |
-| `CONFIGURACION_CAMBIADA` | El máster edita antes del arranque | Solo los campos que cambian, con su valor nuevo | 2.2 |
+| `CONFIGURACION_CAMBIADA` | El máster edita antes del arranque | Solo los campos que cambian, con su valor nuevo | 2.6 |
 | `JUGADOR_INSCRITO` | Alguien se inscribe, o el máster activa «Yo también juego» | `inscripcionId` | 3.2 |
 | `INSCRIPCION_RETIRADA` | El máster desactiva «Yo también juego» o un inscrito borra su cuenta antes del arranque | `inscripcionId`, `motivo` (`MASTER_NO_JUEGA`, `CUENTA_BORRADA`) | 3.2 |
 | `PARTIDA_ARRANCADA` | Llega `inicio_en` con 3 o más, o «Arrancar ya» | `modo` (`PROGRAMADO`, `ADELANTADO`), `numJugadores` | 4.2 |
