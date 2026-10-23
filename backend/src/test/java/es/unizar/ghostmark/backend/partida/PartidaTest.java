@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
 import es.unizar.ghostmark.backend.cuenta.CuentaRepository;
@@ -122,6 +123,31 @@ class PartidaTest {
                 .statusCode(400)
                 .body("codigo", equalTo("DATOS_NO_VALIDOS"))
                 .body("errores.campo", hasItems("nombre", "plazoDisputaHoras", "tipoMisiones"));
+    }
+
+    @Test
+    void cuerpoVacioDa400ConTodosLosCampos() {
+        String token = registrar("hugo_v", "hugo@example.com");
+
+        crear(token, new HashMap<>())
+                .then()
+                .statusCode(400)
+                .body("codigo", equalTo("DATOS_NO_VALIDOS"))
+                .body("errores.campo", hasItems("nombre", "inicioEn", "finEn", "tipoMisiones",
+                        "plazoDisputaHoras", "entradasTardias", "masterJuega"));
+    }
+
+    @Test
+    void rutaDeErrorNoExigeSesion() {
+        int estado = given()
+                .port(puerto)
+                .when()
+                .get("/error")
+                .then()
+                .extract()
+                .statusCode();
+
+        assertNotEquals(401, estado);
     }
 
     @Test

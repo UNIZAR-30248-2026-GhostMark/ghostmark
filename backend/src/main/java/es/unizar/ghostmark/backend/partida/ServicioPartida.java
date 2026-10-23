@@ -95,10 +95,12 @@ public class ServicioPartida {
         if (fin == null || (inicio != null && !fin.isAfter(inicio))) {
             errores.put("finEn", "Debe ser posterior al inicio");
         }
-        if (!TIPOS_MISIONES.contains(configuracion.tipoMisiones())) {
+        if (configuracion.tipoMisiones() == null
+                || !TIPOS_MISIONES.contains(configuracion.tipoMisiones())) {
             errores.put("tipoMisiones", "Debe ser BIBLIOTECA o IA");
         }
-        if (!PLAZOS_DISPUTA.contains(configuracion.plazoDisputaHoras())) {
+        if (configuracion.plazoDisputaHoras() == null
+                || !PLAZOS_DISPUTA.contains(configuracion.plazoDisputaHoras())) {
             errores.put("plazoDisputaHoras", "Debe ser 2, 6, 12 o 24");
         }
         if (configuracion.entradasTardias() == null) {

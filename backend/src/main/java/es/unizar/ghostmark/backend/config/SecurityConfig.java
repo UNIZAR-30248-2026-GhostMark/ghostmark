@@ -31,8 +31,9 @@ public class SecurityConfig {
     SecurityFilterChain filter(HttpSecurity http) throws Exception {
         http.csrf(c -> c.disable())
                 .authorizeHttpRequests(a -> a
+                        // /error abierto: si no, un fallo del servidor llega a la app como 401.
                         .requestMatchers("/api/v1/health", "/v3/api-docs/**",
-                                "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                                "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/cuentas", "/api/v1/sesiones",
                                 "/api/v1/sesiones/refresco").permitAll()
                         .anyRequest().authenticated())
