@@ -30,7 +30,7 @@ En la pantalla inicial, «COMPROBAR SERVIDOR» llama a `GET /api/v1/health`. Una
 
 ## Compartir con QR y enlace (#50)
 
-Después de crear una partida aparece el paso **Compartir** (`f2-e5`). El QR, la copia y el menú de compartir usan `ghostmark://unirse/<codigo>`. El botón **Ir a la partida** consulta la información pública del servidor de la tarea #48. No se implementan todavía el escáner ni la inscripción de la PBI 3.
+Después de crear una partida aparece el paso **Compartir** (`f2-e5`). El QR y la copia usan el `enlace` que devuelve el servidor (`ghostmark://unirse/<codigo>`). El botón **Ir a la partida** consulta la información pública del servidor de la tarea #48. No se implementan todavía el escáner ni la inscripción de la PBI 3.
 
 Para ejecutar las comprobaciones:
 
@@ -38,15 +38,14 @@ Para ejecutar las comprobaciones:
 npm ci
 npm run typecheck
 npm run lint
-npm run test:sharing
-node tests/session.test.cjs
+npm test
 ```
 
-Las pruebas de la #50 verifican el flujo de creación, el enlace usado en QR/copia/compartir, el contrato de consulta, el reintento, las respuestas tardías y la recepción de enlaces antes y después de iniciar sesión. Las APIs nativas y HTTP se simulan en estas pruebas.
+Las pruebas de la #50 verifican el flujo de creación, el enlace usado en el QR y al copiar, el contrato de consulta, el reintento, las respuestas tardías y la recepción de enlaces antes y después de iniciar sesión. Las APIs nativas y HTTP se simulan en estas pruebas.
 
 Para probar el esquema `ghostmark://`, instala una compilación nativa que incluya el nuevo `scheme` (por ejemplo `npx expo run:android` con Android Studio/SDK y un emulador o dispositivo conectado). Si Expo solicita un identificador de aplicación, coordínalo con el responsable del despliegue. Cambiar `app.json` o reiniciar Metro no registra el esquema dentro de Expo Go. Reconstruye el binario si ya tenías una compilación anterior.
 
-Con Expo Go puedes comprobar las pantallas, el QR, copiar y compartir. Para probar la navegación por invitación usa `exp://<IP-del-ordenador>:8081/--/unirse/<codigo>` con la dirección real de Metro. El QR compartido sigue conteniendo la URL oficial `ghostmark://` y requiere una instalación nativa de GhostMark para abrirse.
+Con Expo Go puedes comprobar las pantallas, el QR y copiar el enlace. Para probar la navegación por invitación usa `exp://<IP-del-ordenador>:8081/--/unirse/<codigo>` con la dirección real de Metro. El QR compartido sigue conteniendo la URL oficial `ghostmark://` y requiere una instalación nativa de GhostMark para abrirse.
 
 En Android, con el binario instalado y Metro accesible, se puede abrir un código real desde PowerShell:
 

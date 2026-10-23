@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
 import { GameWizardHeader } from "../components/GameWizardHeader";
@@ -10,16 +10,15 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import type { RootStackParamList } from "../types/navigation";
-import { invitationLink } from "../utils/invitation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ShareGame">;
 
 export function ShareGameScreen({ navigation, route }: Props) {
   const { game } = route.params;
-  const link = invitationLink(game.codigoInvitacion);
+  // El enlace es el que devuelve el servidor (OpenAPI, `Partida.enlace`); la app no lo construye.
+  const link = game.enlace;
   const { width } = useWindowDimensions();
   const [message, setMessage] = useState<string>();
-  const [sharing, setSharing] = useState(false);
 
   async function copyLink() {
     try {
@@ -30,17 +29,6 @@ export function ShareGameScreen({ navigation, route }: Props) {
     }
   }
 
-  async function shareLink() {
-    setSharing(true);
-    setMessage(undefined);
-    try {
-      await Share.share({ title: game.nombre, message: `Únete a «${game.nombre}» en GhostMark: ${link}` });
-    } catch {
-      setMessage("No se ha podido compartir. Puedes copiar el enlace.");
-    } finally {
-      setSharing(false);
-    }
-  }
 
   return (
     <Screen>
@@ -58,10 +46,6 @@ export function ShareGameScreen({ navigation, route }: Props) {
         </View>
         <Text style={styles.code}>Código: {game.codigoInvitacion}</Text>
         <Text selectable style={styles.link}>{link}</Text>
-        <Pressable accessibilityRole="button" disabled={sharing} onPress={shareLink} style={styles.share}>
-          <Ionicons name="share-social-outline" color={colors.lime} size={20} />
-          <Text style={styles.shareText}>COMPARTIR INVITACIÓN</Text>
-        </Pressable>
         {message ? <Text accessibilityLiveRegion="polite" style={styles.message}>{message}</Text> : null}
       </ScrollView>
       <View style={styles.actions}>
@@ -84,8 +68,6 @@ const styles = StyleSheet.create({
   ghost: { height: 60, resizeMode: "contain", width: 60 },
   code: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 20, textAlign: "center" },
   link: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, marginTop: 8, textAlign: "center" },
-  share: { alignItems: "center", alignSelf: "center", flexDirection: "row", gap: 8, minHeight: 48, marginTop: 8 },
-  shareText: { color: colors.lime, fontFamily: "Bangers", fontSize: 19 },
   message: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 13, textAlign: "center" },
   actions: { gap: 14, paddingTop: 12, paddingBottom: 4 },
   copyButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, flexDirection: "row", gap: 12, justifyContent: "center", minHeight: 54 },

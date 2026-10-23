@@ -50,7 +50,6 @@ test('rechaza esquemas, rutas, longitudes y caracteres ajenos al contrato', () =
   for (const url of ['https://unirse/ABCDEFGH', 'ghostmark://otra/ABCDEFGH', 'ghostmark://unirse/ABCDEFG', 'ghostmark://unirse/ABCDEFG0', 'ghostmark://unirse/ABCDEFGI', 'ghostmark://unirse/ABCDEFGL', 'ghostmark://unirse/abcdefgh', 'ghostmark://unirse/ABCDEFGH/extra', link + '?token=secret']) {
     assert.equal(invitation.parseInvitationLink(url), undefined, url);
   }
-  assert.throws(() => invitation.invitationLink('bad'));
 });
 test('conserva la invitación hasta terminar login y permisos y la consume una sola vez', () => {
   const inbox = invitation.createInvitationInbox();
@@ -76,22 +75,21 @@ test('consulta el contrato de la #48 con autenticación y propaga el 404', async
   await assert.rejects(api.getGameByCode(code), (error) => error instanceof client.ApiError && error.status === 404);
   client.setAccessToken(undefined);
 });
-test('el QR, copiar y compartir contienen el mismo enlace; ir a la partida lleva su código', async () => {
-  let copied, shared, destination;
+test('el QR y copiar usan el enlace del servidor; ir a la partida lleva su código', async () => {
+  let copied, destination;
+  const serverLink = 'ghostmark://unirse/23456789';
   const { ShareGameScreen } = load('screens/ShareGameScreen.tsx', { ...common,
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
     'expo-clipboard': { setStringAsync: async (value) => { copied = value; return true; } },
     'react-native-qrcode-svg': { __esModule: true, default: 'QRCode' },
-    'react-native': { ...native, Share: { share: async (value) => { shared = value; } } },
   });
-  await mount(ShareGameScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { game } } });
-  assert.equal(tree.root.findByType('QRCode').props.value, link);
+  await mount(ShareGameScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { game: { ...game, enlace: serverLink } } } });
+  assert.equal(tree.root.findByType('QRCode').props.value, serverLink);
   assert.equal(tree.root.findByType('GameWizardHeader').props.step, 5);
   const buttons = tree.root.findAllByType('Pressable');
-  await act(async () => buttons[1].props.onPress());
-  assert.equal(copied, link);
+  assert.equal(buttons.length, 1, 'sin «Compartir invitación» (R9-5)');
   await act(async () => buttons[0].props.onPress());
-  assert.equal(shared.message, `Únete a «${game.nombre}» en GhostMark: ${link}`);
+  assert.equal(copied, serverLink);
   act(() => tree.root.findByType('PrimaryButton').props.onPress());
   assert.deepEqual(destination, ['GameInvitation', { code }]);
 });
