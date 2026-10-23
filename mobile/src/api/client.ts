@@ -1,6 +1,5 @@
 const defaultApiUrl = "http://localhost:8080";
 let accessToken: string | undefined;
-let accessExpiresAt: number | undefined;
 let refreshSession: (() => Promise<void>) | undefined;
 let refreshInFlight: Promise<void> | undefined;
 
@@ -19,13 +18,12 @@ export class ApiError extends Error {
   }
 }
 
-export function setAccessToken(token: string | undefined, expiresAt?: string) {
+export function setAccessToken(token: string | undefined) {
   accessToken = token;
-  accessExpiresAt = expiresAt ? Date.parse(expiresAt) : undefined;
 }
 
 export function isExpiredAccessResponse(status: number) {
-  return status === 401 || (status === 403 && accessExpiresAt !== undefined && Date.now() >= accessExpiresAt);
+  return status === 401;
 }
 
 export function setSessionRefresher(refresher: () => Promise<void>) {

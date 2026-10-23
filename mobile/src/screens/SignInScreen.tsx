@@ -39,7 +39,7 @@ export function SignInScreen({ navigation }: Props) {
       await saveSession(session);
       navigation.replace("Home");
     } catch (requestError) {
-      if (requestError instanceof ApiError) setError([...requestError.fieldErrors, requestError.message].join("\n"));
+      if (requestError instanceof ApiError) setError([requestError.message, ...requestError.fieldErrors].join("\n"));
       else setError("No hemos podido iniciar sesión. Revisa la conexión e inténtalo de nuevo.");
     } finally { setIsSubmitting(false); }
   }
@@ -63,7 +63,7 @@ export function SignInScreen({ navigation }: Props) {
           <View style={[styles.bgCircle, styles.bgCircle4]} />
           <View style={[styles.bgCircle, styles.bgCircle5]} />
           <View style={[styles.bgCircle, styles.bgCircle6]} />
-          <Image source={require("../../assets/ghosts/fantasma-picaro.png")} accessibilityLabel="Fantasma saludando" style={styles.ghost} />
+          <Image source={require("../../assets/ghosts/fantasma-picaro.png")} accessibilityLabel="Fantasma pícaro" style={styles.ghost} />
           <View style={styles.helloBubble}><Text style={styles.helloText}>¡hola!</Text></View>
         </View>
         <View style={styles.bodyContent}>

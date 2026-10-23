@@ -36,8 +36,10 @@ global.fetch = async (url, options) => {
     closedToken = JSON.parse(options.body).tokenRefresco;
     return new Response(null, { status: 204 });
   }
-  return options.headers.get('Authorization') === 'Bearer new-access'
-    ? Response.json({ ok: true }) : new Response(null, { status: 403 });
+  const authorization = options.headers.get('Authorization');
+  if (authorization === 'Bearer new-access') return Response.json({ ok: true });
+  if (authorization === 'Bearer valid') return new Response(null, { status: 403 });
+  return new Response(null, { status: 401 });
 };
 
 async function main() {
@@ -46,7 +48,6 @@ async function main() {
   assert.deepEqual(results, [{ ok: true }, { ok: true }]);
   assert.equal(refreshes, 1, 'concurrent requests share one refresh');
   assert.equal(storage.get('ghostmark_refresh_token'), 'new-refresh');
-  assert.equal(auth.needsAccountConsents(), false);
   await auth.signOut();
   assert.equal(closedToken, 'new-refresh');
   assert.equal(storage.size, 0);

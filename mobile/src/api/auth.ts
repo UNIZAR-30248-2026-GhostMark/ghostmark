@@ -23,9 +23,6 @@ export type AuthResponse = {
   };
 };
 
-type AccountConsents = Pick<AuthResponse["cuenta"], "ubicacionAceptada" | "avisoDisponibilidadAceptado">;
-
-let currentAccount: AuthResponse["cuenta"] | undefined;
 const refreshKey = "ghostmark_refresh_token";
 let restoration: Promise<boolean> | undefined;
 let onSessionExpired: (() => void) | undefined;
@@ -44,8 +41,7 @@ export function login(payload: LoginRequest) {
 
 export async function saveSession(session: AuthResponse) {
   await SecureStore.setItemAsync(refreshKey, session.tokenRefresco);
-  setAccessToken(session.tokenAcceso, session.accesoCaducaEn);
-  currentAccount = session.cuenta;
+  setAccessToken(session.tokenAcceso);
 }
 
 export function restoreSession() {
@@ -61,7 +57,7 @@ async function performRestore() {
     await saveSession(session);
     return true;
   } catch (error) {
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+    if (error instanceof ApiError && error.status === 401) {
       await clearSession();
       return false;
     }
@@ -76,22 +72,7 @@ setSessionRefresher(async () => {
   }
 });
 
-export function needsAccountConsents() {
-  return !currentAccount?.ubicacionAceptada || !currentAccount?.avisoDisponibilidadAceptado;
-}
-
-export function saveAccountConsents(consents: AccountConsents) {
-  if (currentAccount) {
-    currentAccount = { ...currentAccount, ...consents };
-  }
-}
-
-export function getCurrentAccount() {
-  return currentAccount;
-}
-
 export async function clearSession() {
-  currentAccount = undefined;
   setAccessToken(undefined);
   await SecureStore.deleteItemAsync(refreshKey);
 }
