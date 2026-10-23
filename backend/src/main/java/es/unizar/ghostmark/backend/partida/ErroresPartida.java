@@ -20,6 +20,24 @@ public class ErroresPartida {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problema);
     }
 
+    @ExceptionHandler(NoEsMasterException.class)
+    ProblemDetail noEsMaster(NoEsMasterException error) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN, "Solo el máster puede hacerlo");
+        problema.setTitle("Forbidden");
+        problema.setProperty("codigo", "NO_ES_MASTER");
+        return problema;
+    }
+
+    @ExceptionHandler(PartidaNoEditableException.class)
+    ProblemDetail partidaNoEditable(PartidaNoEditableException error) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT, "La partida ya no está en inscripción");
+        problema.setTitle("Conflict");
+        problema.setProperty("codigo", "PARTIDA_NO_EDITABLE");
+        return problema;
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ProblemDetail cuerpoNoValido(HttpMessageNotReadableException error) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(

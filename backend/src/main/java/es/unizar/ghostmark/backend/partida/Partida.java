@@ -121,6 +121,31 @@ public class Partida {
         return creadaEn;
     }
 
+    public void editar(CambiosPartida cambios, Instant ahora) {
+        if (cambios.nombre() != null) {
+            this.nombre = cambios.nombre();
+        }
+        if (cambios.inicioEn() != null) {
+            this.inicioEn = cambios.inicioEn();
+        }
+        if (cambios.finEn() != null) {
+            this.finEn = cambios.finEn();
+        }
+        if (cambios.tipoMisiones() != null) {
+            this.tipoMisiones = cambios.tipoMisiones();
+        }
+        if (cambios.plazoDisputaHoras() != null) {
+            this.plazoDisputaHoras = cambios.plazoDisputaHoras().shortValue();
+        }
+        if (cambios.entradasTardias() != null) {
+            this.entradasTardias = cambios.entradasTardias();
+        }
+        if (cambios.masterJuega() != null) {
+            this.masterJuega = cambios.masterJuega();
+        }
+        this.actualizadaEn = ahora;
+    }
+
     public void cancelar(Instant ahora) {
         this.estado = "CANCELADA";
         this.actualizadaEn = ahora;
