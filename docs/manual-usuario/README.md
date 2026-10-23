@@ -18,7 +18,7 @@ En las horas en que tienes clase nadie puede cazarte, y tú tampoco puedes cazar
 
 1. Toca la letra de un día: L, M, X, J o V.
 2. Pulsa «+ Añadir franja», ajusta la hora de inicio y la de fin, entre las 08:00 y las 21:00 y en tramos de media hora, y pulsa «Guardar día».
-3. Cuando tengas todos los días, pulsa «Confirmar horario».
+3. Cuando tengas todos los días, pulsa «Siguiente». Si entras desde Perfil, el botón se llama «Confirmar horario».
 
 Puedes cambiarlo más tarde en Perfil, «Mi horario lectivo».
 
@@ -26,9 +26,9 @@ Puedes cambiarlo más tarde en Perfil, «Mi horario lectivo».
 
 ### 1.3 Ubicación y disponibilidad
 
-Se piden una sola vez, al crear la cuenta.
+Se piden una sola vez, al crear la cuenta. Si cierras la app antes de aceptarlos, te los pide al volver a iniciar sesión.
 
-- **Tu ubicación, a salvo.** Pulsa «Dar permiso». La app solo comprueba si estás en una zona segura en el momento de eliminar, y nunca guarda ni envía dónde estás.
+- **Tu ubicación, a salvo.** Pulsa «Dar permiso» y acepta el permiso que te pide el móvil. Sin él no se puede seguir, porque las zonas seguras dependen de la ubicación. La app solo comprueba si estás en una zona segura en el momento de eliminar, y nunca guarda ni envía dónde estás.
 - **Tu disponibilidad.** Pulsa «Acepto». Mientras estás en clase, tu cazador ve una cuenta atrás hasta que vuelvas a estar disponible, pero nunca tu horario ni tu ubicación.
 
 <!-- Captura de la app publicada: permiso de ubicación -->
