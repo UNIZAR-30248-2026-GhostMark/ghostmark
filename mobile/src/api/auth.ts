@@ -76,10 +76,6 @@ setSessionRefresher(async () => {
   }
 });
 
-export function needsAccountConsents() {
-  return !currentAccount?.ubicacionAceptada || !currentAccount?.avisoDisponibilidadAceptado;
-}
-
 export function nextAccountScreen(): "Home" | "LocationConsent" | "AvailabilityConsent" {
   if (!currentAccount?.ubicacionAceptada) return "LocationConsent";
   if (!currentAccount.avisoDisponibilidadAceptado) return "AvailabilityConsent";

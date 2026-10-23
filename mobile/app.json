@@ -15,8 +15,7 @@
         {
           "locationWhenInUsePermission": "GhostMark usa tu ubicación solo para comprobar zonas seguras al eliminar."
         }
-      ],
-      "expo-notifications"
+      ]
     ]
   }
 }

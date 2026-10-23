@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
@@ -12,13 +12,10 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "LocationConsent">;
 
 export function LocationConsentScreen({ navigation }: Props) {
-  const [positionConfirmed, setPositionConfirmed] = useState(false);
-  const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
   const [error, setError] = useState<string>();
   const [isRequesting, setIsRequesting] = useState(false);
 
   async function requestPermission() {
-    if (!positionConfirmed || !privacyConfirmed) return;
     setError(undefined);
     setIsRequesting(true);
     try {
@@ -45,17 +42,18 @@ export function LocationConsentScreen({ navigation }: Props) {
       <View style={styles.content}>
         <Text style={styles.title}>TU UBICACIÓN, A SALVO</Text>
         <Text style={styles.body}>Solo miro si estás en una zona segura en el momento de eliminar. Nunca guardo dónde estás.</Text>
-        <ConsentCheck checked={positionConfirmed} label="No se guarda tu posición" onPress={() => setPositionConfirmed((value) => !value)} />
-        <ConsentCheck checked={privacyConfirmed} label="Nadie ve dónde estás" onPress={() => setPrivacyConfirmed((value) => !value)} />
+        <Guarantee label="No se guarda tu posición" />
+        <Guarantee label="Nadie ve dónde estás" />
         {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
       </View>
-      <View style={styles.footer}><PrimaryButton disabled={!positionConfirmed || !privacyConfirmed || isRequesting} onPress={requestPermission}>{isRequesting ? "SOLICITANDO…" : "DAR PERMISO"}</PrimaryButton></View>
+      <View style={styles.footer}><PrimaryButton disabled={isRequesting} onPress={requestPermission}>{isRequesting ? "SOLICITANDO…" : "DAR PERMISO"}</PrimaryButton></View>
     </Screen>
   );
 }
 
-function ConsentCheck({ checked, label, onPress }: { checked: boolean; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={styles.checkRow}><View style={[styles.checkbox, checked && styles.checkboxChecked]}>{checked ? <Text style={styles.checkmark}>✓</Text> : null}</View><Text style={styles.checkLabel}>{label}</Text></Pressable>;
+// Garantías fijas, ya marcadas como en f1-a3: se muestran, no se preguntan.
+function Guarantee({ label }: { label: string }) {
+  return <View style={styles.checkRow}><View style={[styles.checkbox, styles.checkboxChecked]}><Text style={styles.checkmark}>✓</Text></View><Text style={styles.checkLabel}>{label}</Text></View>;
 }
 
 const styles = StyleSheet.create({
