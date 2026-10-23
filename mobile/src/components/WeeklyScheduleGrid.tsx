@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   day: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 14, textAlign: "center" },
   grid: { height: 305 },
   row: { flex: 1, flexDirection: "row", gap: 4 },
-  cell: { backgroundColor: "#3A2360", borderRadius: 3, flex: 1, marginBottom: 1 },
+  cell: { backgroundColor: "#3A2360", borderColor: "transparent", borderRadius: 3, borderWidth: 2, flex: 1, marginBottom: 1 },
   selectedCell: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 7, borderWidth: 2, marginBottom: 0 },
   selectedConnectedTop: { borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTopWidth: 0 },
   selectedConnectedBottom: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0 },
