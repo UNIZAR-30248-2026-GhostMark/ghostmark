@@ -37,6 +37,22 @@ export function selectedSlotsToSchedule(selectedSlots: Set<string>): Schedule {
   };
 }
 
+export function scheduleToSelectedSlots(schedule: Schedule) {
+  const selectedSlots = new Set<string>();
+
+  schedule.franjas.forEach(({ dia, horaInicio }) => {
+    const [hour, minute] = horaInicio.split(":").map(Number);
+    if (hour === undefined || minute === undefined) return;
+    const slot = (hour - START_HOUR) * 2 + minute / 30;
+
+    if (Number.isInteger(slot) && slot >= 0 && slot < SLOT_COUNT) {
+      selectedSlots.add(slotKey(dia, slot));
+    }
+  });
+
+  return selectedSlots;
+}
+
 type Props = {
   selectedSlots: Set<string>;
   onEditDay: (day: Weekday) => void;

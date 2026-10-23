@@ -7,3 +7,7 @@ export function updateSchedule(schedule: Schedule) {
     method: "PUT",
   });
 }
+
+export function getSchedule() {
+  return request<Schedule>("/api/v1/cuentas/yo/horario");
+}

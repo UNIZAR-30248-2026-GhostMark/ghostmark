@@ -1,12 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { updateSchedule } from "../api/schedule";
+import { getSchedule, updateSchedule } from "../api/schedule";
 import { DayScheduleModal } from "../components/DayScheduleModal";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
-import { selectedSlotsToSchedule, WeeklyScheduleGrid } from "../components/WeeklyScheduleGrid";
+import { scheduleToSelectedSlots, selectedSlotsToSchedule, WeeklyScheduleGrid } from "../components/WeeklyScheduleGrid";
 import { colors } from "../theme/colors";
 import { typography } from "../theme/typography";
 import type { RootStackParamList } from "../types/navigation";
@@ -18,15 +18,35 @@ export function ScheduleScreen({ navigation }: Props) {
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingDay, setEditingDay] = useState<Weekday>();
   const schedule = useMemo(() => selectedSlotsToSchedule(selectedSlots), [selectedSlots]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSchedule() {
+      try {
+        const savedSchedule = await getSchedule();
+        if (isMounted) setSelectedSlots(scheduleToSelectedSlots(savedSchedule));
+      } catch {
+        if (isMounted) setError("No hemos podido cargar tu horario. Puedes volver a marcarlo y guardarlo.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    void loadSchedule();
+    return () => { isMounted = false; };
+  }, []);
 
   async function save() {
     setError(undefined);
     setIsSaving(true);
     try {
       await updateSchedule(schedule);
-      navigation.replace("Home");
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.replace("Home");
     } catch {
       setError("No hemos podido guardar tu horario. Comprueba la conexión e inténtalo de nuevo.");
     } finally {
@@ -48,7 +68,7 @@ export function ScheduleScreen({ navigation }: Props) {
         </View>
         {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
         <View style={styles.spacer} />
-        <PrimaryButton disabled={isSaving} onPress={save}>{isSaving ? "GUARDANDO…" : "SIGUIENTE"}</PrimaryButton>
+        <PrimaryButton disabled={isSaving || isLoading} onPress={save}>{isLoading ? "CARGANDO…" : isSaving ? "GUARDANDO…" : "SIGUIENTE"}</PrimaryButton>
       </View>
       <DayScheduleModal day={editingDay} onClose={() => setEditingDay(undefined)} onSave={(slots) => { setSelectedSlots(slots); setEditingDay(undefined); }} selectedSlots={selectedSlots} visible={editingDay !== undefined} />
     </Screen>
