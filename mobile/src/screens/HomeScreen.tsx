@@ -22,6 +22,7 @@ export function HomeScreen({ navigation }: Props) {
         </Text>
       </View>
 
+      <GhostButton onPress={() => navigation.navigate("Schedule")}>MI HORARIO</GhostButton>
       <GhostButton onPress={() => navigation.navigate("ApiStatus")}>COMPROBAR SERVIDOR</GhostButton>
     </View>
   );
