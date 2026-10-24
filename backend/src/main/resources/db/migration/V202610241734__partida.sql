@@ -1,6 +1,5 @@
 -- Tarea 2.2 (#47): partida (PBI 2, #3).
 -- Convenciones docs/diseno/convenciones-modelo-datos.md y modelo docs/diseno/modelo-datos.md.
--- Fecha 20261020 = dia de subida al repositorio de clase (calendario S1).
 
 create table partida (
     id uuid primary key,
