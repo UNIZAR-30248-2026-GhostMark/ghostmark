@@ -106,17 +106,6 @@ paths:
         '204': { description: Sesión cerrada }
         '401': { $ref: '#/components/responses/NoAutenticado' }
   /api/v1/cuentas/yo:
-    get:
-      tags: [cuenta]
-      operationId: obtenerMiCuenta
-      summary: Datos de mi cuenta
-      responses:
-        '200':
-          description: Mi cuenta
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Cuenta' }
-        '401': { $ref: '#/components/responses/NoAutenticado' }
     delete:
       tags: [cuenta]
       operationId: borrarMiCuenta
