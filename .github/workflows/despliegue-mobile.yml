@@ -16,7 +16,7 @@ jobs:
         with: {node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json}
       - run: npm ci
       - name: Publicar la actualizacion con EAS
-        run: npx --yes eas-cli@25 update --branch production --message "Actualizacion ${GITHUB_SHA::7}" --non-interactive
+        run: npx --yes eas-cli@25 update --branch production --environment production --message "Actualizacion ${GITHUB_SHA::7}" --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_API_URL: "https://ghostmark-api-kx1q.onrender.com"
