@@ -72,7 +72,7 @@ Clave primaria: `(cuenta_id, dia, hora_inicio)`. Al inscribirse en una partida, 
 
 ### Borrar la cuenta
 
-Borrado físico: se borra la fila de `cuenta` y, en cascada, su horario y sus tokens. Sus inscripciones en partidas en curso se quedan con `cuenta_id` a `null` y la app muestra «cuenta eliminada» (ver «Inscripción»). El alias y el email quedan libres. Si es máster de alguna partida, ver «Partida».
+Borrado físico: se borra la fila de `cuenta` y, en cascada, su horario y sus tokens. Sus inscripciones en partidas `EN_JUEGO` se quedan con `cuenta_id` a `null` y sin horario, y las de cualquier otro estado se borran; la app muestra «cuenta eliminada» (ver «Inscripción»). El alias y el email quedan libres. Si es máster de alguna partida, ver «Partida».
 
 ## Partida (PBI 2, #3)
 
@@ -175,8 +175,13 @@ erDiagram
 
 - Índice único sobre `(partida_id, cuenta_id)`: una cuenta se inscribe una sola vez en cada partida, y en tantas partidas como quiera (criterio 4).
 - Solo se puede inscribir en partidas `EN_INSCRIPCION`. Las entradas tardías llegan con la PBI 16.
-- **Si el máster juega,** tiene su inscripción como cualquier otro: se crea al crear la partida (o al activar «Yo también juego») con las normas aceptadas en ese momento, y se borra si lo desactiva antes del arranque. Un máster que no juega no puede inscribirse con el código.
-- **Si un jugador borra su cuenta:** antes del arranque, su inscripción se borra; con la partida en juego, se queda con `cuenta_id` a `null`. Qué pasa con su lugar en la cadena se decide con la PBI 12 (abandonar).
+- **Si el máster juega,** tiene su inscripción como cualquier otro, con las normas aceptadas en ese momento y el horario de su cuenta copiado: se crea al crear la partida o al activar «Yo también juego», y se borra si lo desactiva antes del arranque. Un máster que no juega no puede inscribirse con el código.
+  - Crear (2.2) y editar (2.6) la partida entran antes que esta tabla. La **3.2** crea la inscripción al crear la partida y, en su migración, la de los másteres que juegan en las partidas que ya existan (normas aceptadas en `creada_en`). La **2.6** la crea o la borra al editar «Yo también juego».
+- **Si un jugador borra su cuenta,** en la misma transacción que el borrado de la cuenta:
+  - Partida `EN_JUEGO`: se borran sus filas de `franja_horario_inscripcion` y la inscripción se queda con `cuenta_id` a `null`, porque la cadena y los eventos la siguen usando. Qué pasa con su lugar en la cadena se decide con la PBI 12 (abandonar).
+  - Partida en cualquier otro estado (`EN_INSCRIPCION`, `CANCELADA`): se borra su inscripción y, en cascada, su horario en la partida. En `CERRADA` los datos individuales ya se han borrado (PBI 8).
+  - La clave ajena es `on delete set null`, así que la base de datos no borra la inscripción: lo hace el servicio de borrar la cuenta. Lo añade la 3.2 al borrado de la 1.7.
+- **Eventos:** inscribirse guarda `JUGADOR_INSCRITO` y borrar la inscripción al borrar la cuenta guarda `INSCRIPCION_RETIRADA` con motivo `CUENTA_BORRADA` (tabla de eventos en la tarea 4.1). Los dos llevan solo `inscripcionId`, sin datos de la cuenta, y no se borran: al reproducirlos, la retirada anula la inscripción.
 
 ### `franja_horario_inscripcion`
 

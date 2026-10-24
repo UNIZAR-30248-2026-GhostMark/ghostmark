@@ -337,6 +337,7 @@ paths:
       tags: [inscripcion]
       operationId: obtenerMiHorarioEnPartida
       summary: Mi horario lectivo en esta partida
+      description: A quien no está inscrito, incluido el máster que no juega, se le responde 404.
       responses:
         '200':
           description: Franjas marcadas en esta partida
@@ -349,7 +350,9 @@ paths:
       tags: [inscripcion]
       operationId: guardarMiHorarioEnPartida
       summary: Cambiar mi horario en esta partida («Revisar mi horario»)
-      description: Solo hasta el arranque. No cambia el horario de la cuenta ni el de otras partidas.
+      description: |
+        Solo hasta el arranque. No cambia el horario de la cuenta ni el de otras partidas.
+        A quien no está inscrito, incluido el máster que no juega, se le responde 404.
       requestBody:
         required: true
         content:
@@ -426,8 +429,9 @@ components:
         horario: { $ref: '#/components/schemas/Horario' }
     Inscrito:
       type: object
-      required: [alias, esMaster]
+      required: [id, alias, esMaster]
       properties:
+        id: { type: string, format: uuid, description: 'Id de la inscripción: clave de la lista y de expulsar (PBI 4)' }
         alias: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
         esMaster: { type: boolean }
     CodigoInvitacion:
