@@ -1,5 +1,7 @@
 package es.unizar.ghostmark.backend.partida;
 
+import es.unizar.ghostmark.backend.cuenta.Cuenta;
+import es.unizar.ghostmark.backend.cuenta.CuentaRepository;
 import es.unizar.ghostmark.backend.sesion.DatosNoValidosException;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -36,11 +38,14 @@ public class ServicioPartida {
             + " from evento where partida_id = ?";
 
     private final PartidaRepository partidas;
+    private final CuentaRepository cuentas;
     private final JdbcTemplate jdbc;
     private final SecureRandom aleatorio = new SecureRandom();
 
-    public ServicioPartida(PartidaRepository partidas, JdbcTemplate jdbc) {
+    public ServicioPartida(PartidaRepository partidas, CuentaRepository cuentas,
+            JdbcTemplate jdbc) {
         this.partidas = partidas;
+        this.cuentas = cuentas;
         this.jdbc = jdbc;
     }
 
@@ -70,6 +75,22 @@ public class ServicioPartida {
         return partidas.findByMasterId(masterId).stream()
                 .map(ServicioPartida::vistaResumen)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> obtenerPorCodigo(String codigo) {
+        Partida partida = partidas.findByCodigoInvitacion(codigo)
+                .orElseThrow(PartidaNoEncontradaException::new);
+        String aliasMaster = partida.getMasterId() == null ? null
+                : cuentas.findById(partida.getMasterId()).map(Cuenta::getAlias).orElse(null);
+        Map<String, Object> vista = new LinkedHashMap<>();
+        vista.put("nombre", partida.getNombre());
+        vista.put("estado", partida.getEstado());
+        vista.put("inicioEn", partida.getInicioEn().toString());
+        vista.put("finEn", partida.getFinEn().toString());
+        vista.put("aliasMaster", aliasMaster);
+        vista.put("numInscritos", 0);
+        return vista;
     }
 
     @Transactional
