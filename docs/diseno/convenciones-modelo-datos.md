@@ -32,6 +32,7 @@ Reglas comunes para que las tablas, migraciones y endpoints que crea cada person
 
 - Con **Flyway**, en `backend/src/main/resources/db/migration/`. JPA queda en `ddl-auto: validate`: la estructura solo la cambian las migraciones.
 - Nombre `V<AAAAMMDDHHMM>__<descripcion>.sql`, por ejemplo `V202610141030__cuenta.sql`. La fecha como versión evita que dos personas creen a la vez la misma `V2`.
+- **La fecha es la del día en que se abre la *pull request* en el repositorio de clase**, no la del día en que se escribe: al abrirla, se renombra la migración. Flyway no aplica una migración más antigua que otra ya aplicada, así que una escrita por adelantado con la fecha de hoy rompería el arranque del servidor cuando llegue después que otras.
 - Una migración por tarea que crea o cambia tablas, en la misma *pull request* que el código que las usa.
 - **Una migración que ya está en `main` no se edita nunca.** Para corregirla se añade otra.
 - **Una migración tiene que coincidir con [`modelo-datos.md`](modelo-datos.md).** Si hace falta cambiar el modelo, primero se cambia el documento en la misma *pull request*. Imad revisa y aprueba toda *pull request* que toque migraciones o el modelo, salvo las suyas, que aprueba el responsable de la zona (`.github/CODEOWNERS`).
