@@ -53,7 +53,7 @@ class PartidaTest {
                 .body("plazoDisputaHoras", equalTo(6))
                 .body("entradasTardias", equalTo(false))
                 .body("masterJuega", equalTo(true))
-                .body("numInscritos", equalTo(0))
+                .body("numInscritos", equalTo(1))
                 .body("codigoInvitacion", matchesPattern("^[2-9A-HJKMNP-Z]{8}$"))
                 .body("enlace", startsWith("ghostmark://unirse/"))
                 .extract()
@@ -76,7 +76,7 @@ class PartidaTest {
 
         Map<String, Object> evento = jdbc.queryForMap(
                 "select secuencia, tipo, datos->>'nombre' as nombre from evento"
-                        + " where partida_id = ?",
+                        + " where partida_id = ? and tipo = 'PARTIDA_CREADA'",
                 UUID.fromString(id));
         assertEquals(1L, ((Number) evento.get("secuencia")).longValue());
         assertEquals("PARTIDA_CREADA", evento.get("tipo"));
@@ -186,7 +186,7 @@ class PartidaTest {
                 .body("[0].nombre", equalTo("Killer Propio"))
                 .body("[0].estado", equalTo("EN_INSCRIPCION"))
                 .body("[0].soyMaster", equalTo(true))
-                .body("[0].numInscritos", equalTo(0));
+                .body("[0].numInscritos", equalTo(1));
 
         given()
                 .port(puerto)
