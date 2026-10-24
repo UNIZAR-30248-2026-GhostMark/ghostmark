@@ -3,6 +3,7 @@ package es.unizar.ghostmark.backend.cuenta.services;
 import es.unizar.ghostmark.backend.cuenta.Cuenta;
 import es.unizar.ghostmark.backend.cuenta.CuentaRepository;
 import es.unizar.ghostmark.backend.cuenta.dto.Aceptaciones;
+import es.unizar.ghostmark.backend.partida.ServicioPartida;
 import es.unizar.ghostmark.backend.sesion.DatosNoValidosException;
 import java.time.Clock;
 import java.time.Instant;
@@ -19,10 +20,12 @@ public class ServicioCuenta {
 
     private final CuentaRepository cuentas;
     private final Clock reloj;
+    private final ServicioPartida partidas;
 
-    public ServicioCuenta(CuentaRepository cuentas, Clock reloj) {
+    public ServicioCuenta(CuentaRepository cuentas, Clock reloj, ServicioPartida partidas) {
         this.cuentas = cuentas;
         this.reloj = reloj;
+        this.partidas = partidas;
     }
 
     @Transactional
@@ -67,6 +70,7 @@ public class ServicioCuenta {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "La cuenta no está disponible"));
 
+        partidas.cancelarPorBorradoDeMaster(cuentaId, Instant.now(reloj));
         cuentas.delete(cuenta);
     }
 }
