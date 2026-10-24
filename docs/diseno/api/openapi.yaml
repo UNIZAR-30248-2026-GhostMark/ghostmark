@@ -18,6 +18,8 @@ tags:
     description: Crear, configurar y compartir una partida (PBI 2, #3)
   - name: inscripcion
     description: Inscribirse en una partida (PBI 3, #4)
+  - name: juego
+    description: Arrancar la partida y ver mi objetivo y mi misión (PBI 4, #5, y PBI 5, #31)
 security:
   - bearerAuth: []
 paths:
@@ -372,6 +374,51 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/arranque:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    post:
+      tags: [juego]
+      operationId: arrancarYa
+      summary: «Arrancar ya» (solo el máster, con 3 o más jugadores)
+      description: Forma el ciclo de objetivos, reparte las misiones y congela los horarios.
+      responses:
+        '200':
+          description: Partida en juego
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PartidaResumen' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/NoEsMaster' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: Hay menos de 3 jugadores (`POCOS_JUGADORES`) o la partida ya no está en inscripción (`PARTIDA_NO_ABIERTA`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/yo/carta:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [juego]
+      operationId: obtenerMiCarta
+      summary: Mi objetivo y mi misión
+      description: |
+        Solo los del jugador que llama. Nadie obtiene los de otro, tampoco el máster:
+        si no juega no tiene carta y recibe 404.
+      responses:
+        '200':
+          description: Mi carta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Carta' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida todavía no está en juego (`PARTIDA_NO_EN_JUEGO`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
 components:
   securitySchemes:
     bearerAuth:
@@ -413,6 +460,12 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Error' }
   schemas:
+    Carta:
+      type: object
+      required: [aliasObjetivo, mision]
+      properties:
+        aliasObjetivo: { type: [string, 'null'], description: Nulo si el objetivo borró su cuenta («cuenta eliminada») }
+        mision: { type: string, example: Que te diga la palabra «compilador» }
     NuevaInscripcion:
       type: object
       required: [codigo, aceptaNormas]
@@ -580,7 +633,7 @@ components:
         detail: { type: string }
         codigo:
           type: string
-          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA]
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO]
         errores:
           type: array
           items:
