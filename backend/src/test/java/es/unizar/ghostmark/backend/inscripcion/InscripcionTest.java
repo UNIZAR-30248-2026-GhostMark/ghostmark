@@ -66,6 +66,86 @@ class InscripcionTest {
     }
 
     @Test
+    void horarioDePartidaSeEditaSinCambiarElGeneralNiOtraPartida() {
+        Persona jugador = registrar();
+        horario(jugador);
+        Juego primera = crear(registrar(), false);
+        Juego segunda = crear(registrar(), false);
+        alta(jugador, primera).then().statusCode(201);
+        alta(jugador, segunda).then().statusCode(201);
+        String ruta = "/api/v1/partidas/{id}/yo/horario";
+        given().port(puerto).auth().oauth2(jugador.token()).contentType(ContentType.JSON)
+                .body(Map.of("franjas", List.of(Map.of("dia", 2, "horaInicio", "09:30"))))
+                .put(ruta, primera.id()).then().statusCode(200)
+                .body("franjas[0].dia", equalTo(2))
+                .body("franjas[0].horaInicio", equalTo("09:30"));
+        given().port(puerto).auth().oauth2(jugador.token()).get(ruta, primera.id())
+                .then().statusCode(200).body("franjas[0].horaInicio", equalTo("09:30"));
+        given().port(puerto).auth().oauth2(jugador.token()).get(ruta, segunda.id())
+                .then().statusCode(200).body("franjas[0].horaInicio", equalTo("08:00"));
+        given().port(puerto).auth().oauth2(jugador.token())
+                .get("/api/v1/cuentas/yo/horario").then().statusCode(200)
+                .body("franjas[0].horaInicio", equalTo("08:00"));
+    }
+
+    @Test
+    void soloElInscritoPuedeVerOEditarSuHorario() {
+        Persona master = registrar();
+        Persona jugador = registrar();
+        Juego juego = crear(master, false);
+        alta(jugador, juego).then().statusCode(201);
+        String ruta = "/api/v1/partidas/{id}/yo/horario";
+        given().port(puerto).auth().oauth2(master.token()).get(ruta, juego.id())
+                .then().statusCode(404).body("codigo", equalTo("NO_ENCONTRADA"));
+        given().port(puerto).auth().oauth2(master.token()).contentType(ContentType.JSON)
+                .body(Map.of("franjas", List.of())).put(ruta, juego.id())
+                .then().statusCode(404).body("codigo", equalTo("NO_ENCONTRADA"));
+        given().port(puerto).auth().oauth2(jugador.token()).get(ruta, UUID.randomUUID())
+                .then().statusCode(404);
+        given().port(puerto).get(ruta, juego.id()).then().statusCode(401)
+                .body("codigo", equalTo("NO_AUTENTICADO"));
+    }
+
+    @Test
+    void horarioCongeladoAlArrancarInclusoSiElEstadoAunNoSeActualizo() {
+        Persona jugador = registrar();
+        Juego juego = crear(registrar(), false);
+        alta(jugador, juego).then().statusCode(201);
+        String ruta = "/api/v1/partidas/{id}/yo/horario";
+        for (String estado : List.of("EN_JUEGO", "CANCELADA", "CERRADA")) {
+            jdbc.update("update partida set estado = ? where id = ?", estado, juego.id());
+            given().port(puerto).auth().oauth2(jugador.token()).contentType(ContentType.JSON)
+                    .body(Map.of("franjas", List.of())).put(ruta, juego.id())
+                    .then().statusCode(409).body("codigo", equalTo("PARTIDA_NO_EDITABLE"));
+        }
+        jdbc.update("update partida set estado = 'EN_INSCRIPCION',"
+                + " inicio_en = now() - interval '1 minute' where id = ?", juego.id());
+        given().port(puerto).auth().oauth2(jugador.token()).contentType(ContentType.JSON)
+                .body(Map.of("franjas", List.of())).put(ruta, juego.id())
+                .then().statusCode(409).body("codigo", equalTo("PARTIDA_NO_EDITABLE"));
+        given().port(puerto).auth().oauth2(jugador.token()).get(ruta, juego.id())
+                .then().statusCode(200).body("franjas.size()", equalTo(0));
+    }
+
+    @Test
+    void horarioInvalidoNoModificaLasFranjas() {
+        Persona jugador = registrar();
+        horario(jugador);
+        Juego juego = crear(registrar(), false);
+        alta(jugador, juego).then().statusCode(201);
+        String ruta = "/api/v1/partidas/{id}/yo/horario";
+        given().port(puerto).auth().oauth2(jugador.token()).contentType(ContentType.JSON)
+                .body(Map.of("franjas", List.of(Map.of("dia", 6, "horaInicio", "09:15"))))
+                .put(ruta, juego.id()).then().statusCode(400)
+                .body("codigo", equalTo("DATOS_NO_VALIDOS"));
+        given().port(puerto).auth().oauth2(jugador.token()).contentType(ContentType.JSON)
+                .body("{\"franjas\":").put(ruta, juego.id()).then().statusCode(400)
+                .body("codigo", equalTo("DATOS_NO_VALIDOS"));
+        given().port(puerto).auth().oauth2(jugador.token()).get(ruta, juego.id())
+                .then().statusCode(200).body("franjas[0].horaInicio", equalTo("08:00"));
+    }
+
+    @Test
     void jugadorPuedeEstarEnVariasPartidasYVerlasSinDuplicados() {
         Persona master = registrar();
         Persona jugador = registrar();
