@@ -275,7 +275,7 @@ public class ServicioPartida {
         return codigo;
     }
 
-    private Map<String, Object> vistaResumen(Partida partida, UUID cuentaId) {
+    public Map<String, Object> vistaResumen(Partida partida, UUID cuentaId) {
         Map<String, Object> vista = new LinkedHashMap<>();
         vista.put("id", partida.getId().toString());
         vista.put("nombre", partida.getNombre());
