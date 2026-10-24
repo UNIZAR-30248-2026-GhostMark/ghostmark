@@ -41,6 +41,9 @@ class ArranqueTest {
     @Autowired
     ServicioArranque arranque;
 
+    @Autowired
+    TareaArranque tarea;
+
     @Test
     void masterArrancaYaConTresJugadores() {
         Persona master = registrar();
@@ -150,6 +153,52 @@ class ArranqueTest {
                 .body(Map.of("franjas", List.of()))
                 .put("/api/v1/partidas/{id}/yo/horario", juego.id())
                 .then().statusCode(409).body("codigo", equalTo("PARTIDA_NO_EDITABLE"));
+    }
+
+    @Test
+    void tareaProgramadaArrancaSoloLasVencidas() {
+        Juego vencida = conTresJugadores(registrar());
+        Juego futura = conTresJugadores(registrar());
+        vencer(vencida);
+        tarea.revisar(Instant.now());
+        assertEquals("EN_JUEGO", estado(vencida));
+        assertEquals(List.of("PROGRAMADO|3"), arranques(vencida));
+        assertEquals("EN_INSCRIPCION", estado(futura));
+        assertEquals(List.of(), arranques(futura));
+    }
+
+    @Test
+    void consultarAplicaElArranquePendiente() {
+        Persona master = registrar();
+        Juego juego = conTresJugadores(master);
+        Juego otra = conTresJugadores(master);
+        vencer(juego);
+        given().port(puerto).auth().oauth2(master.token())
+                .get("/api/v1/partidas/codigo/{codigo}", juego.codigo())
+                .then().statusCode(200).body("estado", equalTo("EN_JUEGO"));
+        assertEquals(List.of("PROGRAMADO|3"), arranques(juego));
+        vencer(otra);
+        given().port(puerto).auth().oauth2(master.token()).get("/api/v1/cuentas/yo/partidas")
+                .then().statusCode(200);
+        assertEquals("EN_JUEGO", estado(otra));
+        assertEquals(List.of("PROGRAMADO|3"), arranques(otra));
+    }
+
+    @Test
+    void inscribirseTardeArrancaYRechaza() {
+        Juego juego = conTresJugadores(registrar());
+        vencer(juego);
+        given().port(puerto).auth().oauth2(registrar().token()).contentType(ContentType.JSON)
+                .body(Map.of("codigo", juego.codigo(), "aceptaNormas", true))
+                .post("/api/v1/inscripciones").then().statusCode(409)
+                .body("codigo", equalTo("PARTIDA_NO_ABIERTA"));
+        assertEquals("EN_JUEGO", estado(juego));
+        assertEquals(List.of("PROGRAMADO|3"), arranques(juego));
+    }
+
+    private void vencer(Juego juego) {
+        jdbc.update("update partida set inicio_en = now() - interval '1 minute' where id = ?",
+                juego.id());
     }
 
     private Juego conTresJugadores(Persona master) {
