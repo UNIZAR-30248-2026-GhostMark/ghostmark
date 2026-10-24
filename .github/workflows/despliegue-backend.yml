@@ -1,0 +1,32 @@
+name: despliegue-backend
+on:
+  push: {branches: [main], paths: ["backend/**"]}
+  workflow_dispatch:
+permissions: {contents: read}
+concurrency: {group: despliegue-backend, cancel-in-progress: false}
+jobs:
+  render:
+    if: github.repository == 'UNIZAR-30248-2026-GhostMark/ghostmark'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      URL_PRODUCCION: "ghostmark-api-kx1q.onrender.com"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 21, cache: maven}
+      - name: Lanzar el despliegue en Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+      - name: Esperar a que el servicio responda
+        run: |
+          for intento in $(seq 1 90); do
+            if curl -fsS "https://$URL_PRODUCCION/api/v1/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+      # HttpsTest llega con la tarea 1.11 (#44); hasta entonces este paso no ejecuta ningún test.
+      - name: Comprobar el HTTPS en produccion
+        run: ./mvnw -B test -Dtest=HttpsTest -Dsurefire.failIfNoSpecifiedTests=false
+        working-directory: backend

@@ -1,0 +1,22 @@
+name: despliegue-mobile
+on:
+  push: {branches: [main], paths: ["mobile/**"]}
+  workflow_dispatch:
+permissions: {contents: read}
+concurrency: {group: despliegue-mobile, cancel-in-progress: false}
+jobs:
+  update:
+    if: github.repository == 'UNIZAR-30248-2026-GhostMark/ghostmark'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults: {run: {working-directory: mobile}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json}
+      - run: npm ci
+      - name: Publicar la actualizacion con EAS
+        run: npx --yes eas-cli@25 update --branch production --environment production --message "Actualizacion ${GITHUB_SHA::7}" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_API_URL: "https://ghostmark-api-kx1q.onrender.com"

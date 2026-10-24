@@ -1,0 +1,40 @@
+# Blueprint de Render (tarea 1.4, #37): servidor en Docker y PostgreSQL en el plan gratuito.
+# La base de datos gratuita caduca a los 30 días (riesgo Ri19); PostGIS lo activa la migración
+# V202610240900__postgis.sql. Solo despliega el flujo despliegue-backend, con el deploy hook.
+services:
+  - type: web
+    name: ghostmark-api
+    runtime: docker
+    plan: free
+    autoDeploy: false
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: ghostmark-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: ghostmark-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: ghostmark-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: ghostmark-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: ghostmark-db
+          property: password
+      - key: JWT_SECRETO
+        generateValue: true
+databases:
+  - name: ghostmark-db
+    databaseName: ghostmark
+    user: ghostmark
+    plan: free
