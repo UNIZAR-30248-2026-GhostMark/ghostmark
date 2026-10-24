@@ -3,9 +3,12 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { Alert, Button, Text, View } from "react-native";
 
-import { restoreSession, setSessionExpiredHandler } from "../api/auth";
+import { nextAccountScreen, restoreSession, setSessionExpiredHandler } from "../api/auth";
 import { ApiStatusScreen } from "../screens/ApiStatusScreen";
+import { AvailabilityConsentScreen } from "../screens/AvailabilityConsentScreen";
 import { HomeScreen } from "../screens/HomeScreen";
+import { LocationConsentScreen } from "../screens/LocationConsentScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { SignInScreen } from "../screens/SignInScreen";
 import { ScheduleScreen } from "../screens/ScheduleScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
@@ -28,7 +31,7 @@ const navigationTheme = {
 };
 
 export function RootNavigator() {
-  const [initialRoute, setInitialRoute] = useState<"Welcome" | "Home">();
+  const [initialRoute, setInitialRoute] = useState<"Welcome" | "Home" | "LocationConsent" | "AvailabilityConsent">();
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -43,7 +46,7 @@ export function RootNavigator() {
   useEffect(() => {
     let active = true;
     restoreSession().then((restored) => {
-      if (active) setInitialRoute(restored ? "Home" : "Welcome");
+      if (active) setInitialRoute(restored ? nextAccountScreen() : "Welcome");
     }).catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [attempt]);
@@ -57,6 +60,9 @@ export function RootNavigator() {
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="SignIn" component={SignInScreen} />
         <Stack.Screen name="Schedule" component={ScheduleScreen} />
+        <Stack.Screen name="LocationConsent" component={LocationConsentScreen} />
+        <Stack.Screen name="AvailabilityConsent" component={AvailabilityConsentScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="ApiStatus" component={ApiStatusScreen} />
       </Stack.Navigator>

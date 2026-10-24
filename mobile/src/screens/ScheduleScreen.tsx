@@ -14,7 +14,7 @@ import type { Weekday } from "../types/schedule";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Schedule">;
 
-export function ScheduleScreen({ navigation }: Props) {
+export function ScheduleScreen({ navigation, route }: Props) {
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
@@ -45,7 +45,8 @@ export function ScheduleScreen({ navigation }: Props) {
     setIsSaving(true);
     try {
       await updateSchedule(schedule);
-      if (navigation.canGoBack()) navigation.goBack();
+      if (route.params?.onboarding) navigation.replace("LocationConsent");
+      else if (navigation.canGoBack()) navigation.goBack();
       else navigation.replace("Home");
     } catch {
       setError("No hemos podido guardar tu horario. Comprueba la conexión e inténtalo de nuevo.");
@@ -68,7 +69,7 @@ export function ScheduleScreen({ navigation }: Props) {
         </View>
         {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
         <View style={styles.spacer} />
-        <PrimaryButton disabled={isSaving || isLoading} onPress={save}>{isLoading ? "CARGANDO…" : isSaving ? "GUARDANDO…" : "SIGUIENTE"}</PrimaryButton>
+        <PrimaryButton disabled={isSaving || isLoading} onPress={save}>{isLoading ? "CARGANDO…" : isSaving ? "GUARDANDO…" : route.params?.onboarding ? "SIGUIENTE" : "CONFIRMAR HORARIO"}</PrimaryButton>
       </View>
       <DayScheduleModal day={editingDay} onClose={() => setEditingDay(undefined)} onSave={(slots) => { setSelectedSlots(slots); setEditingDay(undefined); }} selectedSlots={selectedSlots} visible={editingDay !== undefined} />
     </Screen>

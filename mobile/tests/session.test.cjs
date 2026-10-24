@@ -48,6 +48,11 @@ async function main() {
   assert.deepEqual(results, [{ ok: true }, { ok: true }]);
   assert.equal(refreshes, 1, 'concurrent requests share one refresh');
   assert.equal(storage.get('ghostmark_refresh_token'), 'new-refresh');
+  assert.equal(auth.nextAccountScreen(), 'Home');
+  auth.saveAccountConsents({ ubicacionAceptada: true, avisoDisponibilidadAceptado: false });
+  assert.equal(auth.nextAccountScreen(), 'AvailabilityConsent');
+  auth.saveAccountConsents({ ubicacionAceptada: false, avisoDisponibilidadAceptado: false });
+  assert.equal(auth.nextAccountScreen(), 'LocationConsent');
   await auth.signOut();
   assert.equal(closedToken, 'new-refresh');
   assert.equal(storage.size, 0);
