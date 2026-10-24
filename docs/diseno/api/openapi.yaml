@@ -16,6 +16,8 @@ tags:
     description: Inicio y cierre de sesión (PBI 1, #2)
   - name: partida
     description: Crear, configurar y compartir una partida (PBI 2, #3)
+  - name: inscripcion
+    description: Inscribirse en una partida (PBI 3, #4)
 security:
   - bearerAuth: []
 paths:
@@ -278,6 +280,98 @@ paths:
               schema: { $ref: '#/components/schemas/PartidaPublica' }
         '401': { $ref: '#/components/responses/NoAutenticado' }
         '404': { $ref: '#/components/responses/NoEncontrada' }
+  /api/v1/inscripciones:
+    post:
+      tags: [inscripcion]
+      operationId: inscribirse
+      summary: Inscribirme en una partida con su código
+      description: |
+        Solo con las normas aceptadas. Copia el horario lectivo de mi cuenta a esta partida.
+        Solo en partidas en inscripción; un máster que no juega no puede inscribirse.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuevaInscripcion' }
+            example: { codigo: K7PX4MQ2, aceptaNormas: true }
+      responses:
+        '201':
+          description: Inscrito
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Inscripcion' }
+        '400':
+          description: Faltan datos o no se aceptan las normas (`NORMAS_NO_ACEPTADAS`, `DATOS_NO_VALIDOS`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: Ya estoy inscrito (`YA_INSCRITO`), soy el máster y no juego (`ES_MASTER`) o la partida ya no admite inscripciones (`PARTIDA_NO_ABIERTA`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/inscritos:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [inscripcion]
+      operationId: listarInscritos
+      summary: Lista de inscritos (sala de espera y lista del máster)
+      description: La ven el máster y los inscritos. A cualquier otro se le responde 404.
+      responses:
+        '200':
+          description: Inscritos, por orden de inscripción
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Inscrito' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+  /api/v1/partidas/{partidaId}/yo/horario:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [inscripcion]
+      operationId: obtenerMiHorarioEnPartida
+      summary: Mi horario lectivo en esta partida
+      description: A quien no está inscrito, incluido el máster que no juega, se le responde 404.
+      responses:
+        '200':
+          description: Franjas marcadas en esta partida
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Horario' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+    put:
+      tags: [inscripcion]
+      operationId: guardarMiHorarioEnPartida
+      summary: Cambiar mi horario en esta partida («Revisar mi horario»)
+      description: |
+        Solo hasta el arranque. No cambia el horario de la cuenta ni el de otras partidas.
+        A quien no está inscrito, incluido el máster que no juega, se le responde 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Horario' }
+      responses:
+        '200':
+          description: Horario guardado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Horario' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida ya ha arrancado y el horario está congelado (`PARTIDA_NO_EDITABLE`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
 components:
   securitySchemes:
     bearerAuth:
@@ -319,6 +413,27 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Error' }
   schemas:
+    NuevaInscripcion:
+      type: object
+      required: [codigo, aceptaNormas]
+      properties:
+        codigo: { $ref: '#/components/schemas/CodigoInvitacion' }
+        aceptaNormas: { type: boolean, description: Tiene que ser true }
+    Inscripcion:
+      type: object
+      required: [id, partidaId, inscritaEn, horario]
+      properties:
+        id: { type: string, format: uuid }
+        partidaId: { type: string, format: uuid }
+        inscritaEn: { type: string, format: date-time }
+        horario: { $ref: '#/components/schemas/Horario' }
+    Inscrito:
+      type: object
+      required: [id, alias, esMaster]
+      properties:
+        id: { type: string, format: uuid, description: 'Id de la inscripción: clave de la lista y de expulsar (PBI 4)' }
+        alias: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
+        esMaster: { type: boolean }
     CodigoInvitacion:
       type: string
       pattern: '^[2-9A-HJKMNP-Z]{8}$'
@@ -465,7 +580,7 @@ components:
         detail: { type: string }
         codigo:
           type: string
-          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE]
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA]
         errores:
           type: array
           items:
