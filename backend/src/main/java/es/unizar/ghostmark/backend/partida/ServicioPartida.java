@@ -74,7 +74,8 @@ public class ServicioPartida {
 
     @Transactional
     public void cancelarPorBorradoDeMaster(UUID masterId, Instant ahora) {
-        for (Partida partida : partidas.findByMasterIdAndEstado(masterId, "EN_INSCRIPCION")) {
+        for (Partida partida : partidas.findByMasterIdAndEstadoOrderByIdAsc(masterId,
+                "EN_INSCRIPCION")) {
             partida.cancelar(ahora);
             jdbc.update(INSERTAR_PARTIDA_CANCELADA, UUID.randomUUID(), partida.getId(),
                     0, OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC), partida.getId());
