@@ -10,7 +10,7 @@ Se escribe a medida que se terminan PBI: cada *pull request* que cambia lo que v
 2. Pulsa «Usar email» y escribe tu email y una contraseña de al menos 8 caracteres. El email solo sirve para iniciar sesión.
 3. Pulsa «Continuar». Si el alias o el email ya están en uso, o algún dato no es válido, la app te dice cuál y no crea la cuenta.
 
-<!-- Captura de la app publicada: pantalla de bienvenida -->
+<img src="img/f1-a1-bienvenida.png" alt="Pantalla de bienvenida" width="250">
 
 ### 1.2 Tu horario lectivo
 
@@ -22,7 +22,7 @@ En las horas en que tienes clase nadie puede cazarte, y tú tampoco puedes cazar
 
 Puedes cambiarlo más tarde en Perfil, «Mi horario lectivo».
 
-<!-- Captura de la app publicada: horario lectivo -->
+<img src="img/f1-a2-horario.png" alt="Horario lectivo con clase el lunes y el miércoles de 9:00 a 10:00" width="250">
 
 ### 1.3 Ubicación y disponibilidad
 
@@ -31,7 +31,7 @@ Se piden una sola vez, al crear la cuenta. Si cierras la app antes de aceptarlos
 - **Tu ubicación, a salvo.** Pulsa «Dar permiso» y acepta el permiso que te pide el móvil. Sin él no se puede seguir, porque las zonas seguras dependen de la ubicación. La app solo comprueba si estás en una zona segura en el momento de eliminar, y nunca guarda ni envía dónde estás.
 - **Tu disponibilidad.** Pulsa «Acepto». Mientras estás en clase, tu cazador ve una cuenta atrás hasta que vuelvas a estar disponible, pero nunca tu horario ni tu ubicación.
 
-<!-- Captura de la app publicada: permiso de ubicación -->
+<img src="img/f1-a3-ubicacion.png" alt="Permiso de ubicación" width="250">
 
 ### 1.4 Iniciar sesión
 
