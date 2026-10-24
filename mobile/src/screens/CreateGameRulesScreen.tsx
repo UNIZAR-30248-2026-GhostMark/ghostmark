@@ -25,7 +25,26 @@ export function CreateGameRulesScreen({ navigation, route }: Props) {
     setError(undefined); setIsSaving(true);
     try {
       const game = await createGame({ ...route.params.game, entradasTardias, masterJuega, plazoDisputaHoras, tipoMisiones: "BIBLIOTECA" });
-      navigation.reset({ index: 0, routes: [{ name: "Home", params: { createdGame: { finEn: game.finEn, id: game.id, inicioEn: game.inicioEn, nombre: game.nombre, estado: game.estado, numInscritos: game.numInscritos, soyMaster: true } } }] });
+      navigation.reset({
+        index: 1,
+        routes: [
+          {
+            name: "Home",
+            params: {
+              createdGame: {
+                finEn: game.finEn,
+                id: game.id,
+                inicioEn: game.inicioEn,
+                nombre: game.nombre,
+                estado: game.estado,
+                numInscritos: game.numInscritos,
+                soyMaster: true,
+              },
+            },
+          },
+          { name: "ShareGame", params: { game } },
+        ],
+      });
     } catch (requestError) {
       setError(requestError instanceof ApiError ? [requestError.message, ...requestError.fieldErrors].join("\n") : "No hemos podido crear la partida. Comprueba la conexión e inténtalo de nuevo.");
     } finally { setIsSaving(false); }

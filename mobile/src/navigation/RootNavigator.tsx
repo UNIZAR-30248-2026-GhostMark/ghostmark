@@ -1,13 +1,16 @@
 import { createNavigationContainerRef, DarkTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
-import { Alert, Button, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Button, Linking, Text, View } from "react-native";
 
-import { nextAccountScreen, restoreSession, setSessionExpiredHandler } from "../api/auth";
+import { getCurrentAccount, nextAccountScreen, restoreSession, setSessionExpiredHandler } from "../api/auth";
 import { ApiStatusScreen } from "../screens/ApiStatusScreen";
 import { AvailabilityConsentScreen } from "../screens/AvailabilityConsentScreen";
 import { CreateGameDataScreen } from "../screens/CreateGameDataScreen";
 import { CreateGameRulesScreen } from "../screens/CreateGameRulesScreen";
+import { GameInvitationScreen } from "../screens/GameInvitationScreen";
+import { ShareGameScreen } from "../screens/ShareGameScreen";
+import { createInvitationInbox } from "../utils/invitation";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LocationConsentScreen } from "../screens/LocationConsentScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
@@ -36,6 +39,33 @@ export function RootNavigator() {
   const [initialRoute, setInitialRoute] = useState<"Welcome" | "Home" | "LocationConsent" | "AvailabilityConsent">();
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const invitations = useRef(createInvitationInbox());
+
+  const openPendingInvitation = useCallback(() => {
+    if (!navigationRef.isReady()) return;
+    const screen = navigationRef.getCurrentRoute()?.name;
+    const ready = Boolean(getCurrentAccount()) && nextAccountScreen() === "Home"
+      && screen !== "Welcome" && screen !== "SignIn";
+    const code = invitations.current.take(ready);
+    if (code) navigationRef.navigate("GameInvitation", { code });
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let receivedLiveLink = false;
+    const receive = (url: string) => {
+      invitations.current.receive(url);
+      openPendingInvitation();
+    };
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      receivedLiveLink = true;
+      receive(url);
+    });
+    void Linking.getInitialURL().then((url) => {
+      if (active && url && !receivedLiveLink) receive(url);
+    }).catch(() => undefined);
+    return () => { active = false; subscription.remove(); };
+  }, [openPendingInvitation]);
 
   useEffect(() => {
     setSessionExpiredHandler(() => {
@@ -62,7 +92,7 @@ export function RootNavigator() {
     </View>;
   }
   return (
-    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme} onReady={openPendingInvitation} onStateChange={openPendingInvitation}>
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false, animation: "fade" }}>
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="SignIn" component={SignInScreen} />
@@ -73,6 +103,8 @@ export function RootNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="CreateGameData" component={CreateGameDataScreen} />
         <Stack.Screen name="CreateGameRules" component={CreateGameRulesScreen} />
+        <Stack.Screen name="ShareGame" component={ShareGameScreen} />
+        <Stack.Screen name="GameInvitation" component={GameInvitationScreen} />
         <Stack.Screen name="ApiStatus" component={ApiStatusScreen} />
       </Stack.Navigator>
     </NavigationContainer>

@@ -46,3 +46,7 @@ La sesión sigue abierta en el móvil mientras uses la app al menos una vez cada
 2. Confirma con «Borrar cuenta».
 
 Se borran tu alias, tus datos de acceso y tu horario, y no se puede deshacer. Después ya no podrás iniciar sesión con ese email y tu alias queda libre para otra persona.
+
+## Compartir una partida
+
+[QR, enlace y apertura de la partida](compartir-partida.md).

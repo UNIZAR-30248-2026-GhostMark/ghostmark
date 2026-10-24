@@ -2,7 +2,8 @@
   "expo": {
     "name": "GhostMark",
     "slug": "ghostmark",
-    "version": "0.1.0",
+    "scheme": "ghostmark",
+    "version": "0.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "splash": {
