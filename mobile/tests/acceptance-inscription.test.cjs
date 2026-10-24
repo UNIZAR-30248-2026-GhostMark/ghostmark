@@ -11,6 +11,7 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 
 const originalFetch = global.fetch;
 const code = 'ABCDEFGH';
+const partidaId = 'p-aceptacion';
 const publicGame = {
   nombre: 'Aceptacion PBI 3', estado: 'EN_INSCRIPCION', aliasMaster: 'master-real',
   inicioEn: '2099-11-01T10:00:00Z', finEn: '2099-11-02T10:00:00Z', numInscritos: 1,
@@ -43,6 +44,7 @@ function app() {
     'react-native': native,
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
     '@react-navigation/native': { useIsFocused: () => true },
+    'expo-secure-store': { setItemAsync: async () => {}, getItemAsync: async () => null, deleteItemAsync: async () => {} },
     'expo-camera': {
       CameraView: 'CameraView',
       useCameraPermissions: () => [{ granted: true, canAskAgain: true }, async () => {}],
@@ -83,6 +85,15 @@ function app() {
     assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer test-pbi3');
     if (method === 'GET' && pathname === `/api/v1/partidas/codigo/${code}`) {
       return Response.json(publicGame);
+    }
+    if (method === 'POST' && pathname === '/api/v1/inscripciones') {
+      assert.deepEqual(body, { codigo: code, aceptaNormas: true });
+      return Response.json({ id: 'i-jugador', partidaId, inscritaEn: '2099-10-01T10:00:00Z', horario: { franjas: [] } }, { status: 201 });
+    }
+    if (method === 'GET' && pathname === `/api/v1/partidas/${partidaId}/inscritos`) {
+      const joined = calls.some((call) => call.method === 'POST' && call.pathname === '/api/v1/inscripciones');
+      return Response.json([{ id: 'i-master', alias: 'master-real', esMaster: true },
+        ...(joined ? [{ id: 'i-jugador', alias: 'jugador-real', esMaster: false }] : [])]);
     }
     assert.fail(`Petición fuera del contrato del escenario: ${method} ${pathname}`);
   };
@@ -172,3 +183,18 @@ for (const source of ['QR', 'enlace']) {
     assert.deepEqual(application.destinations, [], 'No se abre la sala antes de aceptar');
   });
 }
+
+test('CA1 - aceptar las normas inscribe al jugador y la sala le muestra en la lista del máster', async () => {
+  const application = app();
+  await application.load('api/auth.ts').saveSession({ tokenAcceso: 'test-pbi3', tokenRefresco: 'refresco', cuenta: { alias: 'jugador-real' } });
+  await openNorms(application, 'enlace');
+  await press(primary('ACEPTO Y ME UNO'));
+  assert.equal(application.joins().length, 1);
+  const destination = application.destinations.pop();
+  assert.deepEqual(destination, { name: 'WaitingRoom', params: { gameId: partidaId, game: publicGame } });
+  await application.show(destination.name, destination.params);
+  for (const expected of ['Te has unido', 'jugador-real', 'master-real', '2 inscritos']) {
+    assert.ok(text().includes(expected), expected);
+  }
+  assert.ok(application.calls.some((call) => call.method === 'GET' && call.pathname === `/api/v1/partidas/${partidaId}/inscritos`));
+});
