@@ -113,7 +113,7 @@ public class ServicioPartida {
     @Transactional
     public Map<String, Object> editar(UUID cuentaId, UUID partidaId, CambiosPartida cambios,
             Instant ahora) {
-        Partida partida = partidas.findById(partidaId)
+        Partida partida = partidas.findBloqueadaById(partidaId)
                 .orElseThrow(PartidaNoEncontradaException::new);
         if (!cuentaId.equals(partida.getMasterId())) {
             throw new NoEsMasterException();

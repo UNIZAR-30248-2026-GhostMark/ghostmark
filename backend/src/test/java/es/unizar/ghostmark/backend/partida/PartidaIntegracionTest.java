@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
 import io.restassured.http.ContentType;
@@ -16,6 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +27,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Tests de aceptación de la PBI 2 (#3): uno por criterio de satisfacción, más el de rol (solo el
@@ -41,6 +47,9 @@ class PartidaIntegracionTest {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    PlatformTransactionManager transacciones;
 
     @Test
     void criterio1CrearPartidaGuardaSusValoresYRechazaFinAnteriorAlInicio() {
@@ -161,6 +170,41 @@ class PartidaIntegracionTest {
         // masterJuega ya era true: no cambia y no va en el evento.
         assertEquals("{\"nombre\": \"Killer Nuevo\", \"plazoDisputaHoras\": 24}",
                 evento.get("datos"));
+    }
+
+    @Test
+    void editarEsperaAQueTermineElArranqueYDa409() throws Exception {
+        String master = registrar();
+        String id = crearId(master, "Killer Simultaneo");
+        UUID partidaId = UUID.fromString(id);
+
+        CountDownLatch bloqueada = new CountDownLatch(1);
+        CountDownLatch soltar = new CountDownLatch(1);
+        CompletableFuture<Void> arranque = CompletableFuture.runAsync(() ->
+                new TransactionTemplate(transacciones).executeWithoutResult(estado -> {
+                    jdbc.queryForObject("select id from partida where id = ? for update",
+                            UUID.class, partidaId);
+                    jdbc.update("update partida set estado = 'EN_JUEGO' where id = ?",
+                            partidaId);
+                    bloqueada.countDown();
+                    try {
+                        soltar.await(10, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }));
+        assertTrue(bloqueada.await(10, TimeUnit.SECONDS));
+
+        CompletableFuture<Integer> edicion = CompletableFuture.supplyAsync(() ->
+                editar(master, id, Map.of("nombre", "Killer Editado")).statusCode());
+        Thread.sleep(500);
+        soltar.countDown();
+        arranque.get(10, TimeUnit.SECONDS);
+
+        // Sin el bloqueo, editar lee la partida antes del arranque y la devuelve a EN_INSCRIPCION.
+        assertEquals(409, edicion.get(10, TimeUnit.SECONDS));
+        assertEquals("EN_JUEGO", jdbc.queryForObject(
+                "select estado from partida where id = ?", String.class, partidaId));
     }
 
     @Test
