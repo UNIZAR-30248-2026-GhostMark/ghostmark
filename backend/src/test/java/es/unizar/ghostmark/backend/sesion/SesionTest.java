@@ -209,6 +209,33 @@ class SesionTest {
     }
 
     @Test
+    void cierreConTokenAjenoNoLoRevoca() {
+        String accesoAna = (String) registrar("ana_c", "ana_c@example.com").get("tokenAcceso");
+        String refrescoBruno =
+                (String) registrar("bruno_c", "bruno_c@example.com").get("tokenRefresco");
+
+        // Responde igual que con un token que no existe (#97).
+        given()
+                .port(puerto)
+                .contentType(ContentType.JSON)
+                .header("Authorization", "Bearer " + accesoAna)
+                .body(Map.of("tokenRefresco", refrescoBruno))
+                .when()
+                .post("/api/v1/sesiones/cierre")
+                .then()
+                .statusCode(204);
+
+        given()
+                .port(puerto)
+                .contentType(ContentType.JSON)
+                .body(Map.of("tokenRefresco", refrescoBruno))
+                .when()
+                .post("/api/v1/sesiones/refresco")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     void limpiezaBorraRefrescosCaducadosHaceMasDe30Dias() {
         Map<String, Object> sesion = registrar("dani_t", "dani@example.com");
         Cuenta cuenta = cuentas.findByEmail("dani@example.com").orElseThrow();

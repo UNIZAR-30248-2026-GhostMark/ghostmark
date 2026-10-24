@@ -3,8 +3,10 @@ package es.unizar.ghostmark.backend.sesion;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,8 +46,11 @@ public class ControladorSesion {
     }
 
     @PostMapping("/sesiones/cierre")
-    public ResponseEntity<Void> cerrar(@RequestBody Map<String, String> cuerpo) {
-        sesiones.cerrarSesion(cuerpo.get("tokenRefresco"), Instant.now(reloj));
+    public ResponseEntity<Void> cerrar(
+            Authentication autenticacion, @RequestBody Map<String, String> cuerpo) {
+        sesiones.cerrarSesion(
+                UUID.fromString(autenticacion.getName()), cuerpo.get("tokenRefresco"),
+                Instant.now(reloj));
         return ResponseEntity.noContent().build();
     }
 }

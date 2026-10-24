@@ -96,7 +96,7 @@ paths:
       tags: [sesion]
       operationId: cerrarSesion
       summary: Cerrar sesión en este móvil
-      description: Revoca el token de refresco indicado.
+      description: Revoca el token de refresco indicado si es de la cuenta autenticada. Si no lo es o no existe, responde 204 sin revocar nada.
       requestBody:
         required: true
         content:

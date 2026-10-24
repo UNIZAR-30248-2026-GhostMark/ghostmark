@@ -15,6 +15,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -113,8 +114,11 @@ public class ServicioSesion {
     }
 
     @Transactional
-    public void cerrarSesion(String token, Instant ahora) {
-        refrescos.findByHashToken(sha256(token)).ifPresent(t -> t.revocar(ahora));
+    public void cerrarSesion(UUID cuentaId, String token, Instant ahora) {
+        refrescos
+                .findByHashToken(sha256(token))
+                .filter(t -> t.getCuenta().getId().equals(cuentaId))
+                .ifPresent(t -> t.revocar(ahora));
     }
 
     @Scheduled(cron = "0 0 3 * * *")
