@@ -6,6 +6,7 @@ export const typography = {
     fontFamily: "Bangers",
     fontSize: 34,
     letterSpacing: 1,
+    paddingRight: 3,
   },
   heading: {
     color: colors.text,

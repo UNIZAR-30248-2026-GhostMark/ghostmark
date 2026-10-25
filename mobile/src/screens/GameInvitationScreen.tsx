@@ -62,9 +62,9 @@ export function GameInvitationScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, gap: 24, paddingBottom: 24 },
-  heading: { color: colors.text, fontFamily: "Bangers", fontSize: 34 },
+  heading: { color: colors.text, fontFamily: "Bangers", fontSize: 34, paddingRight: 3 },
   card: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 16, borderWidth: 3, gap: 15, padding: 20 },
-  title: { color: colors.text, fontFamily: "Bangers", fontSize: 32 },
+  title: { color: colors.text, fontFamily: "Bangers", fontSize: 32, paddingRight: 3 },
   status: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 17 },
   detail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 16, lineHeight: 24 },
   error: { gap: 20 },
