@@ -1,7 +1,7 @@
 import { createNavigationContainerRef, DarkTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Linking, Text, View } from "react-native";
+import { Alert, Linking, Text, View } from "react-native";
 
 import { getCurrentAccount, nextAccountScreen, restoreSession, setSessionExpiredHandler } from "../api/auth";
 import { ApiStatusScreen } from "../screens/ApiStatusScreen";
@@ -21,6 +21,9 @@ import { SignInScreen } from "../screens/SignInScreen";
 import { ScheduleScreen } from "../screens/ScheduleScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { colors } from "../theme/colors";
+import { typography } from "../theme/typography";
+import { PrimaryButton } from "../components/PrimaryButton";
+import { Screen } from "../components/Screen";
 import type { RootStackParamList } from "../types/navigation";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -89,10 +92,10 @@ export function RootNavigator() {
   }, [attempt]);
 
   if (!initialRoute) {
-    return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.background, padding: 24 }}>
-      <Text style={{ color: colors.text, textAlign: "center" }}>{error ? "No se ha podido recuperar la sesión. Comprueba tu conexión." : "Recuperando sesión…"}</Text>
-      {error ? <Button title="Reintentar" onPress={() => { setError(false); setAttempt((value) => value + 1); }} /> : null}
-    </View>;
+    return <Screen><View style={{ alignItems: "center", flex: 1, gap: 20, justifyContent: "center" }}>
+      <Text style={[typography.body, { color: colors.text, textAlign: "center" }]}>{error ? "No se ha podido recuperar la sesión. Comprueba tu conexión." : "Recuperando sesión…"}</Text>
+      {error ? <PrimaryButton onPress={() => { setError(false); setAttempt((value) => value + 1); }}>REINTENTAR</PrimaryButton> : null}
+    </View></Screen>;
   }
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme} onReady={openPendingInvitation} onStateChange={openPendingInvitation}>
