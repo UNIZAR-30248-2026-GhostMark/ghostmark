@@ -55,7 +55,9 @@ export function GameInvitationScreen({ navigation, route }: Props) {
           <PrimaryButton onPress={() => setAttempt((value) => value + 1)}>REINTENTAR</PrimaryButton>
         </View> : null}
       </ScrollView>
-      <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>IR A MIS PARTIDAS</PrimaryButton>
+      {!loading && state.status === "loaded" && state.game.estado === "EN_INSCRIPCION"
+        ? <PrimaryButton onPress={() => navigation.replace("GameNorms", { code, game: state.game })}>VER NORMAS</PrimaryButton>
+        : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>IR A MIS PARTIDAS</PrimaryButton>}
     </Screen>
   );
 }
