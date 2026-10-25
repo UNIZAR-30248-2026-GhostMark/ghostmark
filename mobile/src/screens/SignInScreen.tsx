@@ -10,6 +10,7 @@ import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import { typography } from "../theme/typography";
 import type { RootStackParamList } from "../types/navigation";
+import { hasAccountFieldErrors, type AccountFieldErrors, validateSignIn } from "../utils/accountValidation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignIn">;
 
@@ -17,6 +18,7 @@ export function SignInScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
+  const [fieldErrors, setFieldErrors] = useState<AccountFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -32,14 +34,26 @@ export function SignInScreen({ navigation }: Props) {
   }
 
   async function signIn() {
-    if (!email.trim() || !password) { setError("Introduce tu email y contraseña."); return; }
-    setError(undefined); setIsSubmitting(true);
+    const validationErrors = validateSignIn(email, password);
+    if (hasAccountFieldErrors(validationErrors)) {
+      setFieldErrors(validationErrors);
+      setError(undefined);
+      return;
+    }
+    setError(undefined); setFieldErrors({}); setIsSubmitting(true);
     try {
       const session = await login({ email: email.trim(), contrasena: password });
       await saveSession(session);
       navigation.replace(nextAccountScreen());
     } catch (requestError) {
-      if (requestError instanceof ApiError) setError([requestError.message, ...requestError.fieldErrors].join("\n"));
+      if (requestError instanceof ApiError) {
+        const errors: AccountFieldErrors = {};
+        for (const field of ["email", "contrasena"] as const) {
+          if (requestError.fieldErrorsByName[field]) errors[field] = requestError.fieldErrorsByName[field];
+        }
+        setFieldErrors(errors);
+        setError(hasAccountFieldErrors(errors) ? undefined : requestError.message);
+      }
       else setError("No hemos podido iniciar sesión. Revisa la conexión e inténtalo de nuevo.");
     } finally { setIsSubmitting(false); }
   }
@@ -69,8 +83,8 @@ export function SignInScreen({ navigation }: Props) {
           <Text style={styles.title}>QUÉ BIEN VERTE{"\n"}DE NUEVO</Text>
           <Text style={styles.body}>Inicia sesión para volver a tus partidas.</Text>
           <View style={styles.form}>
-            <FormTextInput label="Email" value={email} onChangeText={setEmail} onFocus={revealFocusedField} placeholder="tu@email.com" autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
-            <FormTextInput label="Contraseña" value={password} onChangeText={setPassword} onFocus={revealFocusedField} placeholder="Tu contraseña" autoComplete="current-password" secureTextEntry />
+            <FormTextInput error={fieldErrors.email} label="Email" value={email} onChangeText={(value) => { setEmail(value); setFieldErrors((errors) => ({ ...errors, email: undefined })); }} onFocus={revealFocusedField} placeholder="tu@email.com" autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
+            <FormTextInput error={fieldErrors.contrasena} label="Contraseña" value={password} onChangeText={(value) => { setPassword(value); setFieldErrors((errors) => ({ ...errors, contrasena: undefined })); }} onFocus={revealFocusedField} placeholder="Tu contraseña" autoComplete="current-password" secureTextEntry />
             {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
           </View>
         </View>

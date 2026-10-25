@@ -13,6 +13,7 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly fieldErrors: string[] = [],
     public readonly code?: string,
+    public readonly fieldErrorsByName: Readonly<Record<string, string>> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -54,9 +55,19 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as ProblemDetail;
-    const fieldErrors = payload.errores?.map((error) => error.mensaje)
-      .filter((message): message is string => Boolean(message)) ?? [];
-    throw new ApiError(payload.detail || "La petición no pudo completarse.", response.status, fieldErrors, payload.codigo);
+    const namedFieldErrors = Object.fromEntries(
+      (payload.errores ?? [])
+        .filter((error): error is { campo: string; mensaje: string } => Boolean(error.campo && error.mensaje))
+        .map((error) => [error.campo, error.mensaje]),
+    );
+    const fieldErrors = Object.values(namedFieldErrors);
+    throw new ApiError(
+      payload.detail || "La petición no pudo completarse.",
+      response.status,
+      fieldErrors,
+      payload.codigo,
+      namedFieldErrors,
+    );
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;

@@ -20,6 +20,7 @@ function load(file, imports = {}) {
   return module.exports;
 }
 const invitation = load('utils/invitation.ts');
+const accountValidation = load('utils/accountValidation.ts');
 const client = load('api/client.ts');
 const api = load('api/game.ts', { './client': client });
 const native = {
@@ -149,6 +150,7 @@ test('el alta muestra alias, email y contraseña desde el principio, sin «Usar 
     'react-native': { ...native, Keyboard: { addListener: () => ({ remove() {} }) }, KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'android' } },
     '../api/auth': { registerAccount: async (value) => { registered = value; return {}; }, saveSession: async () => undefined },
     '../components/FormTextInput': { FormTextInput: 'FormTextInput' },
+    '../utils/accountValidation': accountValidation,
   });
   await mount(WelcomeScreen, { navigation: { replace() {}, navigate() {} } });
   const fields = tree.root.findAllByType('FormTextInput').map((field) => field.props.label);
@@ -157,7 +159,8 @@ test('el alta muestra alias, email y contraseña desde el principio, sin «Usar 
   const continueButton = tree.root.findByType('PrimaryButton');
   assert.equal(continueButton.props.disabled, false);
   await act(async () => continueButton.props.onPress());
-  assert.match(JSON.stringify(tree.toJSON()), /Completa alias, email y contraseña para continuar\./);
+  assert.match(JSON.stringify(tree.toJSON()), /De 3 a 20: letras sin tildes, números y guion bajo/);
+  assert.equal(registered, undefined, 'la validación local no llama al servidor');
   const [alias, email, password] = tree.root.findAllByType('FormTextInput');
   await act(async () => { alias.props.onChangeText('fantasmilla'); email.props.onChangeText('ana@example.com'); password.props.onChangeText('Prueba-1234'); });
   await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
@@ -250,6 +253,7 @@ test('desde «Iniciar sesión», «Crear cuenta» abre el alta', async () => {
     'react-native': { ...native, Keyboard: { addListener: () => ({ remove() {} }) }, KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'android' } },
     '../api/auth': { login: async () => undefined, nextAccountScreen: () => 'Home', saveSession: async () => undefined },
     '../components/FormTextInput': { FormTextInput: 'FormTextInput' },
+    '../utils/accountValidation': accountValidation,
   });
   await mount(SignInScreen, { navigation: { navigate: (name) => { destination = name; }, goBack: () => { destination = 'atrás'; } } });
   const link = tree.root.findAll((node) => node.type === 'Pressable' && node.props.accessibilityRole === 'link')[0];
@@ -263,6 +267,7 @@ test('desde el alta, «¿Ya tienes cuenta? Inicia sesión» vuelve a «Iniciar s
     'react-native': { ...native, Keyboard: { addListener: () => ({ remove() {} }) }, KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'android' } },
     '../api/auth': { registerAccount: async () => ({}), saveSession: async () => undefined },
     '../components/FormTextInput': { FormTextInput: 'FormTextInput' },
+    '../utils/accountValidation': accountValidation,
   });
   await mount(WelcomeScreen, { navigation: { navigate: (name) => { calls.push(['navigate', name]); }, popTo: (name) => { calls.push(['popTo', name]); }, replace() {} } });
   const link = tree.root.findAll((node) => node.type === 'Pressable' && node.props.accessibilityRole === 'link')[0];
