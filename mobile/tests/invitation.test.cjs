@@ -88,7 +88,7 @@ test('el QR y copiar usan el enlace del servidor; ir a la partida lleva su códi
   });
   await mount(ShareGameScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { game: { ...game, enlace: serverLink } } } });
   assert.equal(tree.root.findByType('QRCode').props.value, serverLink);
-  assert.equal(tree.root.findByType('GameWizardHeader').props.step, 5);
+  assert.equal(tree.root.findByType('GameWizardHeader').props.step, 3);
   const buttons = tree.root.findAllByType('Pressable');
   assert.equal(buttons.length, 1, 'sin «Compartir invitación» (R9-5)');
   await act(async () => buttons[0].props.onPress());
