@@ -39,7 +39,7 @@ const navigationTheme = {
 };
 
 export function RootNavigator() {
-  const [initialRoute, setInitialRoute] = useState<"Welcome" | "Home" | "LocationConsent" | "AvailabilityConsent">();
+  const [initialRoute, setInitialRoute] = useState<"SignIn" | "Home" | "LocationConsent" | "AvailabilityConsent">();
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const invitations = useRef(createInvitationInbox());
@@ -73,7 +73,7 @@ export function RootNavigator() {
   useEffect(() => {
     setSessionExpiredHandler(() => {
       if (navigationRef.isReady()) {
-        navigationRef.reset({ index: 0, routes: [{ name: "Welcome" }] });
+        navigationRef.reset({ index: 0, routes: [{ name: "SignIn" }] });
         Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para continuar.");
       }
     });
@@ -83,7 +83,7 @@ export function RootNavigator() {
   useEffect(() => {
     let active = true;
     restoreSession().then((restored) => {
-      if (active) setInitialRoute(restored ? nextAccountScreen() : "Welcome");
+      if (active) setInitialRoute(restored ? nextAccountScreen() : "SignIn");
     }).catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [attempt]);

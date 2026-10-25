@@ -53,7 +53,7 @@ export function ProfileScreen({ navigation }: Props) {
     try {
       await deleteAccount();
       await clearSession();
-      navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+      navigation.reset({ index: 0, routes: [{ name: "SignIn" }] });
     } catch {
       setError("No hemos podido borrar la cuenta. Comprueba la conexión e inténtalo de nuevo.");
     } finally {
@@ -64,7 +64,7 @@ export function ProfileScreen({ navigation }: Props) {
   async function signOut() {
     try {
       await closeSession();
-      navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+      navigation.reset({ index: 0, routes: [{ name: "SignIn" }] });
     } catch {
       setError("No hemos podido cerrar la sesión. Comprueba la conexión e inténtalo de nuevo.");
     }
