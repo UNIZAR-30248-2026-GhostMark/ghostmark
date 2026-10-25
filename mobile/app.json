@@ -3,7 +3,7 @@
     "name": "GhostMark",
     "slug": "ghostmark",
     "scheme": "ghostmark",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "splash": {
@@ -11,6 +11,13 @@
     },
     "plugins": [
       "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GhostMark necesita la cámara para escanear invitaciones.",
+          "recordAudioAndroid": false
+        }
+      ],
       [
         "expo-location",
         {

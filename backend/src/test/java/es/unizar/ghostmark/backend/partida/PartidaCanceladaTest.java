@@ -54,9 +54,9 @@ class PartidaCanceladaTest {
                         + " datos->>'numJugadores' as numJugadores from evento"
                         + " where partida_id = ? and tipo = 'PARTIDA_CANCELADA'",
                 UUID.fromString(id));
-        assertEquals(2L, ((Number) evento.get("secuencia")).longValue());
+        assertEquals(3L, ((Number) evento.get("secuencia")).longValue());
         assertEquals("MASTER_SIN_CUENTA", evento.get("motivo"));
-        assertEquals("0", evento.get("numJugadores"));
+        assertEquals("1", evento.get("numJugadores"));
     }
 
     @Test
@@ -111,7 +111,7 @@ class PartidaCanceladaTest {
         Long secuencia = jdbc.queryForObject(
                 "select secuencia from evento where partida_id = ? and tipo = 'PARTIDA_CANCELADA'",
                 Long.class, id);
-        assertEquals(3L, secuencia);
+        assertEquals(4L, secuencia);
     }
 
     private void borrarCuenta(String token) {
