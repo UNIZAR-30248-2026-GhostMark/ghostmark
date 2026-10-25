@@ -78,5 +78,5 @@ test('Perfil muestra un alias válido largo completo en una sola línea', async 
   assert.equal(alias.props.numberOfLines, 1);
   assert.equal(alias.props.adjustsFontSizeToFit, true);
   assert.equal(alias.props.minimumFontScale, 0.55);
-  assert.equal(alias.props.style[1].fontSize, 16);
+  assert.equal(alias.props.style[1].fontSize, 17);
 });
