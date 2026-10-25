@@ -19,8 +19,6 @@ function accountErrors(error: ApiError): AccountFieldErrors {
   for (const field of ["alias", "email", "contrasena"] as const) {
     if (error.fieldErrorsByName[field]) errors[field] = error.fieldErrorsByName[field];
   }
-  if (error.code === "ALIAS_OCUPADO") errors.alias = error.message;
-  if (error.code === "EMAIL_OCUPADO") errors.email = error.message;
   return errors;
 }
 

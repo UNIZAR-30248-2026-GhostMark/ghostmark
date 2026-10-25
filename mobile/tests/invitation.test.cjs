@@ -167,6 +167,24 @@ test('el alta muestra alias, email y contraseña desde el principio, sin «Usar 
   assert.deepEqual(registered, { alias: 'fantasmilla', email: 'ana@example.com', contrasena: 'Prueba-1234' });
 });
 
+test('el alta muestra un 409 sin campo debajo del formulario', async () => {
+  const { WelcomeScreen } = load('screens/WelcomeScreen.tsx', { ...common,
+    'react-native': { ...native, Keyboard: { addListener: () => ({ remove() {} }) }, KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'android' } },
+    '../api/auth': {
+      registerAccount: async () => { throw new client.ApiError('Ese alias ya está en uso', 409, [], 'ALIAS_OCUPADO'); },
+      saveSession: async () => undefined,
+    },
+    '../components/FormTextInput': { FormTextInput: 'FormTextInput' },
+    '../utils/accountValidation': accountValidation,
+  });
+  await mount(WelcomeScreen, { navigation: { replace() {}, navigate() {} } });
+  const [alias, email, password] = tree.root.findAllByType('FormTextInput');
+  await act(async () => { alias.props.onChangeText('fantasmilla'); email.props.onChangeText('ana@example.com'); password.props.onChangeText('Prueba-1234'); });
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.equal(tree.root.findAllByType('FormTextInput')[0].props.error, undefined);
+  assert.match(JSON.stringify(tree.toJSON()), /Ese alias ya está en uso/);
+});
+
 test('la vista muestra el nombre real de la partida y permite reintentar tras un 404', async () => {
   let calls = 0;
   const { GameInvitationScreen } = load('screens/GameInvitationScreen.tsx', { ...common,
