@@ -33,5 +33,5 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
   },
   pressed: { opacity: 0.7 },
-  label: { color: colors.ink, fontFamily: "Bangers", fontSize: 22, letterSpacing: 0.8 },
+  label: { color: colors.ink, fontFamily: "Bangers", fontSize: 22, letterSpacing: 0.8, paddingRight: 3 },
 });
