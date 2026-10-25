@@ -12,6 +12,7 @@ import { GameInvitationScreen } from "../screens/GameInvitationScreen";
 import { GameCancelledScreen } from "../screens/GameCancelledScreen";
 import { GameNormsScreen } from "../screens/GameNormsScreen";
 import { GameStartedScreen } from "../screens/GameStartedScreen";
+import { MissionCardScreen } from "../screens/MissionCardScreen";
 import { ShareGameScreen } from "../screens/ShareGameScreen";
 import { ScanInvitationScreen } from "../screens/ScanInvitationScreen";
 import { WaitingRoomScreen } from "../screens/WaitingRoomScreen";
@@ -119,6 +120,7 @@ export function RootNavigator() {
         <Stack.Screen name="GameNorms" component={GameNormsScreen} />
         <Stack.Screen name="WaitingRoom" component={WaitingRoomScreen} />
         <Stack.Screen name="GameStarted" component={GameStartedScreen} />
+        <Stack.Screen name="MissionCard" component={MissionCardScreen} />
         <Stack.Screen name="GameCancelled" component={GameCancelledScreen} />
         <Stack.Screen name="ScanInvitation" component={ScanInvitationScreen} />
         <Stack.Screen name="ApiStatus" component={ApiStatusScreen} />

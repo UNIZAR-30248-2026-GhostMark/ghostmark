@@ -12,8 +12,9 @@ export type RootStackParamList = {
   GameInvitation: { code: string };
   GameNorms: { code: string; game: import("./game").PublicGame };
   WaitingRoom: { gameId: string; game: Pick<import("./game").Game, "inicioEn"> };
-  GameStarted: { game: Pick<import("./game").GameSummary, "nombre" | "inicioEn" | "numInscritos"> };
+  GameStarted: { game: Pick<import("./game").GameSummary, "nombre" | "inicioEn" | "numInscritos"> & Partial<Pick<import("./game").GameSummary, "id">> };
   GameCancelled: { game: Pick<import("./game").GameSummary, "nombre" | "numInscritos"> & Partial<Pick<import("./game").GameSummary, "motivoCancelacion">> };
+  MissionCard: { gameId: string };
   ScanInvitation: undefined;
   ApiStatus: undefined;
 };

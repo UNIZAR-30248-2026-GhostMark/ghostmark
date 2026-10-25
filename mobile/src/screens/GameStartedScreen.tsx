@@ -16,8 +16,9 @@ function startLabel(value: string) {
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${date.getDate()} ${month} · ${time}`;
 }
 
-export function GameStartedScreen({ route }: Props) {
+export function GameStartedScreen({ navigation, route }: Props) {
   const { game } = route.params;
+  const gameId = game.id;
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.artwork}>
       {[-64, -38, -12, 15, 42, 69].map((rotation) => <View key={rotation} style={[styles.ray, { transform: [{ rotate: `${rotation}deg` }] }]} />)}
@@ -30,7 +31,7 @@ export function GameStartedScreen({ route }: Props) {
       <Text style={styles.detail}>Cada jugador tiene un objetivo y una misión</Text>
     </View>
     <View style={styles.footer}>
-      <Pressable accessibilityRole="button" disabled style={styles.cardButton}><Text style={styles.cardButtonText}>VER MI CARTA</Text></Pressable>
+      <Pressable accessibilityRole="button" disabled={!gameId} onPress={() => gameId && navigation.navigate("MissionCard", { gameId })} style={styles.cardButton}><Text style={styles.cardButtonText}>VER MI CARTA</Text></Pressable>
     </View>
   </View></Screen>;
 }
