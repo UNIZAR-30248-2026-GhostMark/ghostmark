@@ -2,6 +2,10 @@ package es.unizar.ghostmark.backend.partida;
 
 import es.unizar.ghostmark.backend.cuenta.Cuenta;
 import es.unizar.ghostmark.backend.cuenta.CuentaRepository;
+import es.unizar.ghostmark.backend.evento.ServicioEvento;
+import es.unizar.ghostmark.backend.inscripcion.ErrorInscripcion;
+import es.unizar.ghostmark.backend.inscripcion.InscripcionRepository;
+import es.unizar.ghostmark.backend.inscripcion.ServicioInscripcion;
 import es.unizar.ghostmark.backend.sesion.DatosNoValidosException;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -13,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,27 +36,33 @@ public class ServicioPartida {
             + "'nombre', ?::text, 'inicioEn', ?::text, 'finEn', ?::text,"
             + " 'tipoMisiones', ?::text, 'plazoDisputaHoras', ?::int,"
             + " 'entradasTardias', ?::boolean, 'masterJuega', ?::boolean), ?)";
-    private static final String INSERTAR_PARTIDA_CANCELADA = "insert into evento"
-            + " (id, partida_id, secuencia, tipo, datos, ocurrido_en)"
-            + " select ?, ?, coalesce(max(secuencia), 0) + 1, 'PARTIDA_CANCELADA',"
-            + " jsonb_build_object('motivo', 'MASTER_SIN_CUENTA', 'numJugadores', ?::int), ?"
-            + " from evento where partida_id = ?";
 
     private final PartidaRepository partidas;
     private final CuentaRepository cuentas;
     private final JdbcTemplate jdbc;
+    private final ServicioInscripcion servicioInscripcion;
+    private final InscripcionRepository inscripciones;
+    private final ServicioEvento eventos;
     private final SecureRandom aleatorio = new SecureRandom();
 
     public ServicioPartida(PartidaRepository partidas, CuentaRepository cuentas,
-            JdbcTemplate jdbc) {
+            JdbcTemplate jdbc, ServicioInscripcion servicioInscripcion,
+            InscripcionRepository inscripciones, ServicioEvento eventos) {
         this.partidas = partidas;
         this.cuentas = cuentas;
         this.jdbc = jdbc;
+        this.servicioInscripcion = servicioInscripcion;
+        this.inscripciones = inscripciones;
+        this.eventos = eventos;
     }
 
     @Transactional
     public Map<String, Object> crear(UUID masterId, ConfiguracionPartida configuracion,
             Instant ahora) {
+        if (cuentas.bloquearPorId(masterId).isEmpty()) {
+            throw new ErrorInscripcion(HttpStatus.UNAUTHORIZED, "NO_AUTENTICADO",
+                    "La cuenta no está disponible");
+        }
         validar(configuracion, ahora);
         Partida partida = new Partida(masterId, configuracion, nuevoCodigo(), ahora);
         partidas.saveAndFlush(partida);
@@ -67,13 +78,16 @@ public class ServicioPartida {
                 partida.isEntradasTardias(),
                 partida.isMasterJuega(),
                 OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC));
+        if (partida.isMasterJuega()) {
+            servicioInscripcion.alta(partida.getId(), masterId, ahora);
+        }
         return vistaMaster(partida);
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> misPartidas(UUID masterId) {
-        return partidas.findByMasterId(masterId).stream()
-                .map(ServicioPartida::vistaResumen)
+    public List<Map<String, Object>> misPartidas(UUID cuentaId) {
+        return partidas.visiblesPara(cuentaId).stream()
+                .map(partida -> vistaResumen(partida, cuentaId))
                 .toList();
     }
 
@@ -89,7 +103,7 @@ public class ServicioPartida {
         vista.put("inicioEn", partida.getInicioEn().toString());
         vista.put("finEn", partida.getFinEn().toString());
         vista.put("aliasMaster", aliasMaster);
-        vista.put("numInscritos", 0);
+        vista.put("numInscritos", inscripciones.contar(partida.getId()));
         return vista;
     }
 
@@ -98,8 +112,9 @@ public class ServicioPartida {
         for (Partida partida : partidas.findByMasterIdAndEstadoOrderByIdAsc(masterId,
                 "EN_INSCRIPCION")) {
             partida.cancelar(ahora);
-            jdbc.update(INSERTAR_PARTIDA_CANCELADA, UUID.randomUUID(), partida.getId(),
-                    0, OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC), partida.getId());
+            eventos.guardar(partida.getId(), "PARTIDA_CANCELADA",
+                    "{\"motivo\":\"MASTER_SIN_CUENTA\",\"numJugadores\":"
+                            + inscripciones.contar(partida.getId()) + "}", ahora);
         }
     }
 
@@ -148,19 +163,19 @@ public class ServicioPartida {
         return codigo;
     }
 
-    private static Map<String, Object> vistaResumen(Partida partida) {
+    private Map<String, Object> vistaResumen(Partida partida, UUID cuentaId) {
         Map<String, Object> vista = new LinkedHashMap<>();
         vista.put("id", partida.getId().toString());
         vista.put("nombre", partida.getNombre());
         vista.put("estado", partida.getEstado());
         vista.put("inicioEn", partida.getInicioEn().toString());
         vista.put("finEn", partida.getFinEn().toString());
-        vista.put("soyMaster", true);
-        vista.put("numInscritos", 0);
+        vista.put("soyMaster", cuentaId.equals(partida.getMasterId()));
+        vista.put("numInscritos", inscripciones.contar(partida.getId()));
         return vista;
     }
 
-    private static Map<String, Object> vistaMaster(Partida partida) {
+    private Map<String, Object> vistaMaster(Partida partida) {
         Map<String, Object> vista = new LinkedHashMap<>();
         vista.put("id", partida.getId().toString());
         vista.put("nombre", partida.getNombre());
@@ -173,7 +188,7 @@ public class ServicioPartida {
         vista.put("estado", partida.getEstado());
         vista.put("codigoInvitacion", partida.getCodigoInvitacion());
         vista.put("enlace", "ghostmark://unirse/" + partida.getCodigoInvitacion());
-        vista.put("numInscritos", 0);
+        vista.put("numInscritos", inscripciones.contar(partida.getId()));
         vista.put("creadaEn", partida.getCreadaEn().toString());
         return vista;
     }

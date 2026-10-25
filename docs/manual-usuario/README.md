@@ -6,8 +6,8 @@ Se escribe a medida que se terminan PBI: cada *pull request* que cambia lo que v
 
 ### 1.1 Crear la cuenta
 
-1. Abre GhostMark. En «Elige cómo te verán los demás», escribe tu alias: de 3 a 20 caracteres, con letras sin tildes, números y guion bajo. Nadie más puede tener el mismo alias, aunque cambien las mayúsculas.
-2. Pulsa «Usar email» y escribe tu email y una contraseña de al menos 8 caracteres. El email solo sirve para iniciar sesión.
+1. En «Te damos la bienvenida a GhostMark», escribe tu alias: de 3 a 20 caracteres, con letras sin tildes, números y guion bajo. Nadie más puede tener el mismo alias, aunque cambien las mayúsculas.
+2. Escribe tu email y una contraseña de al menos 8 caracteres. El email solo sirve para iniciar sesión.
 3. Pulsa «Continuar». Si el alias o el email ya están en uso, o algún dato no es válido, la app te dice cuál y no crea la cuenta.
 
 <img src="img/f1-a1-bienvenida.png" alt="Pantalla de bienvenida" width="250">

@@ -125,6 +125,45 @@ test('crear una partida abre compartir y retira los formularios del historial', 
     ],
   });
 });
+test('el nombre de la partida empieza vacío, con «Killer Bienvenida EINA» como ejemplo', async () => {
+  let destination;
+  const { CreateGameDataScreen } = load('screens/CreateGameDataScreen.tsx', { ...common,
+    'react-native': { ...native, KeyboardAvoidingView: 'KeyboardAvoidingView', Modal: 'Modal', Platform: { OS: 'android' }, TextInput: 'TextInput' },
+  });
+  await mount(CreateGameDataScreen, { navigation: { navigate: (...args) => { destination = args; } } });
+  const input = tree.root.findByProps({ accessibilityLabel: 'Nombre de la partida' });
+  assert.equal(input.props.value, '');
+  assert.equal(input.props.placeholder, 'Killer Bienvenida EINA');
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.match(JSON.stringify(tree.toJSON()), /El nombre de la partida debe tener al menos 3 caracteres\./);
+  assert.equal(destination, undefined);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nombre de la partida' }).props.onChangeText('Killer EINA'));
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.equal(destination[0], 'CreateGameRules');
+  assert.equal(destination[1].game.nombre, 'Killer EINA');
+});
+
+test('el alta muestra alias, email y contraseña desde el principio, sin «Usar email»', async () => {
+  let registered;
+  const { WelcomeScreen } = load('screens/WelcomeScreen.tsx', { ...common,
+    'react-native': { ...native, Keyboard: { addListener: () => ({ remove() {} }) }, KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'android' } },
+    '../api/auth': { registerAccount: async (value) => { registered = value; return {}; }, saveSession: async () => undefined },
+    '../components/FormTextInput': { FormTextInput: 'FormTextInput' },
+  });
+  await mount(WelcomeScreen, { navigation: { replace() {}, navigate() {} } });
+  const fields = tree.root.findAllByType('FormTextInput').map((field) => field.props.label);
+  assert.deepEqual(fields, ['Tu alias', 'Email', 'Contraseña']);
+  assert.doesNotMatch(JSON.stringify(tree.toJSON()), /USAR EMAIL/);
+  const continueButton = tree.root.findByType('PrimaryButton');
+  assert.equal(continueButton.props.disabled, false);
+  await act(async () => continueButton.props.onPress());
+  assert.match(JSON.stringify(tree.toJSON()), /Completa alias, email y contraseña para continuar\./);
+  const [alias, email, password] = tree.root.findAllByType('FormTextInput');
+  await act(async () => { alias.props.onChangeText('fantasmilla'); email.props.onChangeText('ana@example.com'); password.props.onChangeText('Prueba-1234'); });
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.deepEqual(registered, { alias: 'fantasmilla', email: 'ana@example.com', contrasena: 'Prueba-1234' });
+});
+
 test('la vista muestra el nombre real de la partida y permite reintentar tras un 404', async () => {
   let calls = 0;
   const { GameInvitationScreen } = load('screens/GameInvitationScreen.tsx', { ...common,
@@ -184,7 +223,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);
