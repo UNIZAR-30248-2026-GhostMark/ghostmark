@@ -2,6 +2,7 @@ package es.unizar.ghostmark.backend.juego;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -273,8 +274,36 @@ class ArranqueTest {
         vencer(juego);
         given().port(puerto).auth().oauth2(jugador.token()).get("/api/v1/cuentas/yo/partidas")
                 .then().statusCode(200)
-                .body("find { it.id == '" + juego.id() + "' }.estado", equalTo("CANCELADA"));
+                .body("find { it.id == '" + juego.id() + "' }.estado", equalTo("CANCELADA"))
+                .body("find { it.id == '" + juego.id() + "' }.motivoCancelacion",
+                        equalTo("POCOS_JUGADORES"));
         assertEquals(List.of("POCOS_JUGADORES|2"), cancelaciones(juego));
+    }
+
+    @Test
+    void elInscritoVeQueSeCanceloPorqueElMasterBorroSuCuenta() {
+        Persona master = registrar();
+        Persona jugador = registrar();
+        Juego juego = crear(master, true);
+        apuntar(jugador, juego);
+        apuntar(registrar(), juego);
+        given().port(puerto).auth().oauth2(master.token()).delete("/api/v1/cuentas/yo")
+                .then().statusCode(204);
+        given().port(puerto).auth().oauth2(jugador.token()).get("/api/v1/cuentas/yo/partidas")
+                .then().statusCode(200)
+                .body("find { it.id == '" + juego.id() + "' }.estado", equalTo("CANCELADA"))
+                .body("find { it.id == '" + juego.id() + "' }.motivoCancelacion",
+                        equalTo("MASTER_SIN_CUENTA"));
+    }
+
+    @Test
+    void sinCancelarNoHayMotivo() {
+        Persona master = registrar();
+        Juego juego = conTresJugadores(master);
+        given().port(puerto).auth().oauth2(master.token()).get("/api/v1/cuentas/yo/partidas")
+                .then().statusCode(200)
+                .body("find { it.id == '" + juego.id() + "' }.motivoCancelacion", nullValue());
+        arrancarYa(master, juego).then().statusCode(200).body("motivoCancelacion", nullValue());
     }
 
     @Test
