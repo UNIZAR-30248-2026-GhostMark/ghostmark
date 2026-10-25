@@ -114,6 +114,11 @@ public class InscripcionRepository {
         jdbc.update("delete from inscripcion where id = ?", id);
     }
 
+    public List<UUID> idsDePartida(UUID partidaId) {
+        return jdbc.queryForList("select id from inscripcion where partida_id = ? order by id",
+                UUID.class, partidaId);
+    }
+
     public record Retirada(UUID id, UUID partidaId, String estado) {
     }
 }

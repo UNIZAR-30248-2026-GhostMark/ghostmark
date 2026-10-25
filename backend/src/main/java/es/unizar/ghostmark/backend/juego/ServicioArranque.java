@@ -9,8 +9,10 @@ import es.unizar.ghostmark.backend.partida.PartidaNoEncontradaException;
 import es.unizar.ghostmark.backend.partida.PartidaRepository;
 import es.unizar.ghostmark.backend.partida.ServicioPartida;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,15 +27,17 @@ public class ServicioArranque {
     private final InscripcionRepository inscripciones;
     private final ServicioEvento eventos;
     private final ServicioPartida servicioPartida;
+    private final GeneradorCiclo ciclo;
 
     public ServicioArranque(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, ServicioEvento eventos,
-            ServicioPartida servicioPartida) {
+            ServicioPartida servicioPartida, GeneradorCiclo ciclo) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
         this.eventos = eventos;
         this.servicioPartida = servicioPartida;
+        this.ciclo = ciclo;
     }
 
     @Transactional
@@ -83,5 +87,9 @@ public class ServicioArranque {
         partida.arrancar(ahora);
         eventos.guardar(partida.getId(), "PARTIDA_ARRANCADA",
                 "{\"modo\":\"" + modo + "\",\"numJugadores\":" + jugadores + "}", ahora);
+        List<UUID> orden = ciclo.formar(inscripciones.idsDePartida(partida.getId()));
+        eventos.guardar(partida.getId(), "CICLO_FORMADO", "{\"orden\":" + orden.stream()
+                .map(id -> "\"" + id + "\"").collect(Collectors.joining(",", "[", "]")) + "}",
+                ahora);
     }
 }
