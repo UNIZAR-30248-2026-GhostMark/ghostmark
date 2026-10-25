@@ -84,7 +84,7 @@ public class ServicioHorario {
         return new Horario(resultado);
     }
 
-    private void validar(Horario horario) {
+    public void validar(Horario horario) {
         Map<String, String> errores = new LinkedHashMap<>();
 
         if (horario == null || horario.franjas() == null) {

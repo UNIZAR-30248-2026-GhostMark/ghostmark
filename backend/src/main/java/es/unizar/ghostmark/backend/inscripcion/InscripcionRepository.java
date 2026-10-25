@@ -57,6 +57,21 @@ public class InscripcionRepository {
                 id));
     }
 
+    public Optional<UUID> idDeCuentaEnPartida(UUID partidaId, UUID cuentaId) {
+        return jdbc.query("select id from inscripcion where partida_id = ? and cuenta_id = ?",
+                (fila, numero) -> fila.getObject("id", UUID.class), partidaId, cuentaId)
+                .stream().findFirst();
+    }
+
+    public void reemplazarHorario(UUID id, Horario horario) {
+        borrarHorario(id);
+        for (Horario.Franja franja : horario.franjas()) {
+            jdbc.update("insert into franja_horario_inscripcion"
+                            + " (inscripcion_id, dia, hora_inicio) values (?, ?, ?)",
+                    id, franja.dia(), java.time.LocalTime.parse(franja.horaInicio()));
+        }
+    }
+
     public List<Map<String, Object>> listar(UUID partidaId) {
         return jdbc.query("select i.id, c.alias, coalesce(i.cuenta_id = p.master_id, false)"
                         + " as es_master from inscripcion i join partida p on p.id = i.partida_id"
