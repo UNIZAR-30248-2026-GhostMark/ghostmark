@@ -125,6 +125,24 @@ test('crear una partida abre compartir y retira los formularios del historial', 
     ],
   });
 });
+test('el nombre de la partida empieza vacío, con «Killer Bienvenida EINA» como ejemplo', async () => {
+  let destination;
+  const { CreateGameDataScreen } = load('screens/CreateGameDataScreen.tsx', { ...common,
+    'react-native': { ...native, KeyboardAvoidingView: 'KeyboardAvoidingView', Modal: 'Modal', Platform: { OS: 'android' }, TextInput: 'TextInput' },
+  });
+  await mount(CreateGameDataScreen, { navigation: { navigate: (...args) => { destination = args; } } });
+  const input = tree.root.findByProps({ accessibilityLabel: 'Nombre de la partida' });
+  assert.equal(input.props.value, '');
+  assert.equal(input.props.placeholder, 'Killer Bienvenida EINA');
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.match(JSON.stringify(tree.toJSON()), /El nombre de la partida debe tener al menos 3 caracteres\./);
+  assert.equal(destination, undefined);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nombre de la partida' }).props.onChangeText('Killer EINA'));
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.equal(destination[0], 'CreateGameRules');
+  assert.equal(destination[1].game.nombre, 'Killer EINA');
+});
+
 test('el alta muestra alias, email y contraseña desde el principio, sin «Usar email»', async () => {
   let registered;
   const { WelcomeScreen } = load('screens/WelcomeScreen.tsx', { ...common,
@@ -205,7 +223,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);

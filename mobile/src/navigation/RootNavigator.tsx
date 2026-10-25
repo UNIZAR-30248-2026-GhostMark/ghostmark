@@ -9,8 +9,10 @@ import { AvailabilityConsentScreen } from "../screens/AvailabilityConsentScreen"
 import { CreateGameDataScreen } from "../screens/CreateGameDataScreen";
 import { CreateGameRulesScreen } from "../screens/CreateGameRulesScreen";
 import { GameInvitationScreen } from "../screens/GameInvitationScreen";
+import { GameNormsScreen } from "../screens/GameNormsScreen";
 import { ShareGameScreen } from "../screens/ShareGameScreen";
 import { ScanInvitationScreen } from "../screens/ScanInvitationScreen";
+import { WaitingRoomScreen } from "../screens/WaitingRoomScreen";
 import { createInvitationInbox } from "../utils/invitation";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LocationConsentScreen } from "../screens/LocationConsentScreen";
@@ -106,6 +108,8 @@ export function RootNavigator() {
         <Stack.Screen name="CreateGameRules" component={CreateGameRulesScreen} />
         <Stack.Screen name="ShareGame" component={ShareGameScreen} />
         <Stack.Screen name="GameInvitation" component={GameInvitationScreen} />
+        <Stack.Screen name="GameNorms" component={GameNormsScreen} />
+        <Stack.Screen name="WaitingRoom" component={WaitingRoomScreen} />
         <Stack.Screen name="ScanInvitation" component={ScanInvitationScreen} />
         <Stack.Screen name="ApiStatus" component={ApiStatusScreen} />
       </Stack.Navigator>

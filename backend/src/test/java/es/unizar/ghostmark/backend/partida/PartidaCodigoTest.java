@@ -44,7 +44,7 @@ class PartidaCodigoTest {
                 .body("inicioEn", equalTo(inicio.toString()))
                 .body("finEn", equalTo(inicio.plus(Duration.ofDays(7)).toString()))
                 .body("aliasMaster", equalTo("master_codigo"))
-                .body("numInscritos", equalTo(0));
+                .body("numInscritos", equalTo(1));
     }
 
     @Test

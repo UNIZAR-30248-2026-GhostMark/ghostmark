@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint . --max-warnings=0",
-    "test": "node tests/session.test.cjs && node --test tests/invitation.test.cjs tests/profile-location.test.cjs",
+    "test": "node tests/session.test.cjs && node --test tests/invitation.test.cjs tests/profile-location.test.cjs tests/inscription.test.cjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

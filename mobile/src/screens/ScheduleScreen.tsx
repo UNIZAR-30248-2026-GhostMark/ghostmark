@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { getGameSchedule, updateGameSchedule } from "../api/inscription";
 import { getSchedule, updateSchedule } from "../api/schedule";
 import { DayScheduleModal } from "../components/DayScheduleModal";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -20,6 +21,7 @@ export function ScheduleScreen({ navigation, route }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [editingDay, setEditingDay] = useState<Weekday>();
+  const gameId = route.params?.gameId;
   const schedule = useMemo(() => selectedSlotsToSchedule(selectedSlots), [selectedSlots]);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function ScheduleScreen({ navigation, route }: Props) {
 
     async function loadSchedule() {
       try {
-        const savedSchedule = await getSchedule();
+        const savedSchedule = gameId ? await getGameSchedule(gameId) : await getSchedule();
         if (isMounted) setSelectedSlots(scheduleToSelectedSlots(savedSchedule));
       } catch {
         if (isMounted) setError("No hemos podido cargar tu horario. Puedes volver a marcarlo y guardarlo.");
@@ -38,13 +40,14 @@ export function ScheduleScreen({ navigation, route }: Props) {
 
     void loadSchedule();
     return () => { isMounted = false; };
-  }, []);
+  }, [gameId]);
 
   async function save() {
     setError(undefined);
     setIsSaving(true);
     try {
-      await updateSchedule(schedule);
+      if (gameId) await updateGameSchedule(gameId, schedule);
+      else await updateSchedule(schedule);
       if (route.params?.onboarding) navigation.replace("LocationConsent");
       else if (navigation.canGoBack()) navigation.goBack();
       else navigation.replace("Home");
