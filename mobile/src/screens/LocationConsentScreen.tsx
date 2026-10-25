@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
@@ -14,21 +14,48 @@ type Props = NativeStackScreenProps<RootStackParamList, "LocationConsent">;
 export function LocationConsentScreen({ navigation }: Props) {
   const [error, setError] = useState<string>();
   const [isRequesting, setIsRequesting] = useState(false);
+  const [mustOpenSettings, setMustOpenSettings] = useState(false);
 
   async function requestPermission() {
     setError(undefined);
     setIsRequesting(true);
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) {
-        setError("Necesitamos el permiso de ubicación para comprobar las zonas seguras al eliminar.");
+      const currentPermission = await Location.getForegroundPermissionsAsync();
+      if (currentPermission.granted) {
+        navigation.replace("AvailabilityConsent");
         return;
       }
+
+      if (!currentPermission.canAskAgain) {
+        setMustOpenSettings(true);
+        setError("Activa la ubicación en los ajustes del móvil para seguir.");
+        return;
+      }
+
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        if (!permission.canAskAgain) {
+          setMustOpenSettings(true);
+          setError("Activa la ubicación en los ajustes del móvil para seguir.");
+        } else {
+          setError("Necesitamos el permiso de ubicación para comprobar las zonas seguras al eliminar.");
+        }
+        return;
+      }
+      setMustOpenSettings(false);
       navigation.replace("AvailabilityConsent");
     } catch {
       setError("No hemos podido solicitar el permiso de ubicación. Inténtalo de nuevo.");
     } finally {
       setIsRequesting(false);
+    }
+  }
+
+  async function openSettings() {
+    try {
+      await Linking.openSettings();
+    } catch {
+      setError("No hemos podido abrir los ajustes del móvil.");
     }
   }
 
@@ -46,7 +73,10 @@ export function LocationConsentScreen({ navigation }: Props) {
         <Guarantee label="Nadie ve dónde estás" />
         {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
       </View>
-      <View style={styles.footer}><PrimaryButton disabled={isRequesting} onPress={requestPermission}>{isRequesting ? "SOLICITANDO…" : "DAR PERMISO"}</PrimaryButton></View>
+      <View style={styles.footer}>
+        <PrimaryButton disabled={isRequesting} onPress={requestPermission}>{isRequesting ? "SOLICITANDO…" : "DAR PERMISO"}</PrimaryButton>
+        {mustOpenSettings ? <PrimaryButton onPress={openSettings}>ABRIR AJUSTES</PrimaryButton> : null}
+      </View>
     </Screen>
   );
 }
@@ -63,5 +93,5 @@ const styles = StyleSheet.create({
   ghost: { height: 184, resizeMode: "contain", transform: [{ translateY: -20 }], width: 225 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 20 }, title: { ...typography.title, fontSize: 34, lineHeight: 38 }, body: { ...typography.body, color: colors.textMuted, fontSize: 15, lineHeight: 22, marginTop: 10 },
   checkRow: { alignItems: "center", flexDirection: "row", gap: 12, marginTop: 19 }, checkbox: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 7, borderWidth: 2, height: 27, justifyContent: "center", width: 27 }, checkboxChecked: { backgroundColor: colors.lime }, checkmark: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 18 }, checkLabel: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 15 },
-  error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 12, lineHeight: 16, marginTop: 14, textAlign: "center" }, footer: { paddingBottom: 18, paddingHorizontal: 24, paddingTop: 10 },
+  error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 12, lineHeight: 16, marginTop: 14, textAlign: "center" }, footer: { gap: 10, paddingBottom: 18, paddingHorizontal: 24, paddingTop: 10 },
 });
