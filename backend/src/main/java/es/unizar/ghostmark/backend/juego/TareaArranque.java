@@ -27,7 +27,7 @@ public class TareaArranque {
 
     public void revisar(Instant ahora) {
         for (UUID partidaId : partidas.pendientesDeArrancar(ahora)) {
-            arranque.arrancarSiToca(partidaId, ahora);
+            arranque.aplicarInicio(partidaId, ahora);
         }
     }
 }

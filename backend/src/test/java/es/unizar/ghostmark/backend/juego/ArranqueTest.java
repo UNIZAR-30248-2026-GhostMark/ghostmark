@@ -84,6 +84,7 @@ class ArranqueTest {
                 .body("codigo", equalTo("POCOS_JUGADORES"));
         assertEquals("EN_INSCRIPCION", estado(juego));
         assertEquals(List.of(), arranques(juego));
+        assertEquals(List.of(), cancelaciones(juego));
     }
 
     @Test
@@ -137,12 +138,12 @@ class ArranqueTest {
     @Test
     void arrancaSolaAlLlegarLaHoraDeInicio() {
         Juego juego = conTresJugadores(registrar());
-        assertFalse(arranque.arrancarSiToca(juego.id(), Instant.now()));
+        assertFalse(arranque.aplicarInicio(juego.id(), Instant.now()));
         assertEquals("EN_INSCRIPCION", estado(juego));
         jdbc.update("update partida set inicio_en = now() - interval '1 minute' where id = ?",
                 juego.id());
-        assertTrue(arranque.arrancarSiToca(juego.id(), Instant.now()));
-        assertFalse(arranque.arrancarSiToca(juego.id(), Instant.now()));
+        assertTrue(arranque.aplicarInicio(juego.id(), Instant.now()));
+        assertFalse(arranque.aplicarInicio(juego.id(), Instant.now()));
         assertEquals("EN_JUEGO", estado(juego));
         assertEquals(List.of("PROGRAMADO|3"), arranques(juego));
         assertEquals(1, ciclos(juego));
@@ -249,6 +250,61 @@ class ArranqueTest {
         assertEquals("CICLO_FORMADO", eventos.get(0).get("tipo"));
         assertEquals("PARTIDA_ARRANCADA", eventos.get(1).get("tipo"));
         assertEquals((Long) eventos.get(1).get("secuencia") + 1, eventos.get(0).get("secuencia"));
+    }
+
+    @Test
+    void cancelaAlLlegarLaHoraConMenosDeTres() {
+        Persona master = registrar();
+        Juego juego = crear(master, true);
+        apuntar(registrar(), juego);
+        vencer(juego);
+        assertTrue(arranque.aplicarInicio(juego.id(), Instant.now()));
+        assertEquals("CANCELADA", estado(juego));
+        assertEquals(List.of("POCOS_JUGADORES|2"), cancelaciones(juego));
+        assertEquals(List.of(), arranques(juego));
+        assertEquals(0, ciclos(juego));
+    }
+
+    @Test
+    void losInscritosVenLaCancelacionAlAbrirLaApp() {
+        Persona jugador = registrar();
+        Juego juego = crear(registrar(), true);
+        apuntar(jugador, juego);
+        vencer(juego);
+        given().port(puerto).auth().oauth2(jugador.token()).get("/api/v1/cuentas/yo/partidas")
+                .then().statusCode(200)
+                .body("find { it.id == '" + juego.id() + "' }.estado", equalTo("CANCELADA"));
+        assertEquals(List.of("POCOS_JUGADORES|2"), cancelaciones(juego));
+    }
+
+    @Test
+    void sinJugadoresSeCancelaConCero() {
+        Juego juego = crear(registrar(), false);
+        vencer(juego);
+        tarea.revisar(Instant.now());
+        assertEquals("CANCELADA", estado(juego));
+        assertEquals(List.of("POCOS_JUGADORES|0"), cancelaciones(juego));
+    }
+
+    @Test
+    void antesDeLaHoraNoCancelaYSoloCancelaUnaVez() {
+        Persona master = registrar();
+        Juego juego = crear(master, true);
+        apuntar(registrar(), juego);
+        assertFalse(arranque.aplicarInicio(juego.id(), Instant.now()));
+        assertEquals("EN_INSCRIPCION", estado(juego));
+        vencer(juego);
+        tarea.revisar(Instant.now());
+        tarea.revisar(Instant.now());
+        assertFalse(arranque.aplicarInicio(juego.id(), Instant.now()));
+        assertEquals("CANCELADA", estado(juego));
+        assertEquals(List.of("POCOS_JUGADORES|2"), cancelaciones(juego));
+    }
+
+    private List<String> cancelaciones(Juego juego) {
+        return jdbc.queryForList("select (datos->>'motivo') || '|' || (datos->>'numJugadores')"
+                + " from evento where partida_id = ? and tipo = 'PARTIDA_CANCELADA'"
+                + " order by secuencia", String.class, juego.id());
     }
 
     private List<UUID> orden(Juego juego) {

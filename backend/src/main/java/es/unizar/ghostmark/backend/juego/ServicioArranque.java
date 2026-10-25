@@ -41,7 +41,7 @@ public class ServicioArranque {
     }
 
     @Transactional
-    public boolean arrancarSiToca(UUID partidaId, Instant ahora) {
+    public boolean aplicarInicio(UUID partidaId, Instant ahora) {
         Partida partida = partidas.bloquearPorId(partidaId).orElse(null);
         if (partida == null || !"EN_INSCRIPCION".equals(partida.getEstado())
                 || ahora.isBefore(partida.getInicioEn())) {
@@ -49,7 +49,10 @@ public class ServicioArranque {
         }
         int jugadores = inscripciones.contar(partidaId);
         if (jugadores < MINIMO_JUGADORES) {
-            return false;
+            partida.cancelar(ahora);
+            eventos.guardar(partidaId, "PARTIDA_CANCELADA",
+                    "{\"motivo\":\"POCOS_JUGADORES\",\"numJugadores\":" + jugadores + "}", ahora);
+            return true;
         }
         arrancar(partida, "PROGRAMADO", jugadores, ahora);
         return true;
