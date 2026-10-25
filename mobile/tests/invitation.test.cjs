@@ -412,3 +412,33 @@ test('Unirse desde Inicio abre el escáner', async () => {
   act(() => join.props.onPress());
   assert.deepEqual(destinations, ['ScanInvitation']);
 });
+
+test('Inicio muestra carga antes que el estado vacío y solo lo muestra tras una lista vacía', async () => {
+  let resolveGames;
+  const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '../api/game': { getMyGames: () => new Promise((resolve) => { resolveGames = resolve; }) },
+  });
+  await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
+  assert.match(JSON.stringify(tree.toJSON()), /CARGANDO TUS PARTIDAS/);
+  assert.doesNotMatch(JSON.stringify(tree.toJSON()), /TODAVÍA NO HAY PARTIDAS/);
+  await act(async () => resolveGames([]));
+  assert.match(JSON.stringify(tree.toJSON()), /TODAVÍA NO HAY PARTIDAS/);
+});
+
+test('Inicio ofrece reintentar si cargar las partidas falla', async () => {
+  let calls = 0;
+  const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '../api/game': { getMyGames: async () => {
+      calls += 1;
+      if (calls === 1) throw new Error('sin conexión');
+      return [];
+    } },
+  });
+  await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
+  assert.match(JSON.stringify(tree.toJSON()), /No hemos podido cargar tus partidas/);
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.equal(calls, 2);
+  assert.match(JSON.stringify(tree.toJSON()), /TODAVÍA NO HAY PARTIDAS/);
+});
