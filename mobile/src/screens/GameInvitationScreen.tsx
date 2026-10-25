@@ -9,12 +9,12 @@ import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import type { PublicGame } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
+import { formatGameDate } from "../utils/gameDate";
 
 type Props = NativeStackScreenProps<RootStackParamList, "GameInvitation">;
 const labels: Record<PublicGame["estado"], string> = {
   EN_INSCRIPCION: "Inscripción abierta", EN_JUEGO: "En juego", CANCELADA: "Cancelada", CERRADA: "Cerrada",
 };
-const formatDate = (value: string) => new Date(value).toLocaleString("es-ES");
 type LoadState = { code: string; attempt: number } & (
   { status: "loading" } | { status: "loaded"; game: PublicGame } | { status: "error"; message: string }
 );
@@ -46,8 +46,8 @@ export function GameInvitationScreen({ navigation, route }: Props) {
           <Text style={styles.title}>{state.game.nombre}</Text>
           <Text style={styles.status}>{labels[state.game.estado]}</Text>
           <Text style={styles.detail}>Máster: {state.game.aliasMaster ?? "Cuenta eliminada"}</Text>
-          <Text style={styles.detail}>Inicio: {formatDate(state.game.inicioEn)}</Text>
-          <Text style={styles.detail}>Fin: {formatDate(state.game.finEn)}</Text>
+          <Text style={styles.detail}>Inicio: {formatGameDate(state.game.inicioEn)}</Text>
+          <Text style={styles.detail}>Fin: {formatGameDate(state.game.finEn)}</Text>
           <Text style={styles.detail}>Inscritos: {state.game.numInscritos}</Text>
         </View> : null}
         {!loading && state.status === "error" ? <View style={styles.error}>

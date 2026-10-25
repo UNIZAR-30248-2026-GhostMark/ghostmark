@@ -9,10 +9,10 @@ import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import type { GameSummary } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
+import { formatGameDate } from "../utils/gameDate";
 import { serverWakeupMessage, useServerWakeupNotice } from "../utils/serverWakeup";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
-const formatDate = (value: string) => new Date(value).toLocaleString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).replace(",", " ·");
 const stateLabels: Record<GameSummary["estado"], string> = {
   EN_INSCRIPCION: "Inscripción abierta",
   EN_JUEGO: "En juego",
@@ -50,8 +50,8 @@ export function HomeScreen({ navigation, route }: Props) {
 }
 
 function Header() { return <View style={styles.header}><View style={styles.brand}><Image accessibilityLabel="GhostMark" source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.brandGhost} /><Text style={styles.brandText}>GHOSTMARK</Text></View><View style={styles.notification}><Ionicons color={colors.text} name="notifications-outline" size={22} /></View></View>; }
-function FeaturedGame({ game }: { game: GameSummary }) { return <View style={styles.featured}><View style={styles.state}><Text style={styles.stateText}>{stateLabels[game.estado]}</Text></View><Image accessibilityLabel="Fantasma de la partida" source={require("../../assets/ghosts/fantasma-picaro.png")} style={styles.featuredGhost} /><Text style={styles.featuredTitle}>{game.nombre.toUpperCase()}</Text><Text style={styles.ends}>Hasta el {formatDate(game.finEn)}</Text>{game.estado === "EN_JUEGO" ? <Pressable accessibilityRole="button" disabled style={styles.missionButton}><Text style={styles.missionText}>VER MISIÓN</Text></Pressable> : null}</View>; }
-function OtherGame({ game }: { game: GameSummary }) { return <View style={styles.otherCard}><View><Text style={styles.otherName}>{game.nombre}</Text><Text style={styles.otherInfo}>{game.estado === "EN_INSCRIPCION" ? `Inscripción · empieza ${formatDate(game.inicioEn)}` : stateLabels[game.estado]}</Text></View><Ionicons color={colors.ink} name="chevron-forward" size={24} /></View>; }
+function FeaturedGame({ game }: { game: GameSummary }) { return <View style={styles.featured}><View style={styles.state}><Text style={styles.stateText}>{stateLabels[game.estado]}</Text></View><Image accessibilityLabel="Fantasma de la partida" source={require("../../assets/ghosts/fantasma-picaro.png")} style={styles.featuredGhost} /><Text style={styles.featuredTitle}>{game.nombre.toUpperCase()}</Text><Text style={styles.ends}>Hasta el {formatGameDate(game.finEn)}</Text>{game.estado === "EN_JUEGO" ? <Pressable accessibilityRole="button" disabled style={styles.missionButton}><Text style={styles.missionText}>VER MISIÓN</Text></Pressable> : null}</View>; }
+function OtherGame({ game }: { game: GameSummary }) { return <View style={styles.otherCard}><View><Text style={styles.otherName}>{game.nombre}</Text><Text style={styles.otherInfo}>{game.estado === "EN_INSCRIPCION" ? `Inscripción · empieza ${formatGameDate(game.inicioEn)}` : stateLabels[game.estado]}</Text></View><Ionicons color={colors.ink} name="chevron-forward" size={24} /></View>; }
 function EmptyGames() { return <View style={styles.emptyCard}><Image accessibilityLabel="Fantasma esperando partidas" source={require("../../assets/ghosts/fantasma-pensativo.png")} style={styles.emptyGhost} /><Text style={styles.emptyTitle}>TODAVÍA NO HAY PARTIDAS</Text><Text style={styles.emptyText}>Cuando crees una partida o te unas a una, aparecerá aquí.</Text></View>; }
 function LoadingGames({ showServerWakeupNotice }: { showServerWakeupNotice: boolean }) { return <View style={styles.loadingCard}><ActivityIndicator accessibilityLabel="Cargando partidas" color={colors.lime} size="large" /><Text style={styles.loadingText}>CARGANDO TUS PARTIDAS…</Text>{showServerWakeupNotice ? <Text accessibilityLiveRegion="polite" style={styles.loadingHint}>{serverWakeupMessage}</Text> : null}</View>; }
 function GamesLoadError({ onRetry }: { onRetry: () => void }) { return <View style={styles.loadingCard}><Text accessibilityLiveRegion="polite" style={styles.errorText}>No hemos podido cargar tus partidas. Comprueba tu conexión.</Text><PrimaryButton onPress={onRetry}>REINTENTAR</PrimaryButton></View>; }
