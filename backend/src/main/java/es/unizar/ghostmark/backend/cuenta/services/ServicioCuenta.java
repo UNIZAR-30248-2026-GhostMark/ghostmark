@@ -3,6 +3,7 @@ package es.unizar.ghostmark.backend.cuenta.services;
 import es.unizar.ghostmark.backend.cuenta.Cuenta;
 import es.unizar.ghostmark.backend.cuenta.CuentaRepository;
 import es.unizar.ghostmark.backend.cuenta.dto.Aceptaciones;
+import es.unizar.ghostmark.backend.inscripcion.ServicioInscripcion;
 import es.unizar.ghostmark.backend.partida.ServicioPartida;
 import es.unizar.ghostmark.backend.sesion.DatosNoValidosException;
 import java.time.Clock;
@@ -22,10 +23,14 @@ public class ServicioCuenta {
     private final Clock reloj;
     private final ServicioPartida partidas;
 
-    public ServicioCuenta(CuentaRepository cuentas, Clock reloj, ServicioPartida partidas) {
+    private final ServicioInscripcion inscripciones;
+
+    public ServicioCuenta(CuentaRepository cuentas, Clock reloj, ServicioPartida partidas,
+            ServicioInscripcion inscripciones) {
         this.cuentas = cuentas;
         this.reloj = reloj;
         this.partidas = partidas;
+        this.inscripciones = inscripciones;
     }
 
     @Transactional
@@ -66,11 +71,14 @@ public class ServicioCuenta {
 
     @Transactional
     public void borrar(UUID cuentaId) {
-        Cuenta cuenta = cuentas.findById(cuentaId)
+        final Cuenta cuenta = cuentas.bloquearPorId(cuentaId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "La cuenta no está disponible"));
 
-        partidas.cancelarPorBorradoDeMaster(cuentaId, Instant.now(reloj));
+        Instant ahora = Instant.now(reloj);
+        inscripciones.bloquearPartidasDeCuenta(cuentaId);
+        partidas.cancelarPorBorradoDeMaster(cuentaId, ahora);
+        inscripciones.borrarPorCuenta(cuentaId, ahora);
         cuentas.delete(cuenta);
     }
 }
