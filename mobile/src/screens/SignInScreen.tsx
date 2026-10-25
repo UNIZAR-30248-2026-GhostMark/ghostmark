@@ -11,6 +11,7 @@ import { colors } from "../theme/colors";
 import { typography } from "../theme/typography";
 import type { RootStackParamList } from "../types/navigation";
 import { hasAccountFieldErrors, type AccountFieldErrors, validateSignIn } from "../utils/accountValidation";
+import { serverWakeupMessage, useServerWakeupNotice } from "../utils/serverWakeup";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignIn">;
 
@@ -20,8 +21,10 @@ export function SignInScreen({ navigation }: Props) {
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<AccountFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionId, setSubmissionId] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const showServerWakeupNotice = useServerWakeupNotice(isSubmitting, submissionId);
 
   useEffect(() => {
     const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboardVisible(true));
@@ -40,7 +43,7 @@ export function SignInScreen({ navigation }: Props) {
       setError(undefined);
       return;
     }
-    setError(undefined); setFieldErrors({}); setIsSubmitting(true);
+    setError(undefined); setFieldErrors({}); setSubmissionId((value) => value + 1); setIsSubmitting(true);
     try {
       const session = await login({ email: email.trim(), contrasena: password });
       await saveSession(session);
@@ -91,6 +94,7 @@ export function SignInScreen({ navigation }: Props) {
         </ScrollView>
         <View style={styles.footer}>
           <PrimaryButton disabled={isSubmitting} onPress={signIn}>{isSubmitting ? "ENTRANDO…" : "INICIAR SESIÓN"}</PrimaryButton>
+          {showServerWakeupNotice ? <Text accessibilityLiveRegion="polite" style={styles.serverWakeup}>{serverWakeupMessage}</Text> : null}
           <Pressable accessibilityRole="link" onPress={() => navigation.navigate("Welcome")}><Text style={styles.registerLink}>¿No tienes cuenta? Crear cuenta</Text></Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -104,5 +108,5 @@ const styles = StyleSheet.create({
   bgCircle1: { height: 10, left: 62, top: 58, width: 10 }, bgCircle2: { height: 8, left: 188, top: 46, width: 8 }, bgCircle3: { height: 12, right: 78, top: 86, width: 12 }, bgCircle4: { bottom: 70, height: 11, left: 80, width: 11 }, bgCircle5: { bottom: 52, height: 14, right: 70, width: 14 }, bgCircle6: { height: 6, right: 126, top: 146, width: 6 },
   ghost: { height: 190, resizeMode: "contain", transform: [{ translateX: -6 }, { translateY: -12 }], width: 235 }, helloBubble: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 12, borderWidth: 2, paddingHorizontal: 14, paddingVertical: 5, position: "absolute", right: 32, top: 60, transform: [{ rotate: "8deg" }] }, helloText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 14 },
   bodyContent: { gap: 10, paddingHorizontal: 24, paddingTop: 22 }, title: { ...typography.title, fontSize: 34, lineHeight: 37 }, body: { ...typography.body, color: colors.textMuted, fontSize: 15 }, form: { gap: 11, marginTop: 8 }, error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 12, lineHeight: 17 },
-  footer: { gap: 12, paddingBottom: 14, paddingHorizontal: 24, paddingTop: 12 }, registerLink: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14, textAlign: "center" },
+  footer: { gap: 12, paddingBottom: 14, paddingHorizontal: 24, paddingTop: 12 }, registerLink: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14, textAlign: "center" }, serverWakeup: { ...typography.body, color: colors.textMuted, fontSize: 12, lineHeight: 16, textAlign: "center" },
 });

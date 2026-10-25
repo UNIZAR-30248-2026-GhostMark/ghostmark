@@ -11,6 +11,7 @@ import { colors } from "../theme/colors";
 import { typography } from "../theme/typography";
 import type { RootStackParamList } from "../types/navigation";
 import { hasAccountFieldErrors, type AccountFieldErrors, validateRegistration } from "../utils/accountValidation";
+import { serverWakeupMessage, useServerWakeupNotice } from "../utils/serverWakeup";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Welcome">;
 
@@ -29,8 +30,10 @@ export function WelcomeScreen({ navigation }: Props) {
   const [error, setError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<AccountFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionId, setSubmissionId] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const showServerWakeupNotice = useServerWakeupNotice(isSubmitting, submissionId);
 
   useEffect(() => {
     const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboardVisible(true));
@@ -52,6 +55,7 @@ export function WelcomeScreen({ navigation }: Props) {
 
     setError(undefined);
     setFieldErrors({});
+    setSubmissionId((value) => value + 1);
     setIsSubmitting(true);
     try {
       const session = await registerAccount({ alias: alias.trim(), email: email.trim(), contrasena: password });
@@ -97,6 +101,7 @@ export function WelcomeScreen({ navigation }: Props) {
         </ScrollView>
         <View style={styles.footer}>
           <PrimaryButton disabled={isSubmitting} onPress={register}>{isSubmitting ? "CREANDO CUENTA…" : "CONTINUAR"}</PrimaryButton>
+          {showServerWakeupNotice ? <Text accessibilityLiveRegion="polite" style={styles.serverWakeup}>{serverWakeupMessage}</Text> : null}
           <Pressable accessibilityRole="link" onPress={() => navigation.popTo("SignIn")}><Text style={styles.loginLink}>¿Ya tienes cuenta? Inicia sesión</Text></Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -110,5 +115,5 @@ const styles = StyleSheet.create({
   dots: { flexDirection: "row", gap: 7, left: 24, position: "absolute", top: 18, zIndex: 1 }, dot: { backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 8, borderWidth: 2, height: 9, width: 21 }, dotOn: { backgroundColor: colors.lime, width: 39 },
   ghostCompact: { height: 94, resizeMode: "contain", transform: [{ translateY: -6 }], width: 87 },
   bodyContent: { gap: 8, paddingHorizontal: 24, paddingTop: 14 }, title: { ...typography.title, fontSize: 32, lineHeight: 35 }, accent: { color: colors.lime }, body: { ...typography.body, color: colors.textMuted, fontSize: 15 }, form: { gap: 9, marginTop: 6 }, error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 12, lineHeight: 17 },
-  footer: { gap: 10, paddingBottom: 14, paddingHorizontal: 24, paddingTop: 10 }, loginLink: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14, textAlign: "center" },
+  footer: { gap: 10, paddingBottom: 14, paddingHorizontal: 24, paddingTop: 10 }, loginLink: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14, textAlign: "center" }, serverWakeup: { ...typography.body, color: colors.textMuted, fontSize: 12, lineHeight: 16, textAlign: "center" },
 });
