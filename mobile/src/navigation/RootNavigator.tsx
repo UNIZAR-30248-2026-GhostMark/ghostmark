@@ -14,6 +14,7 @@ import { ShareGameScreen } from "../screens/ShareGameScreen";
 import { ScanInvitationScreen } from "../screens/ScanInvitationScreen";
 import { WaitingRoomScreen } from "../screens/WaitingRoomScreen";
 import { createInvitationInbox } from "../utils/invitation";
+import { serverWakeupMessage, useServerWakeupNotice } from "../utils/serverWakeup";
 import { HomeScreen } from "../screens/HomeScreen";
 import { LocationConsentScreen } from "../screens/LocationConsentScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
@@ -46,6 +47,7 @@ export function RootNavigator() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const invitations = useRef(createInvitationInbox());
+  const showServerWakeupNotice = useServerWakeupNotice(!initialRoute && !error, attempt);
 
   const openPendingInvitation = useCallback(() => {
     if (!navigationRef.isReady()) return;
@@ -94,6 +96,7 @@ export function RootNavigator() {
   if (!initialRoute) {
     return <Screen><View style={{ flex: 1, gap: 20, justifyContent: "center" }}>
       <Text style={[typography.body, { color: colors.text, textAlign: "center" }]}>{error ? "No se ha podido recuperar la sesión. Comprueba tu conexión." : "Recuperando sesión…"}</Text>
+      {showServerWakeupNotice ? <Text accessibilityLiveRegion="polite" style={[typography.body, { color: colors.textMuted, fontSize: 12, textAlign: "center" }]}>{serverWakeupMessage}</Text> : null}
       {error ? <PrimaryButton onPress={() => { setError(false); setAttempt((value) => value + 1); }}>REINTENTAR</PrimaryButton> : null}
     </View></Screen>;
   }
