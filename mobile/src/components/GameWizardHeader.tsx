@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors } from "../theme/colors";
 
-type Props = { step: 1 | 2 | 5; label: string; onBack: () => void };
+type Props = { step: 1 | 2 | 3; label: string; onBack: () => void };
 
 export function GameWizardHeader({ step, label, onBack }: Props) {
-  return <View><View style={styles.top}><Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.back, pressed && styles.pressed]}><Ionicons color={colors.text} name="arrow-back" size={23} /></Pressable><Text style={styles.title}>NUEVA PARTIDA</Text></View><View style={styles.progress}>{[1, 2, 3, 4, 5].map((item) => <View key={item} style={[styles.segment, item <= step && styles.segmentOn]} />)}</View><View style={styles.stepRow}><Text style={styles.stepText}><Text style={styles.stepStrong}>Paso {step}</Text> de 5</Text><Text style={styles.stepText}>{label}</Text></View></View>;
+  return <View><View style={styles.top}><Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.back, pressed && styles.pressed]}><Ionicons color={colors.text} name="arrow-back" size={23} /></Pressable><Text style={styles.title}>NUEVA PARTIDA</Text></View><View style={styles.progress}>{[1, 2, 3].map((item) => <View key={item} style={[styles.segment, item <= step && styles.segmentOn]} />)}</View><View style={styles.stepRow}><Text style={styles.stepText}><Text style={styles.stepStrong}>Paso {step}</Text> de 3</Text><Text style={styles.stepText}>{label}</Text></View></View>;
 }
 
 const styles = StyleSheet.create({
