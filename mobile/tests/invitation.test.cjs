@@ -193,8 +193,42 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
     arrive(name) { act(() => { route = { name }; container.onStateChange(); }); },
     login() { account = { id: '1' }; },
     consent(name) { nextRoute = name; },
+    currentRoute() { return route.name; },
   };
 }
+
+test('sin sesión la app abre en «Iniciar sesión»', async () => {
+  const app = await mountNavigator({ signedIn: false });
+  assert.equal(app.currentRoute(), 'SignIn');
+});
+
+test('desde «Iniciar sesión», «Crear cuenta» abre el alta', async () => {
+  let destination;
+  const { SignInScreen } = load('screens/SignInScreen.tsx', { ...common,
+    'react-native': { ...native, Keyboard: { addListener: () => ({ remove() {} }) }, KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'android' } },
+    '../api/auth': { login: async () => undefined, nextAccountScreen: () => 'Home', saveSession: async () => undefined },
+    '../components/FormTextInput': { FormTextInput: 'FormTextInput' },
+  });
+  await mount(SignInScreen, { navigation: { navigate: (name) => { destination = name; }, goBack: () => { destination = 'atrás'; } } });
+  const link = tree.root.findAll((node) => node.type === 'Pressable' && node.props.accessibilityRole === 'link')[0];
+  await act(async () => link.props.onPress());
+  assert.equal(destination, 'Welcome');
+});
+
+test('cerrar sesión y borrar la cuenta llevan a «Iniciar sesión»', async () => {
+  const resets = [];
+  const { ProfileScreen } = load('screens/ProfileScreen.tsx', { ...common,
+    'react-native': { ...native, Alert: { alert: (_title, _message, buttons) => buttons[1].onPress() } },
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '../api/account': { deleteAccount: async () => undefined },
+    '../api/auth': { clearSession: async () => undefined, getCurrentAccount: () => ({ alias: 'ana' }), signOut: async () => undefined },
+  });
+  await mount(ProfileScreen, { navigation: { reset: (value) => { resets.push(value.routes[0].name); }, navigate() {} } });
+  const pressable = (label) => tree.root.findAll((node) => node.type === 'Pressable' && node.findAllByType('Text').some((text) => text.props.children === label))[0];
+  await act(async () => pressable('Cerrar sesión').props.onPress());
+  await act(async () => pressable('BORRAR MI CUENTA').props.onPress());
+  assert.deepEqual(resets, ['SignIn', 'SignIn']);
+});
 
 test('un enlace con la app cerrada abre la partida tras restaurar sesión y preparar el navegador', async () => {
   const app = await mountNavigator({ initialURL: link });
