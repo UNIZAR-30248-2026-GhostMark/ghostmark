@@ -15,6 +15,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "Profile">;
 
 export function ProfileScreen({ navigation }: Props) {
   const account = getCurrentAccount();
+  const alias = account?.alias ?? "TU CUENTA";
+  const aliasFontSize = alias.length >= 14 ? Math.max(14, Math.floor(240 / alias.length)) : 25;
   const [error, setError] = useState<string>();
   const [isDeleting, setIsDeleting] = useState(false);
   const [locationGranted, setLocationGranted] = useState<boolean>();
@@ -98,7 +100,7 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.content}>
           <View style={styles.profileCard}>
             <Image accessibilityLabel="Fantasma de perfil" source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.profileGhost} />
-            <View style={styles.profileInfo}><Text style={styles.profileName}>{account?.alias ?? "TU CUENTA"}</Text><Text style={styles.profileMethod}>Perfil de GhostMark</Text></View>
+            <View style={styles.profileInfo}><Text adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={1} style={[styles.profileName, { fontSize: aliasFontSize, letterSpacing: aliasFontSize < 25 ? 0 : 0.7 }]}>{alias}</Text><Text style={styles.profileMethod}>Perfil de GhostMark</Text></View>
           </View>
 
           <View style={styles.menu}>
@@ -135,7 +137,7 @@ function MenuItem({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphM
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background, flex: 1 }, content: { flex: 1, paddingHorizontal: 24, paddingTop: 18 },
-  profileCard: { alignItems: "center", backgroundColor: "#D8C4FF", borderColor: colors.ink, borderRadius: 20, borderWidth: 2, flexDirection: "row", minHeight: 154, overflow: "hidden", paddingHorizontal: 16, shadowColor: colors.border, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }, profileGhost: { height: 145, resizeMode: "contain", width: 145 }, profileInfo: { flex: 1, marginLeft: 4 }, profileName: { color: colors.ink, fontFamily: "Bangers", fontSize: 25, letterSpacing: 0.7, paddingRight: 3 }, profileMethod: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 5 },
+  profileCard: { alignItems: "center", backgroundColor: "#D8C4FF", borderColor: colors.ink, borderRadius: 20, borderWidth: 2, flexDirection: "row", minHeight: 154, overflow: "hidden", paddingHorizontal: 16, shadowColor: colors.border, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }, profileGhost: { height: 145, resizeMode: "contain", width: 145 }, profileInfo: { flex: 1, marginLeft: 4, minWidth: 0 }, profileName: { color: colors.ink, fontFamily: "Bangers", fontSize: 25, letterSpacing: 0.7, paddingRight: 3 }, profileMethod: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 5 },
   menu: { gap: 10, marginTop: 34 }, menuItem: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 10, borderWidth: 3, flexDirection: "row", justifyContent: "space-between", minHeight: 62, paddingHorizontal: 14 }, menuLeft: { alignItems: "center", flexDirection: "row", gap: 12 }, menuText: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 15 }, locationBadge: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 }, locationBadgeInactive: { backgroundColor: colors.danger }, locationBadgeText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 10 }, locationBadgeTextInactive: { color: colors.white },
   deleteSection: { marginTop: 26 }, deleteButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 12, borderWidth: 2, flexDirection: "row", gap: 10, justifyContent: "center", minHeight: 55, shadowColor: colors.border, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }, deleteButtonText: { color: colors.white, fontFamily: "Bangers", fontSize: 22, letterSpacing: 0.8, paddingRight: 3 }, deleteDescription: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 12, lineHeight: 18, marginTop: 13, paddingHorizontal: 4 }, error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 12, lineHeight: 16, marginTop: 14, textAlign: "center" }, pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] }, disabled: { opacity: 0.65 },
   bottomBar: { backgroundColor: colors.surface, flexDirection: "row", paddingBottom: 10, paddingHorizontal: 10, paddingTop: 9 }, navItem: { alignItems: "center", borderRadius: 14, flex: 1, flexDirection: "row", gap: 7, justifyContent: "center", minHeight: 46 }, navItemActive: { backgroundColor: colors.lime }, navText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13 }, navTextActive: { color: colors.ink },

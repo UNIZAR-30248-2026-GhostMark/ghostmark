@@ -19,7 +19,7 @@ function load(file, imports) {
 let tree;
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); tree = undefined; });
 
-function setupProfile({ granted, canAskAgain = false }) {
+function setupProfile({ granted, canAskAgain = false, alias = 'fantasmilla' }) {
   let appStateListener;
   let settingsOpened = 0;
   const { ProfileScreen } = load('screens/ProfileScreen.tsx', {
@@ -40,7 +40,7 @@ function setupProfile({ granted, canAskAgain = false }) {
       View: 'View',
     },
     '../api/account': { deleteAccount: async () => undefined },
-    '../api/auth': { clearSession: async () => undefined, getCurrentAccount: () => ({ alias: 'fantasmilla' }), signOut: async () => undefined },
+    '../api/auth': { clearSession: async () => undefined, getCurrentAccount: () => ({ alias }), signOut: async () => undefined },
     '../components/Screen': { Screen: 'Screen' },
     '../theme/colors': { colors: {} },
   });
@@ -69,4 +69,14 @@ test('Perfil abre Ajustes si Android ya no permite pedir ubicación y se actuali
   granted.value = true;
   await app.active();
   assert.match(JSON.stringify(tree.toJSON()), /Ubicación activa/);
+});
+
+test('Perfil muestra un alias válido largo completo en una sola línea', async () => {
+  const app = setupProfile({ granted: { value: true }, alias: 'pbi1_regresion' });
+  await act(async () => { tree = create(React.createElement(app.ProfileScreen, { navigation: {} })); });
+  const alias = tree.root.findAllByType('Text').find((text) => text.props.children === 'pbi1_regresion');
+  assert.equal(alias.props.numberOfLines, 1);
+  assert.equal(alias.props.adjustsFontSizeToFit, true);
+  assert.equal(alias.props.minimumFontScale, 0.55);
+  assert.equal(alias.props.style[1].fontSize, 17);
 });
