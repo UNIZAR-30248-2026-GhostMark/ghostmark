@@ -71,6 +71,17 @@ public class ServicioInscripcion {
         return id;
     }
 
+    /** Quita la inscripción del máster que deja de jugar; la partida ya está bloqueada. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void retirarMaster(UUID partidaId, UUID masterId, Instant ahora) {
+        inscripciones.idDe(partidaId, masterId).ifPresent(id -> {
+            inscripciones.borrarHorario(id);
+            eventos.guardar(partidaId, "INSCRIPCION_RETIRADA",
+                    "{\"inscripcionId\":\"" + id + "\",\"motivo\":\"MASTER_NO_JUEGA\"}", ahora);
+            inscripciones.borrar(id);
+        });
+    }
+
     @Transactional
     public List<Map<String, Object>> listar(UUID cuentaId, UUID partidaId) {
         comprobarCuenta(cuentaId);

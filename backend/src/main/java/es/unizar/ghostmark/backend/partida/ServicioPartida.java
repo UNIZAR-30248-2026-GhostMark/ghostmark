@@ -36,6 +36,14 @@ public class ServicioPartida {
             + "'nombre', ?::text, 'inicioEn', ?::text, 'finEn', ?::text,"
             + " 'tipoMisiones', ?::text, 'plazoDisputaHoras', ?::int,"
             + " 'entradasTardias', ?::boolean, 'masterJuega', ?::boolean), ?)";
+    private static final String INSERTAR_CONFIGURACION_CAMBIADA = "insert into evento"
+            + " (id, partida_id, secuencia, tipo, datos, ocurrido_en)"
+            + " select ?, ?, coalesce(max(secuencia), 0) + 1, 'CONFIGURACION_CAMBIADA',"
+            + " jsonb_strip_nulls(jsonb_build_object("
+            + "'nombre', ?::text, 'inicioEn', ?::text, 'finEn', ?::text,"
+            + " 'tipoMisiones', ?::text, 'plazoDisputaHoras', ?::int,"
+            + " 'entradasTardias', ?::boolean, 'masterJuega', ?::boolean)), ?"
+            + " from evento where partida_id = ?";
 
     private final PartidaRepository partidas;
     private final CuentaRepository cuentas;
@@ -92,6 +100,64 @@ public class ServicioPartida {
     }
 
     @Transactional(readOnly = true)
+    public Map<String, Object> obtener(UUID cuentaId, UUID partidaId) {
+        Partida partida = partidas.findById(partidaId)
+                .orElseThrow(PartidaNoEncontradaException::new);
+        if (!cuentaId.equals(partida.getMasterId())) {
+            if (inscripciones.existe(partidaId, cuentaId)) {
+                return vistaResumen(partida, cuentaId);
+            }
+            throw new PartidaNoEncontradaException();
+        }
+        return vistaMaster(partida);
+    }
+
+    @Transactional
+    public Map<String, Object> editar(UUID cuentaId, UUID partidaId, CambiosPartida cambios,
+            Instant ahora) {
+        // Cuenta y después partida, el mismo orden que la inscripción (inscripcion.md).
+        if (cuentas.bloquearPorId(cuentaId).isEmpty()) {
+            throw new ErrorInscripcion(HttpStatus.UNAUTHORIZED, "NO_AUTENTICADO",
+                    "La cuenta no está disponible");
+        }
+        Partida partida = partidas.bloquearPorId(partidaId)
+                .orElseThrow(PartidaNoEncontradaException::new);
+        if (!cuentaId.equals(partida.getMasterId())) {
+            throw new NoEsMasterException();
+        }
+        if (!"EN_INSCRIPCION".equals(partida.getEstado())) {
+            throw new PartidaNoEditableException();
+        }
+        CambiosPartida reales = soloLoQueCambia(partida, cambios);
+        validar(partida, cambios, reales, ahora);
+        if (reales.vacio()) {
+            return vistaMaster(partida);
+        }
+        partida.editar(reales, ahora);
+        partidas.saveAndFlush(partida);
+        jdbc.update(
+                INSERTAR_CONFIGURACION_CAMBIADA,
+                UUID.randomUUID(),
+                partida.getId(),
+                reales.nombre(),
+                reales.inicioEn() == null ? null : reales.inicioEn().toString(),
+                reales.finEn() == null ? null : reales.finEn().toString(),
+                reales.tipoMisiones(),
+                reales.plazoDisputaHoras(),
+                reales.entradasTardias(),
+                reales.masterJuega(),
+                OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC),
+                partida.getId());
+        if (Boolean.TRUE.equals(reales.masterJuega())
+                && !inscripciones.existe(partida.getId(), cuentaId)) {
+            servicioInscripcion.alta(partida.getId(), cuentaId, ahora);
+        } else if (Boolean.FALSE.equals(reales.masterJuega())) {
+            servicioInscripcion.retirarMaster(partida.getId(), cuentaId, ahora);
+        }
+        return vistaMaster(partida);
+    }
+
+    @Transactional(readOnly = true)
     public Map<String, Object> obtenerPorCodigo(String codigo) {
         Partida partida = partidas.findByCodigoInvitacion(codigo)
                 .orElseThrow(PartidaNoEncontradaException::new);
@@ -115,6 +181,52 @@ public class ServicioPartida {
             eventos.guardar(partida.getId(), "PARTIDA_CANCELADA",
                     "{\"motivo\":\"MASTER_SIN_CUENTA\",\"numJugadores\":"
                             + inscripciones.contar(partida.getId()) + "}", ahora);
+        }
+    }
+
+    private static CambiosPartida soloLoQueCambia(Partida partida, CambiosPartida cambios) {
+        return new CambiosPartida(
+                distinto(cambios.nombre(), partida.getNombre()),
+                distinto(cambios.inicioEn(), partida.getInicioEn()),
+                distinto(cambios.finEn(), partida.getFinEn()),
+                distinto(cambios.tipoMisiones(), partida.getTipoMisiones()),
+                distinto(cambios.plazoDisputaHoras(), partida.getPlazoDisputaHoras().intValue()),
+                distinto(cambios.entradasTardias(), partida.isEntradasTardias()),
+                distinto(cambios.masterJuega(), partida.isMasterJuega()));
+    }
+
+    private static <T> T distinto(T nuevo, T actual) {
+        return nuevo == null || nuevo.equals(actual) ? null : nuevo;
+    }
+
+    private static void validar(Partida partida, CambiosPartida enviados, CambiosPartida reales,
+            Instant ahora) {
+        if (enviados.vacio()) {
+            throw new DatosNoValidosException(Map.of("cuerpo", "Debe cambiar al menos un campo"));
+        }
+        Map<String, String> errores = new LinkedHashMap<>();
+        if (enviados.nombre() != null
+                && (enviados.nombre().length() < 3 || enviados.nombre().length() > 40)) {
+            errores.put("nombre", "Debe tener entre 3 y 40 caracteres");
+        }
+        if (reales.inicioEn() != null
+                && reales.inicioEn().isBefore(ahora.plus(ANTELACION_MINIMA))) {
+            errores.put("inicioEn", "Debe ser al menos 15 minutos en el futuro");
+        }
+        Instant inicio = enviados.inicioEn() != null ? enviados.inicioEn() : partida.getInicioEn();
+        Instant fin = enviados.finEn() != null ? enviados.finEn() : partida.getFinEn();
+        if (!fin.isAfter(inicio)) {
+            errores.put("finEn", "Debe ser posterior al inicio");
+        }
+        if (enviados.tipoMisiones() != null && !TIPOS_MISIONES.contains(enviados.tipoMisiones())) {
+            errores.put("tipoMisiones", "Debe ser BIBLIOTECA o IA");
+        }
+        if (enviados.plazoDisputaHoras() != null
+                && !PLAZOS_DISPUTA.contains(enviados.plazoDisputaHoras())) {
+            errores.put("plazoDisputaHoras", "Debe ser 2, 6, 12 o 24");
+        }
+        if (!errores.isEmpty()) {
+            throw new DatosNoValidosException(errores);
         }
     }
 
