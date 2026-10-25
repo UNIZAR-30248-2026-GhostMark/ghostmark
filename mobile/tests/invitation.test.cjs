@@ -125,6 +125,24 @@ test('crear una partida abre compartir y retira los formularios del historial', 
     ],
   });
 });
+test('el nombre de la partida empieza vacío, con «Killer Bienvenida EINA» como ejemplo', async () => {
+  let destination;
+  const { CreateGameDataScreen } = load('screens/CreateGameDataScreen.tsx', { ...common,
+    'react-native': { ...native, KeyboardAvoidingView: 'KeyboardAvoidingView', Modal: 'Modal', Platform: { OS: 'android' }, TextInput: 'TextInput' },
+  });
+  await mount(CreateGameDataScreen, { navigation: { navigate: (...args) => { destination = args; } } });
+  const input = tree.root.findByProps({ accessibilityLabel: 'Nombre de la partida' });
+  assert.equal(input.props.value, '');
+  assert.equal(input.props.placeholder, 'Killer Bienvenida EINA');
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.match(JSON.stringify(tree.toJSON()), /El nombre de la partida debe tener al menos 3 caracteres\./);
+  assert.equal(destination, undefined);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nombre de la partida' }).props.onChangeText('Killer EINA'));
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.equal(destination[0], 'CreateGameRules');
+  assert.equal(destination[1].game.nombre, 'Killer EINA');
+});
+
 test('la vista muestra el nombre real de la partida y permite reintentar tras un 404', async () => {
   let calls = 0;
   const { GameInvitationScreen } = load('screens/GameInvitationScreen.tsx', { ...common,
