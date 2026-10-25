@@ -56,7 +56,6 @@ export function SignInScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
         >
         <View style={[styles.artwork, keyboardVisible && styles.artworkCompact]}>
-          <View style={styles.dots}><View style={[styles.dot, styles.dotOn]} /><View style={styles.dot} /><View style={styles.dot} /><View style={styles.dot} /></View>
           <View style={[styles.bgCircle, styles.bgCircle1]} />
           <View style={[styles.bgCircle, styles.bgCircle2]} />
           <View style={[styles.bgCircle, styles.bgCircle3]} />
@@ -87,7 +86,6 @@ export function SignInScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 }, content: { flexGrow: 1 }, artwork: { alignItems: "center", backgroundColor: colors.signInArtwork, height: 238, justifyContent: "flex-end", overflow: "hidden", position: "relative" }, artworkCompact: { height: 106 },
-  dots: { flexDirection: "row", gap: 7, left: 24, position: "absolute", top: 18, zIndex: 1 }, dot: { backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 8, borderWidth: 2, height: 9, width: 21 }, dotOn: { backgroundColor: colors.lime, width: 39 },
   bgCircle: { backgroundColor: colors.signInDecoration, borderRadius: 999, opacity: 0.7, position: "absolute" },
   bgCircle1: { height: 10, left: 62, top: 58, width: 10 }, bgCircle2: { height: 8, left: 188, top: 46, width: 8 }, bgCircle3: { height: 12, right: 78, top: 86, width: 12 }, bgCircle4: { bottom: 70, height: 11, left: 80, width: 11 }, bgCircle5: { bottom: 52, height: 14, right: 70, width: 14 }, bgCircle6: { height: 6, right: 126, top: 146, width: 6 },
   ghost: { height: 190, resizeMode: "contain", transform: [{ translateX: -6 }, { translateY: -12 }], width: 235 }, helloBubble: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 12, borderWidth: 2, paddingHorizontal: 14, paddingVertical: 5, position: "absolute", right: 32, top: 60, transform: [{ rotate: "8deg" }] }, helloText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 14 },
