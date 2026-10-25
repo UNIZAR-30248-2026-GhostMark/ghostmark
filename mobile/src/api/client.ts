@@ -12,6 +12,7 @@ export class ApiError extends Error {
     message: string,
     public readonly status: number,
     public readonly fieldErrors: string[] = [],
+    public readonly code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -35,6 +36,7 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 };
 
 type ProblemDetail = {
+  codigo?: string;
   detail?: string;
   errores?: { campo?: string; mensaje?: string }[];
 };
@@ -54,7 +56,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     const payload = (await response.json().catch(() => ({}))) as ProblemDetail;
     const fieldErrors = payload.errores?.map((error) => error.mensaje)
       .filter((message): message is string => Boolean(message)) ?? [];
-    throw new ApiError(payload.detail || "La petición no pudo completarse.", response.status, fieldErrors);
+    throw new ApiError(payload.detail || "La petición no pudo completarse.", response.status, fieldErrors, payload.codigo);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
