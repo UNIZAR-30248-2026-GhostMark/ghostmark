@@ -28,16 +28,18 @@ public class ServicioArranque {
     private final ServicioEvento eventos;
     private final ServicioPartida servicioPartida;
     private final GeneradorCiclo ciclo;
+    private final ServicioCarta cartas;
 
     public ServicioArranque(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, ServicioEvento eventos,
-            ServicioPartida servicioPartida, GeneradorCiclo ciclo) {
+            ServicioPartida servicioPartida, GeneradorCiclo ciclo, ServicioCarta cartas) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
         this.eventos = eventos;
         this.servicioPartida = servicioPartida;
         this.ciclo = ciclo;
+        this.cartas = cartas;
     }
 
     @Transactional
@@ -94,5 +96,7 @@ public class ServicioArranque {
         eventos.guardar(partida.getId(), "CICLO_FORMADO", "{\"orden\":" + orden.stream()
                 .map(id -> "\"" + id + "\"").collect(Collectors.joining(",", "[", "]")) + "}",
                 ahora);
+        // Comparte la transacción y el bloqueo del arranque: se guarda todo o nada.
+        cartas.repartir(partida.getId(), orden, ahora);
     }
 }
