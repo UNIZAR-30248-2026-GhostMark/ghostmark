@@ -48,6 +48,37 @@ La sesión sigue abierta en el móvil mientras uses la app al menos una vez cada
 
 Se borran tu alias, tus datos de acceso y tu horario, y no se puede deshacer. Después ya no podrás iniciar sesión con ese email y tu alias queda libre para otra persona.
 
-## Compartir una partida
+## 2. Crear una partida
 
-[QR, enlace y apertura de la partida](compartir-partida.md).
+En Inicio, pulsa «Crear partida». El asistente te pide el nombre y las fechas, después las reglas, y termina en la pantalla para compartirla.
+
+### 2.1 Nombre y fechas
+
+1. Escribe el nombre de la partida, de 3 a 40 caracteres.
+2. Toca «Empieza» y ajusta el día y la hora con «−» y «+» (la hora va en tramos de media hora); pulsa «Listo». Haz lo mismo con «Termina».
+3. Pulsa «Siguiente».
+
+La partida tiene que empezar al menos 15 minutos después de crearla y terminar después de empezar; si no, la app te dice qué corregir y no avanza.
+
+<img src="img/crear-datos.png" alt="Nombre y fechas de la partida" width="250">
+
+### 2.2 Reglas
+
+- **Yo también juego.** Activado, juegas como uno más y la app no te enseña nada que no te toque como jugador; desactivado, solo diriges la partida.
+- **Permitir entradas tardías.** Queda guardado con la partida; por ahora nadie puede unirse una vez empezada.
+- **Plazo para resolver disputas.** 2, 6, 12 o 24 horas; por defecto, 12.
+
+Las misiones salen de la biblioteca de GhostMark. Pulsa «Crear partida».
+
+<img src="img/crear-reglas.png" alt="Reglas de la partida" width="250">
+
+### 2.3 Compartirla
+
+La app muestra «¡Partida creada!» con el nombre, el código de invitación, un QR y el enlace de la partida.
+
+- Enséñale el QR a quien quieras invitar, o pulsa «Copiar enlace» y envíaselo. Si el móvil no deja copiarlo, mantén pulsado el enlace para seleccionarlo.
+- «Ir a la partida» muestra su nombre, estado, máster, fechas y número de inscritos.
+
+Quien abre el enlace con GhostMark instalado ve esa misma partida; si tiene que iniciar sesión o aceptar los permisos, la invitación se conserva hasta terminar. La partida aparece también en tu Inicio.
+
+<img src="img/crear-compartir.png" alt="Compartir la partida con QR y enlace" width="250">

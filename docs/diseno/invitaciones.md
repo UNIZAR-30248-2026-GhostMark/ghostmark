@@ -14,4 +14,4 @@ La tarea #57 añade las normas (`f3-d2`) y la sala de espera (`f3-d3`). Desde la
 
 Las pruebas de componentes y navegación aíslan las APIs nativas y simulan la respuesta HTTP. No sustituyen la comprobación del esquema, la cámara y el portapapeles en un dispositivo. Para verificar `ghostmark://` y el escáner hace falta instalar un binario de la app que incluya el esquema y `expo-camera`; Expo Go usa su propia URL de desarrollo.
 
-Manual: [Compartir una partida](../manual-usuario/compartir-partida.md).
+Manual: [Compartirla](../manual-usuario/README.md#23-compartirla), apartado 2.3.
