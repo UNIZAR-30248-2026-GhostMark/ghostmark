@@ -92,7 +92,7 @@ export function RootNavigator() {
   }, [attempt]);
 
   if (!initialRoute) {
-    return <Screen><View style={{ alignItems: "center", flex: 1, gap: 20, justifyContent: "center" }}>
+    return <Screen><View style={{ flex: 1, gap: 20, justifyContent: "center" }}>
       <Text style={[typography.body, { color: colors.text, textAlign: "center" }]}>{error ? "No se ha podido recuperar la sesión. Comprueba tu conexión." : "Recuperando sesión…"}</Text>
       {error ? <PrimaryButton onPress={() => { setError(false); setAttempt((value) => value + 1); }}>REINTENTAR</PrimaryButton> : null}
     </View></Screen>;
