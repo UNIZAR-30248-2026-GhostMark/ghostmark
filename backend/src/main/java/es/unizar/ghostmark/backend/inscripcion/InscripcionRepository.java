@@ -7,6 +7,7 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -23,6 +24,12 @@ public class InscripcionRepository {
     public boolean existe(UUID partidaId, UUID cuentaId) {
         return Boolean.TRUE.equals(jdbc.queryForObject("select exists(select 1 from inscripcion"
                 + " where partida_id = ? and cuenta_id = ?)", Boolean.class, partidaId, cuentaId));
+    }
+
+    public Optional<UUID> idDe(UUID partidaId, UUID cuentaId) {
+        return jdbc.queryForList("select id from inscripcion"
+                + " where partida_id = ? and cuenta_id = ?", UUID.class, partidaId, cuentaId)
+                .stream().findFirst();
     }
 
     public int contar(UUID partidaId) {

@@ -3,6 +3,7 @@ package es.unizar.ghostmark.backend.partida;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,7 +21,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -127,11 +127,77 @@ class PartidaIntegracionTest {
     }
 
     @Test
-    @Disabled("Falta la inscripción: llega con la tarea 3.2 (#54)")
     void inscritoVeElResumen() {
-        // Cuando exista POST /api/v1/inscripciones: el jugador se inscribe con el código y
-        // GET /partidas/{id} le devuelve el resumen (id, nombre, estado, fechas,
-        // soyMaster = false, numInscritos), sin código de invitación ni reglas.
+        String master = registrar();
+        String jugador = registrar();
+        String id = crearId(master, "Killer Resumen");
+        inscribir(jugador, codigoDe(id)).then().statusCode(201);
+
+        ver(jugador, id)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(id))
+                .body("nombre", equalTo("Killer Resumen"))
+                .body("estado", equalTo("EN_INSCRIPCION"))
+                .body("soyMaster", equalTo(false))
+                .body("numInscritos", equalTo(2))
+                .body("codigoInvitacion", nullValue())
+                .body("plazoDisputaHoras", nullValue());
+    }
+
+    @Test
+    void quienNoEsMasterNiInscritoNoVeLaPartida() {
+        String master = registrar();
+        String jugador = registrar();
+        String otro = registrar();
+        String id = crearId(master, "Killer Ajeno");
+        inscribir(jugador, codigoDe(id)).then().statusCode(201);
+
+        ver(otro, id)
+                .then()
+                .statusCode(404)
+                .body("codigo", equalTo("NO_ENCONTRADA"));
+    }
+
+    @Test
+    void yoTambienJuegoCreaYBorraLaInscripcionDelMaster() {
+        String master = registrar();
+        given().port(puerto).auth().oauth2(master).contentType(ContentType.JSON)
+                .body(Map.of("franjas", List.of(Map.of("dia", 2, "horaInicio", "10:00"))))
+                .put("/api/v1/cuentas/yo/horario").then().statusCode(200);
+        Map<String, Object> cuerpo = configuracion("Killer Sin Master", manana());
+        cuerpo.put("masterJuega", false);
+        String id = crear(master, cuerpo).then().statusCode(201).extract().path("id");
+        UUID partida = UUID.fromString(id);
+        assertEquals(0, inscritos(partida));
+
+        editar(master, id, Map.of("masterJuega", true))
+                .then()
+                .statusCode(200)
+                .body("masterJuega", equalTo(true))
+                .body("numInscritos", equalTo(1));
+        assertEquals(1, inscritos(partida));
+        assertEquals(List.of("2|10:00"), jdbc.queryForList("select f.dia || '|'"
+                + " || to_char(f.hora_inicio, 'HH24:MI') from franja_horario_inscripcion f"
+                + " join inscripcion i on i.id = f.inscripcion_id where i.partida_id = ?",
+                String.class, partida));
+        assertEquals(List.of("PARTIDA_CREADA", "CONFIGURACION_CAMBIADA", "JUGADOR_INSCRITO"),
+                tipos(partida));
+        UUID inscripcion = jdbc.queryForObject("select id from inscripcion where partida_id = ?",
+                UUID.class, partida);
+
+        editar(master, id, Map.of("masterJuega", false))
+                .then()
+                .statusCode(200)
+                .body("masterJuega", equalTo(false))
+                .body("numInscritos", equalTo(0));
+        assertEquals(0, inscritos(partida));
+        assertEquals(0, jdbc.queryForObject("select count(*) from franja_horario_inscripcion"
+                + " where inscripcion_id = ?", Integer.class, inscripcion).intValue());
+        assertEquals("MASTER_NO_JUEGA", jdbc.queryForObject("select datos->>'motivo' from evento"
+                + " where partida_id = ? and tipo = 'INSCRIPCION_RETIRADA'", String.class, partida));
+        assertEquals(List.of("PARTIDA_CREADA", "CONFIGURACION_CAMBIADA", "JUGADOR_INSCRITO",
+                "CONFIGURACION_CAMBIADA", "INSCRIPCION_RETIRADA"), tipos(partida));
     }
 
     @Test
@@ -166,7 +232,8 @@ class PartidaIntegracionTest {
                 "select secuencia, datos::text as datos from evento"
                         + " where partida_id = ? and tipo = 'CONFIGURACION_CAMBIADA'",
                 UUID.fromString(id));
-        assertEquals(2L, ((Number) evento.get("secuencia")).longValue());
+        // 1 es PARTIDA_CREADA y 2, JUGADOR_INSCRITO del máster que juega (tarea 3.2).
+        assertEquals(3L, ((Number) evento.get("secuencia")).longValue());
         // masterJuega ya era true: no cambia y no va en el evento.
         assertEquals("{\"nombre\": \"Killer Nuevo\", \"plazoDisputaHoras\": 24}",
                 evento.get("datos"));
@@ -256,6 +323,26 @@ class PartidaIntegracionTest {
                 .then()
                 .statusCode(401)
                 .body("codigo", equalTo("NO_AUTENTICADO"));
+    }
+
+    private Response inscribir(String token, String codigo) {
+        return given()
+                .port(puerto)
+                .auth().oauth2(token)
+                .contentType(ContentType.JSON)
+                .body(Map.of("codigo", codigo, "aceptaNormas", true))
+                .when()
+                .post("/api/v1/inscripciones");
+    }
+
+    private int inscritos(UUID partida) {
+        return jdbc.queryForObject("select count(*) from inscripcion where partida_id = ?",
+                Integer.class, partida);
+    }
+
+    private List<String> tipos(UUID partida) {
+        return jdbc.queryForList("select tipo from evento where partida_id = ? order by secuencia",
+                String.class, partida);
     }
 
     private String codigoDe(String id) {

@@ -29,9 +29,6 @@ public interface PartidaRepository extends JpaRepository<Partida, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Partida> findByMasterIdAndEstadoOrderByIdAsc(UUID masterId, String estado);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<Partida> findBloqueadaById(UUID id);
-
     boolean existsByCodigoInvitacion(String codigoInvitacion);
 
     Optional<Partida> findByCodigoInvitacion(String codigoInvitacion);

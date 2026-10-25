@@ -231,7 +231,10 @@ paths:
       tags: [partida]
       operationId: editarPartida
       summary: Cambiar la configuración (solo el máster, antes del arranque)
-      description: Se envían solo los campos que cambian. Mismas reglas que al crearla.
+      description: |
+        Se envían solo los campos que cambian. Mismas reglas que al crearla.
+        Si cambia `masterJuega`, se crea la inscripción del máster con el horario de su cuenta
+        (`JUGADOR_INSCRITO`) o se borra (`INSCRIPCION_RETIRADA`, motivo `MASTER_NO_JUEGA`).
       requestBody:
         required: true
         content:

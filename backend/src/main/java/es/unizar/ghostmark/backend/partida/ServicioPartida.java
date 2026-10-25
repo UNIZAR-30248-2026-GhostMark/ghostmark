@@ -104,7 +104,9 @@ public class ServicioPartida {
         Partida partida = partidas.findById(partidaId)
                 .orElseThrow(PartidaNoEncontradaException::new);
         if (!cuentaId.equals(partida.getMasterId())) {
-            // El inscrito recibe el resumen cuando exista la inscripción (tarea 3.2).
+            if (inscripciones.existe(partidaId, cuentaId)) {
+                return vistaResumen(partida, cuentaId);
+            }
             throw new PartidaNoEncontradaException();
         }
         return vistaMaster(partida);
@@ -113,7 +115,12 @@ public class ServicioPartida {
     @Transactional
     public Map<String, Object> editar(UUID cuentaId, UUID partidaId, CambiosPartida cambios,
             Instant ahora) {
-        Partida partida = partidas.findBloqueadaById(partidaId)
+        // Cuenta y después partida, el mismo orden que la inscripción (inscripcion.md).
+        if (cuentas.bloquearPorId(cuentaId).isEmpty()) {
+            throw new ErrorInscripcion(HttpStatus.UNAUTHORIZED, "NO_AUTENTICADO",
+                    "La cuenta no está disponible");
+        }
+        Partida partida = partidas.bloquearPorId(partidaId)
                 .orElseThrow(PartidaNoEncontradaException::new);
         if (!cuentaId.equals(partida.getMasterId())) {
             throw new NoEsMasterException();
@@ -141,6 +148,12 @@ public class ServicioPartida {
                 reales.masterJuega(),
                 OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC),
                 partida.getId());
+        if (Boolean.TRUE.equals(reales.masterJuega())
+                && !inscripciones.existe(partida.getId(), cuentaId)) {
+            servicioInscripcion.alta(partida.getId(), cuentaId, ahora);
+        } else if (Boolean.FALSE.equals(reales.masterJuega())) {
+            servicioInscripcion.retirarMaster(partida.getId(), cuentaId, ahora);
+        }
         return vistaMaster(partida);
     }
 
