@@ -46,8 +46,11 @@ async function mount(component, props) { await act(async () => { tree = create(R
 for (const url of [link, link + '/', 'exp://192.168.1.20:8081/--/unirse/ABCDEFGH', 'exps://example.test/--/unirse/ABCDEFGH']) {
   test(`acepta la invitación ${url}`, () => assert.equal(invitation.parseInvitationLink(url), code));
 }
+test('normaliza minúsculas en enlaces válidos', () => {
+  assert.equal(invitation.parseInvitationLink('ghostmark://unirse/abcdefgh'), code);
+});
 test('rechaza esquemas, rutas, longitudes y caracteres ajenos al contrato', () => {
-  for (const url of ['https://unirse/ABCDEFGH', 'ghostmark://otra/ABCDEFGH', 'ghostmark://unirse/ABCDEFG', 'ghostmark://unirse/ABCDEFG0', 'ghostmark://unirse/ABCDEFGI', 'ghostmark://unirse/ABCDEFGL', 'ghostmark://unirse/abcdefgh', 'ghostmark://unirse/ABCDEFGH/extra', link + '?token=secret']) {
+  for (const url of ['https://unirse/ABCDEFGH', 'ghostmark://otra/ABCDEFGH', 'ghostmark://unirse/ABCDEFG', 'ghostmark://unirse/ABCDEFG0', 'ghostmark://unirse/ABCDEFGI', 'ghostmark://unirse/ABCDEFGL', 'ghostmark://unirse/ABCDEFGH/extra', link + '?token=secret']) {
     assert.equal(invitation.parseInvitationLink(url), undefined, url);
   }
 });
@@ -181,7 +184,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'ShareGame', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);
@@ -219,4 +222,78 @@ test('el enlace espera al login y a los permisos sin perderse ni abrirse dos vec
   assert.deepEqual(app.destinations, [['GameInvitation', { code }]]);
   app.arrive('GameInvitation');
   assert.equal(app.destinations.length, 1);
+});
+
+function scanner(permission) {
+  let requested = 0, settingsOpened = 0, focused = true;
+  const replacements = [];
+  const { ScanInvitationScreen } = load('screens/ScanInvitationScreen.tsx', { ...common,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '@react-navigation/native': { useIsFocused: () => focused },
+    'expo-camera': {
+      CameraView: 'CameraView',
+      useCameraPermissions: () => [permission, async () => { requested++; }],
+    },
+    'react-native': { ...native,
+      Linking: { openSettings: async () => { settingsOpened++; } },
+      StyleSheet: { ...native.StyleSheet, absoluteFill: {}, absoluteFillObject: {} },
+    },
+  });
+  return {
+    ScanInvitationScreen,
+    props: { navigation: { replace: (...args) => replacements.push(args), goBack() {} } },
+    replacements,
+    requested: () => requested,
+    settingsOpened: () => settingsOpened,
+    setPermission: (value) => { permission = value; },
+    setFocused: (value) => { focused = value; },
+  };
+}
+
+test('escáner rechaza QR ajeno y abre la partida una sola vez con un enlace válido', async () => {
+  const app = scanner({ granted: true, canAskAgain: true });
+  await mount(app.ScanInvitationScreen, app.props);
+  const camera = tree.root.findByType('CameraView');
+  await act(async () => camera.props.onBarcodeScanned({ data: 'https://example.test/' }));
+  assert.match(JSON.stringify(tree.toJSON()), /no contiene una invitación válida/);
+  assert.deepEqual(app.replacements, []);
+  await act(async () => camera.props.onBarcodeScanned({ data: 'ghostmark://unirse/abcdefgh' }));
+  await act(async () => camera.props.onBarcodeScanned({ data: link }));
+  assert.deepEqual(app.replacements, [['GameInvitation', { code }]]);
+});
+
+test('escáner pide permiso al entrar y ofrece ajustes si se deniega definitivamente', async () => {
+  const app = scanner({ granted: false, canAskAgain: true });
+  await mount(app.ScanInvitationScreen, app.props);
+  assert.equal(tree.root.findAllByType('CameraView').length, 0);
+  await act(async () => tree.root.findAllByType('Pressable').find((button) => button.findAllByType('Text').some((label) => label.props.children === 'PERMITIR CÁMARA')).props.onPress());
+  assert.equal(app.requested(), 1);
+  app.setPermission({ granted: false, canAskAgain: false });
+  await act(async () => tree.update(React.createElement(app.ScanInvitationScreen, app.props)));
+  await act(async () => tree.root.findAllByType('Pressable').find((button) => button.findAllByType('Text').some((label) => label.props.children === 'ABRIR AJUSTES')).props.onPress());
+  assert.equal(app.settingsOpened(), 1);
+});
+
+test('escáner detiene la cámara cuando pierde el foco y muestra un fallo de cámara', async () => {
+  const app = scanner({ granted: true, canAskAgain: true });
+  await mount(app.ScanInvitationScreen, app.props);
+  app.setFocused(false);
+  await act(async () => tree.update(React.createElement(app.ScanInvitationScreen, app.props)));
+  assert.equal(tree.root.findAllByType('CameraView').length, 0);
+  app.setFocused(true);
+  await act(async () => tree.update(React.createElement(app.ScanInvitationScreen, app.props)));
+  await act(async () => tree.root.findByType('CameraView').props.onMountError());
+  assert.match(JSON.stringify(tree.toJSON()), /No se ha podido abrir la cámara/);
+});
+
+test('Unirse desde Inicio abre el escáner', async () => {
+  const destinations = [];
+  const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '../api/game': { getMyGames: async () => [] },
+  });
+  await mount(HomeScreen, { navigation: { navigate: (name) => destinations.push(name) }, route: { params: undefined } });
+  const join = tree.root.findAllByType('Pressable').find((button) => button.findAllByType('Text').some((label) => label.props.children === 'UNIRSE'));
+  act(() => join.props.onPress());
+  assert.deepEqual(destinations, ['ScanInvitation']);
 });

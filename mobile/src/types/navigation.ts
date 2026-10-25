@@ -10,5 +10,6 @@ export type RootStackParamList = {
   CreateGameRules: { game: import("./game").GameDraft; startLabel: string; endLabel: string };
   ShareGame: { game: import("./game").Game };
   GameInvitation: { code: string };
+  ScanInvitation: undefined;
   ApiStatus: undefined;
 };

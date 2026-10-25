@@ -1,7 +1,7 @@
 export function parseInvitationLink(url: string): string | undefined {
   // Expo Go usa /--/ para separar la URL del proyecto de la ruta de la app.
-  const match = /^(?:ghostmark:\/\/unirse\/|exps?:\/\/[^/]+\/--\/unirse\/)([23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8})\/?$/.exec(url);
-  return match?.[1];
+  const match = /^(?:ghostmark:\/\/unirse\/|exps?:\/\/[^/]+\/--\/unirse\/)([23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8})\/?$/i.exec(url);
+  return match?.[1]?.toUpperCase();
 }
 
 export function createInvitationInbox() {
