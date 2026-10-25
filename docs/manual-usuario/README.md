@@ -82,3 +82,38 @@ La app muestra «¡Partida creada!» con el nombre, el código de invitación, u
 Quien abre el enlace con GhostMark instalado ve esa misma partida; si tiene que iniciar sesión o aceptar los permisos, la invitación se conserva hasta terminar. La partida aparece también en tu Inicio.
 
 <img src="img/crear-compartir.png" alt="Compartir la partida con QR y enlace" width="250">
+
+## 3. Unirse a una partida
+
+### 3.1 Entrar por QR o por enlace
+
+- **Con el QR.** En Inicio, pulsa «Unirse». La app pide permiso para usar la cámara la primera vez; acéptalo y apunta al código QR que te enseña el máster. Si el QR no es de una partida de GhostMark, la app avisa y sigue leyendo. Si bloqueaste la cámara, «Abrir ajustes» te lleva a los ajustes del móvil para activarla.
+- **Con el enlace.** Abre el enlace que te ha pasado el máster con GhostMark instalado. Si tienes que iniciar sesión o aceptar los permisos de la cuenta, hazlo primero: la invitación se conserva hasta terminar.
+
+Las dos formas llevan a la misma pantalla: el nombre de la partida, su estado, el máster, las fechas y cuántos inscritos tiene. Si el código no existe, la app lo dice. Mirarla no te inscribe.
+
+<img src="img/unirse-invitacion.png" alt="Invitación a una partida" width="250">
+
+### 3.2 Aceptar las normas
+
+1. Pulsa «Ver normas».
+2. Lee las cuatro normas de la partida: sin contacto físico, sin objetos que simulen armas, zonas y horarios seguros, y puedes abandonar cuando quieras.
+3. Pulsa «Acepto y me uno». Solo entonces quedas inscrito; si vuelves atrás sin pulsarlo, no te apuntas.
+
+Si ya estabas inscrito, la app te lo dice y te ofrece «Ir a mis partidas». Si la partida ya ha empezado o se ha cancelado, no te deja unirte.
+
+<img src="img/unirse-normas.png" alt="Normas de la partida" width="250">
+
+### 3.3 La sala de espera
+
+Al unirte entras en la sala de espera: la cuenta atrás hasta el inicio y los inscritos, cada uno con su fantasma y su alias, tú también. Si alguien ha borrado su cuenta, aparece como «Cuenta eliminada».
+
+<img src="img/unirse-sala.png" alt="Sala de espera con los inscritos" width="250">
+
+### 3.4 Tu horario en esta partida
+
+Al unirte, la partida copia tu horario lectivo de la cuenta. En la sala, «Revisar mi horario» abre el horario de esta partida: los cambios que hagas ahí solo valen para ella, no para tu cuenta ni para tus otras partidas. Se puede cambiar hasta la hora de inicio; desde entonces queda fijo para toda la partida.
+
+### 3.5 Varias partidas a la vez
+
+Puedes estar en varias partidas a la vez, aunque coincidan en fechas. Cada una aparece en Inicio con su estado y tiene su propia inscripción y su propio horario.
