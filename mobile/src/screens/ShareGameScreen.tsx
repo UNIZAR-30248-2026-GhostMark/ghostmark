@@ -61,16 +61,16 @@ export function ShareGameScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingBottom: 12 },
-  heading: { color: colors.lime, fontFamily: "Bangers", fontSize: 39, marginVertical: 25, textAlign: "center" },
+  heading: { color: colors.lime, fontFamily: "Bangers", fontSize: 39, marginVertical: 25, paddingRight: 3, textAlign: "center" },
   card: { alignItems: "center", alignSelf: "center", backgroundColor: "#FFFFFF", borderColor: colors.ink, borderRadius: 25, borderWidth: 3, padding: 10, shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.7, shadowRadius: 0 },
   cardFooter: { alignItems: "center", flexDirection: "row", width: "100%" },
-  gameName: { flex: 1, color: colors.ink, fontFamily: "Bangers", fontSize: 25, maxWidth: "100%", paddingHorizontal: 12, paddingBottom: 12, textAlign: "center" },
+  gameName: { flex: 1, color: colors.ink, fontFamily: "Bangers", fontSize: 25, maxWidth: "100%", paddingHorizontal: 12, paddingBottom: 12, paddingRight: 15, textAlign: "center" },
   ghost: { height: 60, resizeMode: "contain", width: 60 },
   code: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 20, textAlign: "center" },
   link: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, marginTop: 8, textAlign: "center" },
   message: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 13, textAlign: "center" },
   actions: { gap: 14, paddingTop: 12, paddingBottom: 4 },
   copyButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, flexDirection: "row", gap: 12, justifyContent: "center", minHeight: 54 },
-  copyLabel: { color: colors.text, fontFamily: "Bangers", fontSize: 23 },
+  copyLabel: { color: colors.text, fontFamily: "Bangers", fontSize: 23, paddingRight: 3 },
   pressed: { opacity: 0.75 },
 });
