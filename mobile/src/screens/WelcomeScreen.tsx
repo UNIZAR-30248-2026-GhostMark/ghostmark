@@ -10,14 +10,16 @@ import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import { typography } from "../theme/typography";
 import type { RootStackParamList } from "../types/navigation";
+import { hasAccountFieldErrors, type AccountFieldErrors, validateRegistration } from "../utils/accountValidation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Welcome">;
 
-function errorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    return [error.message, ...error.fieldErrors].join("\n");
+function accountErrors(error: ApiError): AccountFieldErrors {
+  const errors: AccountFieldErrors = {};
+  for (const field of ["alias", "email", "contrasena"] as const) {
+    if (error.fieldErrorsByName[field]) errors[field] = error.fieldErrorsByName[field];
   }
-  return "No hemos podido crear la cuenta. Revisa la conexión e inténtalo de nuevo.";
+  return errors;
 }
 
 export function WelcomeScreen({ navigation }: Props) {
@@ -25,6 +27,7 @@ export function WelcomeScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
+  const [fieldErrors, setFieldErrors] = useState<AccountFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -40,19 +43,26 @@ export function WelcomeScreen({ navigation }: Props) {
   }
 
   async function register() {
-    if (!alias.trim() || !email.trim() || !password) {
-      setError("Completa alias, email y contraseña para continuar.");
+    const validationErrors = validateRegistration(alias, email, password);
+    if (hasAccountFieldErrors(validationErrors)) {
+      setFieldErrors(validationErrors);
+      setError(undefined);
       return;
     }
 
     setError(undefined);
+    setFieldErrors({});
     setIsSubmitting(true);
     try {
       const session = await registerAccount({ alias: alias.trim(), email: email.trim(), contrasena: password });
       await saveSession(session);
       navigation.replace("Schedule", { onboarding: true });
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      if (requestError instanceof ApiError) {
+        const errors = accountErrors(requestError);
+        setFieldErrors(errors);
+        setError(hasAccountFieldErrors(errors) ? undefined : requestError.message);
+      } else setError("No hemos podido crear la cuenta. Revisa la conexión e inténtalo de nuevo.");
     } finally {
       setIsSubmitting(false);
     }
@@ -78,9 +88,9 @@ export function WelcomeScreen({ navigation }: Props) {
           <Text style={styles.title}>TE DAMOS LA{"\n"}BIENVENIDA A{"\n"}<Text style={styles.accent}>GHOSTMARK</Text></Text>
           <Text style={styles.body}>Elige cómo te verán los demás</Text>
           <View style={styles.form}>
-            <FormTextInput label="Tu alias" value={alias} onChangeText={setAlias} onFocus={revealFocusedField} placeholder="fantasmilla" autoCapitalize="none" autoCorrect={false} />
-            <FormTextInput label="Email" value={email} onChangeText={setEmail} onFocus={revealFocusedField} placeholder="tu@email.com" autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
-            <FormTextInput label="Contraseña" value={password} onChangeText={setPassword} onFocus={revealFocusedField} placeholder="Mínimo 8 caracteres" autoComplete="new-password" secureTextEntry />
+            <FormTextInput error={fieldErrors.alias} label="Tu alias" value={alias} onChangeText={(value) => { setAlias(value); setFieldErrors((errors) => ({ ...errors, alias: undefined })); }} onFocus={revealFocusedField} placeholder="fantasmilla" autoCapitalize="none" autoCorrect={false} />
+            <FormTextInput error={fieldErrors.email} label="Email" value={email} onChangeText={(value) => { setEmail(value); setFieldErrors((errors) => ({ ...errors, email: undefined })); }} onFocus={revealFocusedField} placeholder="tu@email.com" autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
+            <FormTextInput error={fieldErrors.contrasena} label="Contraseña" value={password} onChangeText={(value) => { setPassword(value); setFieldErrors((errors) => ({ ...errors, contrasena: undefined })); }} onFocus={revealFocusedField} placeholder="Mínimo 8 caracteres" autoComplete="new-password" secureTextEntry />
             {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
           </View>
         </View>
