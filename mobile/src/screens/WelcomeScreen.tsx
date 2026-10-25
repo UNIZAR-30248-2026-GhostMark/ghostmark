@@ -87,7 +87,7 @@ export function WelcomeScreen({ navigation }: Props) {
         </ScrollView>
         <View style={styles.footer}>
           <PrimaryButton disabled={isSubmitting} onPress={register}>{isSubmitting ? "CREANDO CUENTA…" : "CONTINUAR"}</PrimaryButton>
-          <Pressable accessibilityRole="link" onPress={() => navigation.navigate("SignIn")}><Text style={styles.loginLink}>¿Ya tienes cuenta? Inicia sesión</Text></Pressable>
+          <Pressable accessibilityRole="link" onPress={() => navigation.popTo("SignIn")}><Text style={styles.loginLink}>¿Ya tienes cuenta? Inicia sesión</Text></Pressable>
         </View>
       </KeyboardAvoidingView>
     </Screen>
