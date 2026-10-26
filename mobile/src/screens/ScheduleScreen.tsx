@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { ApiError } from "../api/client";
 import { getGameSchedule, updateGameSchedule } from "../api/inscription";
 import { getSchedule, updateSchedule } from "../api/schedule";
 import { DayScheduleModal } from "../components/DayScheduleModal";
@@ -51,8 +52,12 @@ export function ScheduleScreen({ navigation, route }: Props) {
       if (route.params?.onboarding) navigation.replace("LocationConsent");
       else if (navigation.canGoBack()) navigation.goBack();
       else navigation.replace("Home");
-    } catch {
-      setError("No hemos podido guardar tu horario. Comprueba la conexión e inténtalo de nuevo.");
+    } catch (requestError) {
+      if (requestError instanceof ApiError && requestError.code === "PARTIDA_NO_EDITABLE") {
+        setError("La partida ya ha empezado: tu horario queda fijo para toda la partida.");
+      } else {
+        setError("No hemos podido guardar tu horario. Comprueba la conexión e inténtalo de nuevo.");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -62,7 +67,7 @@ export function ScheduleScreen({ navigation, route }: Props) {
     <Screen padded={false}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.dots}><View style={styles.dot} /><View style={[styles.dot, styles.dotOn]} /><View style={styles.dot} /><View style={styles.dot} /></View>
+          {route.params?.onboarding ? <View style={styles.dots}><View style={styles.dot} /><View style={[styles.dot, styles.dotOn]} /><View style={styles.dot} /><View style={styles.dot} /></View> : null}
           <Text style={styles.title}>TU HORARIO LECTIVO</Text>
           <Text style={styles.description}>En estas horas nadie podrá cazarte, y tú tampoco podrás cazar</Text>
         </View>

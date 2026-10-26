@@ -22,6 +22,10 @@ const rowHeight = 100;
 const REFRESH_MS = 10_000;
 const MIN_PLAYERS = 3;
 
+function memberCountLabel(count: number) {
+  return `${count} ${count === 1 ? "inscrito" : "inscritos"}`;
+}
+
 function countdownLabel(start: string) {
   const remaining = Math.max(0, new Date(start).getTime() - Date.now());
   const totalMinutes = Math.floor(remaining / 60_000);
@@ -123,7 +127,7 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
             <Image accessibilityLabel={player.alias ?? "Cuenta eliminada"} source={require("../../assets/ghosts/fantasma-saluda.png")} style={[styles.ghost, index % 2 === 1 && styles.ghostFlip]} />
             <Text style={styles.playerName}>{player.alias ?? "Cuenta eliminada"}</Text>
           </View>)}
-          <View style={styles.memberCount}><Text style={styles.memberCountText}>{`${players.length} inscritos`}</Text></View>
+          <View style={styles.memberCount}><Text style={styles.memberCountText}>{memberCountLabel(players.length)}</Text></View>
         </View>}
       </View>
     </View>
