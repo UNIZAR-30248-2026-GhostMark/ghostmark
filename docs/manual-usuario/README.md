@@ -117,3 +117,25 @@ Al unirte, la partida copia tu horario lectivo de la cuenta. En la sala, «Revis
 ### 3.5 Varias partidas a la vez
 
 Puedes estar en varias partidas a la vez, aunque coincidan en fechas. Cada una aparece en Inicio con su estado y tiene su propia inscripción y su propio horario.
+
+## 4. Arranque y cancelación
+
+### 4.1 Arrancar antes de la hora
+
+Si eres el máster, pulsa la partida en Inicio para abrir su sala de espera: verás «Eres el máster», la cuenta atrás y los inscritos. La sala se actualiza sola cada pocos segundos. «Arrancar ya» empieza la partida en ese momento, sin esperar a la hora de inicio, y solo se activa cuando hay al menos 3 inscritos.
+
+<img src="img/arranque-sala.png" alt="Sala de espera del máster con «Arrancar ya»" width="250">
+
+### 4.2 La partida empieza
+
+Al llegar la hora de inicio, la partida arranca sola si tiene al menos 3 inscritos. Cada jugador recibe como objetivo a otro jugador, y entre todos forman una única cadena cerrada: nadie se persigue a sí mismo y todos son el objetivo de alguien. Desde ese momento tu horario en esta partida queda fijo.
+
+Si estás en la sala, pasas a «¡La partida ha empezado!». En Inicio, la partida aparece «En juego» y, al pulsarla, se abre esa misma pantalla.
+
+<img src="img/arranque-empezada.png" alt="La partida ha empezado" width="250">
+
+### 4.3 La partida se cancela
+
+Si a la hora de inicio hay menos de 3 inscritos, la partida no empieza: se cancela. En Inicio aparece como «Cancelada» y, al pulsarla, la pantalla dice «No hay jugadores suficientes», con los inscritos que había y los 3 que hacían falta. Una partida también se cancela si el máster borra su cuenta antes de que empiece, y en ese caso la pantalla lo indica.
+
+<img src="img/arranque-cancelada.png" alt="Partida cancelada por falta de jugadores" width="250">
