@@ -12,14 +12,19 @@ import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -126,6 +131,7 @@ class ArranqueTest {
         }
         assertEquals(List.of(200, 409), codigos.stream().sorted().toList());
         assertEquals(1, arranques(juego).size());
+        assertEquals(1, ciclos(juego));
     }
 
     @Test
@@ -139,6 +145,7 @@ class ArranqueTest {
         assertFalse(arranque.arrancarSiToca(juego.id(), Instant.now()));
         assertEquals("EN_JUEGO", estado(juego));
         assertEquals(List.of("PROGRAMADO|3"), arranques(juego));
+        assertEquals(1, ciclos(juego));
     }
 
     @Test
@@ -199,6 +206,61 @@ class ArranqueTest {
     private void vencer(Juego juego) {
         jdbc.update("update partida set inicio_en = now() - interval '1 minute' where id = ?",
                 juego.id());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {3, 4, 10})
+    void formaUnCicloUnicoYCerrado(int jugadores) {
+        Persona master = registrar();
+        Juego juego = crear(master, true);
+        for (int i = 1; i < jugadores; i++) {
+            apuntar(registrar(), juego);
+        }
+        arrancarYa(master, juego).then().statusCode(200);
+        List<UUID> inscritos = jdbc.queryForList(
+                "select id from inscripcion where partida_id = ?", UUID.class, juego.id());
+        List<UUID> orden = orden(juego);
+        assertEquals(jugadores, orden.size());
+        assertEquals(jugadores, Set.copyOf(orden).size());
+        assertEquals(Set.copyOf(inscritos), Set.copyOf(orden));
+        Map<UUID, UUID> objetivos = new HashMap<>();
+        for (int i = 0; i < jugadores; i++) {
+            objetivos.put(orden.get(i), orden.get((i + 1) % jugadores));
+        }
+        Set<UUID> visitados = new HashSet<>();
+        UUID actual = orden.get(0);
+        for (int i = 0; i < jugadores; i++) {
+            UUID objetivo = objetivos.get(actual);
+            assertFalse(actual.equals(objetivo));
+            assertTrue(visitados.add(actual));
+            actual = objetivo;
+        }
+        assertEquals(orden.get(0), actual);
+        assertEquals(Set.copyOf(inscritos), visitados);
+    }
+
+    @Test
+    void cicloVaJustoDespuesDelArranque() {
+        Persona master = registrar();
+        Juego juego = conTresJugadores(master);
+        arrancarYa(master, juego).then().statusCode(200);
+        List<Map<String, Object>> eventos = jdbc.queryForList("select tipo, secuencia from evento"
+                + " where partida_id = ? order by secuencia desc limit 2", juego.id());
+        assertEquals("CICLO_FORMADO", eventos.get(0).get("tipo"));
+        assertEquals("PARTIDA_ARRANCADA", eventos.get(1).get("tipo"));
+        assertEquals((Long) eventos.get(1).get("secuencia") + 1, eventos.get(0).get("secuencia"));
+    }
+
+    private List<UUID> orden(Juego juego) {
+        return jdbc.queryForList("select e.valor::uuid from evento ev,"
+                + " jsonb_array_elements_text(ev.datos->'orden') with ordinality as e(valor, pos)"
+                + " where ev.partida_id = ? and ev.tipo = 'CICLO_FORMADO' order by e.pos",
+                UUID.class, juego.id());
+    }
+
+    private int ciclos(Juego juego) {
+        return jdbc.queryForObject("select count(*) from evento where partida_id = ?"
+                + " and tipo = 'CICLO_FORMADO'", Integer.class, juego.id());
     }
 
     private Juego conTresJugadores(Persona master) {
