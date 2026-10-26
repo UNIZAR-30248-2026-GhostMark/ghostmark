@@ -14,7 +14,13 @@ export function FormTextInput({ error, label, secureTextEntry, ...inputProps }: 
     <View style={styles.group}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputWrap}>
-        <TextInput placeholderTextColor="#715F8D" secureTextEntry={isPassword && !passwordVisible} style={[styles.input, error && styles.inputError, isPassword && styles.passwordInput]} {...inputProps} />
+        <TextInput
+          placeholderTextColor="#715F8D"
+          secureTextEntry={isPassword && !passwordVisible}
+          style={[styles.input, error && styles.inputError, isPassword && styles.passwordInput]}
+          {...inputProps}
+          {...(isPassword ? { autoCapitalize: "none", autoCorrect: false } : {})}
+        />
         {isPassword ? <Pressable accessibilityLabel={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"} accessibilityRole="button" onPress={() => setPasswordVisible((value) => !value)} style={styles.eye}>
           <Ionicons color={colors.ink} name={passwordVisible ? "eye-off-outline" : "eye-outline"} size={22} />
         </Pressable> : null}
