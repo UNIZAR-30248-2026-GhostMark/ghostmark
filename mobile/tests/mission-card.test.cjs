@@ -50,8 +50,12 @@ test('la carta consulta solo la carta propia de la partida y se revela al manten
   assert.equal(requestedId, 'partida-propia');
   assert.match(JSON.stringify(tree.toJSON()), /PABLO/);
   const card = tree.root.findByProps({ accessibilityLabel: 'Carta de misión' });
+  const flip = () => tree.root.findAllByType('AnimatedView')[1].props.style[1].opacity.value;
+  assert.equal(flip(), 0);
   await act(async () => card.props.onPressIn());
+  assert.equal(flip(), 1);
   await act(async () => card.props.onPressOut());
+  assert.equal(flip(), 0);
   assert.match(JSON.stringify(tree.toJSON()), /COMPILADOR/);
 });
 

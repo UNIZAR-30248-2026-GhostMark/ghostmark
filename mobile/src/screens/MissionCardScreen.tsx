@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   cardFace: { ...StyleSheet.absoluteFill, backfaceVisibility: "hidden", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, overflow: "hidden", shadowColor: colors.ink, shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.6, shadowRadius: 0 },
   loadingCard: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 28, borderWidth: 3, height: 392, justifyContent: "center", marginTop: 12, width: 286 },
   loading: { color: colors.lime, fontFamily: "Bangers", fontSize: 25 },
-  errorState: { alignItems: "center", flex: 1, gap: 20, justifyContent: "center", width: "100%" },
+  errorState: { flex: 1, gap: 20, justifyContent: "center", width: "100%" },
   error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 21, textAlign: "center" },
   cardBack: { backgroundColor: colors.white, flex: 1, padding: 10 },
   innerFrame: { alignItems: "center", backgroundColor: "#7E3BC1", borderColor: "#E7DFFF", borderRadius: 22, borderWidth: 2, flex: 1, justifyContent: "center", overflow: "hidden" },
