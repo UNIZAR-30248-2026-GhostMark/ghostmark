@@ -2,7 +2,7 @@ import { request } from "./client";
 import type { Game, GameConfiguration, GameSummary, PublicGame } from "../types/game";
 
 export type MissionCard = {
-  aliasObjetivo: string;
+  aliasObjetivo: string | null;
   mision: string;
 };
 

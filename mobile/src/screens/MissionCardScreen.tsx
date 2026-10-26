@@ -85,7 +85,7 @@ function HiddenCard() {
 function RevealedCard({ card }: { card: MissionCard }) {
   return <View style={styles.cardFront}>
     <View style={styles.objectiveTag}><Text style={styles.objectiveTagText}>Objetivo</Text></View>
-    <Text adjustsFontSizeToFit minimumFontScale={0.58} numberOfLines={2} style={styles.targetName}>{card.aliasObjetivo.toUpperCase()}</Text>
+    <Text adjustsFontSizeToFit minimumFontScale={0.58} numberOfLines={2} style={styles.targetName}>{card.aliasObjetivo?.toUpperCase() ?? "CUENTA ELIMINADA"}</Text>
     <View style={styles.ruleDivider} />
     <View style={styles.missionTag}><Text style={styles.missionTagText}>Misión</Text></View>
     <Text adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={5} style={styles.missionText}>{card.mision.toUpperCase()}</Text>

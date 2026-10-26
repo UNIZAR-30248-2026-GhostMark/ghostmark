@@ -66,3 +66,12 @@ test('el botón de la partida iniciada abre la carta de su propia partida', asyn
   await act(async () => button.props.onPress());
   assert.deepEqual(destination, ['MissionCard', { gameId: 'partida-propia' }]);
 });
+
+test('la carta no falla si el objetivo borró su cuenta', async () => {
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
+    '../api/client': { ApiError: class ApiError extends Error {} },
+    '../api/game': { getMyMissionCard: async () => ({ aliasObjetivo: null, mision: 'Di la palabra compilador' }) },
+  });
+  await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
+  assert.match(JSON.stringify(tree.toJSON()), /CUENTA ELIMINADA/);
+});
