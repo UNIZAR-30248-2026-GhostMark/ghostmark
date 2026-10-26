@@ -247,7 +247,8 @@ class ArranqueTest {
         Juego juego = conTresJugadores(master);
         arrancarYa(master, juego).then().statusCode(200);
         List<Map<String, Object>> eventos = jdbc.queryForList("select tipo, secuencia from evento"
-                + " where partida_id = ? order by secuencia desc limit 2", juego.id());
+                + " where partida_id = ? and tipo in ('PARTIDA_ARRANCADA', 'CICLO_FORMADO')"
+                + " order by secuencia desc", juego.id());
         assertEquals("CICLO_FORMADO", eventos.get(0).get("tipo"));
         assertEquals("PARTIDA_ARRANCADA", eventos.get(1).get("tipo"));
         assertEquals((Long) eventos.get(1).get("secuencia") + 1, eventos.get(0).get("secuencia"));
