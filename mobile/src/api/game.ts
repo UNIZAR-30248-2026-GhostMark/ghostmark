@@ -1,6 +1,11 @@
 import { request } from "./client";
 import type { Game, GameConfiguration, GameSummary, PublicGame } from "../types/game";
 
+export type MissionCard = {
+  aliasObjetivo: string | null;
+  mision: string;
+};
+
 export function createGame(configuration: GameConfiguration) {
   return request<Game>("/api/v1/partidas", { body: configuration, method: "POST" });
 }
@@ -15,4 +20,8 @@ export function startGame(gameId: string) {
 
 export function getGameByCode(code: string) {
   return request<PublicGame>(`/api/v1/partidas/codigo/${encodeURIComponent(code)}`);
+}
+
+export function getMyMissionCard(gameId: string) {
+  return request<MissionCard>(`/api/v1/partidas/${encodeURIComponent(gameId)}/yo/carta`);
 }
