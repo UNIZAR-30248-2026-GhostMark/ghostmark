@@ -1,6 +1,7 @@
 package es.unizar.ghostmark.backend.partida;
 
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +25,10 @@ public interface PartidaRepository extends JpaRepository<Partida, UUID> {
     List<Partida> visiblesPara(UUID cuentaId);
 
     List<Partida> findByMasterId(UUID masterId);
+
+    @Query("select p.id from Partida p where p.estado = 'EN_INSCRIPCION'"
+            + " and p.inicioEn <= :ahora order by p.id")
+    List<UUID> pendientesDeArrancar(Instant ahora);
 
     /** Bloquea las filas en orden de id, para guardar eventos sin chocar con otros. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

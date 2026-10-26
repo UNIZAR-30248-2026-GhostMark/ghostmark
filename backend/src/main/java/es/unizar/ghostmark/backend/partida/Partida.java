@@ -150,4 +150,9 @@ public class Partida {
         this.estado = "CANCELADA";
         this.actualizadaEn = ahora;
     }
+
+    public void arrancar(Instant ahora) {
+        this.estado = "EN_JUEGO";
+        this.actualizadaEn = ahora;
+    }
 }
