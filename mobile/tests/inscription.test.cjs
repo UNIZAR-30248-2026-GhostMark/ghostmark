@@ -91,6 +91,15 @@ test('aceptar las normas inscribe y abre la sala de esa partida', async () => {
   assert.deepEqual(destination, ['WaitingRoom', { gameId: 'p1', game }]);
 });
 
+test('las normas usan el singular con un único inscrito', async () => {
+  const { GameNormsScreen } = load('screens/GameNormsScreen.tsx', { ...common,
+    '../api/inscription': { joinGame: async () => ({ id: 'i1', partidaId: 'p1' }) },
+  });
+  await mount(GameNormsScreen, { navigation: { replace: () => {} }, route: { params: { code, game } } });
+  assert.match(shown(), /1 inscrito/);
+  assert.doesNotMatch(shown(), /1 inscritos/);
+});
+
 test('si ya estaba inscrito lo dice y lleva a mis partidas', async () => {
   let reset; let replaced = false;
   const { GameNormsScreen } = load('screens/GameNormsScreen.tsx', { ...common,
@@ -135,6 +144,12 @@ test('la sala muestra los inscritos reales y «Cuenta eliminada» si borró la c
   assert.equal(button('ARRANCAR YA'), undefined, 'solo el máster ve «Arrancar ya»');
   await act(async () => button('REVISAR MI HORARIO').props.onPress());
   assert.deepEqual(destination, ['Schedule', { gameId: 'p1' }]);
+});
+
+test('la sala usa el singular con un único inscrito', async () => {
+  await mount(waitingRoom([{ id: 'i1', alias: 'ana', esMaster: true }]), { navigation: {}, route: { params: { gameId: 'p1', game } } });
+  assert.match(shown(), /1 inscrito/);
+  assert.doesNotMatch(shown(), /1 inscritos/);
 });
 
 test('el máster que juega ve «Arrancar ya» en su sala', async () => {
@@ -244,4 +259,20 @@ test('revisar el horario de una partida no toca el de la cuenta', async () => {
   await mount(ScheduleScreen, { navigation: { canGoBack: () => true, goBack: () => {} }, route: { params: { gameId: 'p1' } } });
   await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
   assert.deepEqual(calls, ['partida p1', 'guardar partida p1']);
+});
+
+test('un horario de partida no muestra el progreso del alta y explica si ya no es editable', async () => {
+  const { ScheduleScreen } = load('screens/ScheduleScreen.tsx', { ...common,
+    '../api/schedule': { getSchedule: async () => ({ franjas: [] }), updateSchedule: async () => undefined },
+    '../api/inscription': {
+      getGameSchedule: async () => ({ franjas: [] }),
+      updateGameSchedule: async () => { throw new client.ApiError('La partida ya ha empezado', 409, [], 'PARTIDA_NO_EDITABLE'); },
+    },
+    '../components/DayScheduleModal': { DayScheduleModal: 'DayScheduleModal' },
+    '../components/WeeklyScheduleGrid': { WeeklyScheduleGrid: 'WeeklyScheduleGrid', scheduleToSelectedSlots: () => new Set(), selectedSlotsToSchedule: () => ({ franjas: [] }) },
+  });
+  await mount(ScheduleScreen, { navigation: { canGoBack: () => true, goBack: () => {} }, route: { params: { gameId: 'p1' } } });
+  assert.equal(tree.root.findAll((node) => node.props.style?.flexDirection === 'row' && node.props.style?.gap === 7).length, 0);
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.match(shown(), /La partida ya ha empezado: tu horario queda fijo para toda la partida/);
 });

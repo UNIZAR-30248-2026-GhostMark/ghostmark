@@ -28,6 +28,10 @@ function formatDates(start: string, end: string) {
   return `${startLabel} – ${endLabel}`;
 }
 
+function memberCountLabel(count: number) {
+  return `${count} ${count === 1 ? "inscrito" : "inscritos"}`;
+}
+
 export function GameNormsScreen({ navigation, route }: Props) {
   const { code, game } = route.params;
   const [isJoining, setIsJoining] = useState(false);
@@ -55,7 +59,7 @@ export function GameNormsScreen({ navigation, route }: Props) {
       </Pressable>
       <View style={styles.details}>
         <Text numberOfLines={2} style={styles.gameTitle}>{game.nombre.toUpperCase()}</Text>
-        <Text style={styles.subtitle}>{formatDates(game.inicioEn, game.finEn)} · {game.numInscritos} inscritos</Text>
+        <Text style={styles.subtitle}>{formatDates(game.inicioEn, game.finEn)} · {memberCountLabel(game.numInscritos)}</Text>
         <Text style={styles.heading}>NORMAS DE LA PARTIDA</Text>
         <View style={styles.rules}>
           {rules.map((rule) => <View key={rule.label} style={[styles.rule, { backgroundColor: rule.color }]}>
