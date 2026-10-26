@@ -284,7 +284,17 @@ public class ServicioPartida {
         vista.put("finEn", partida.getFinEn().toString());
         vista.put("soyMaster", cuentaId.equals(partida.getMasterId()));
         vista.put("numInscritos", inscripciones.contar(partida.getId()));
+        vista.put("motivoCancelacion", motivoCancelacion(partida));
         return vista;
+    }
+
+    private String motivoCancelacion(Partida partida) {
+        if (!"CANCELADA".equals(partida.getEstado())) {
+            return null;
+        }
+        return jdbc.queryForList("select datos->>'motivo' from evento where partida_id = ?"
+                + " and tipo = 'PARTIDA_CANCELADA' order by secuencia desc limit 1",
+                String.class, partida.getId()).stream().findFirst().orElse(null);
     }
 
     private Map<String, Object> vistaMaster(Partida partida) {
