@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint . --max-warnings=0",
-    "test": "node tests/session.test.cjs && node --test tests/account-validation.test.cjs tests/form-text-input.test.cjs tests/game-date.test.cjs tests/server-wakeup.test.cjs tests/invitation.test.cjs tests/location.test.cjs tests/profile-location.test.cjs tests/inscription.test.cjs tests/acceptance-inscription.test.cjs tests/wizard.test.cjs",
+    "test": "node tests/session.test.cjs && node --test tests/account-validation.test.cjs tests/form-text-input.test.cjs tests/game-date.test.cjs tests/server-wakeup.test.cjs tests/invitation.test.cjs tests/location.test.cjs tests/profile-location.test.cjs tests/inscription.test.cjs tests/acceptance-inscription.test.cjs tests/wizard.test.cjs tests/start-acceptance.test.cjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
