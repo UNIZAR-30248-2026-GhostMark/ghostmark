@@ -139,3 +139,21 @@ Si estás en la sala, pasas a «¡La partida ha empezado!». En Inicio, la parti
 Si a la hora de inicio hay menos de 3 inscritos, la partida no empieza: se cancela. En Inicio aparece como «Cancelada» y, al pulsarla, la pantalla dice «No hay jugadores suficientes», con los inscritos que había y los 3 que hacían falta. Una partida también se cancela si el máster borra su cuenta antes de que empiece, y en ese caso la pantalla lo indica.
 
 <img src="img/arranque-cancelada.png" alt="Partida cancelada por falta de jugadores" width="250">
+
+## 5. Tu objetivo y tu misión
+
+### 5.1 Ver tu carta
+
+Cuando la partida empieza, en «¡La partida ha empezado!» pulsa «Ver mi carta». La carta sale boca abajo para que nadie la vea por encima de tu hombro: mantenla pulsada para leer tu objetivo, el alias del jugador al que tienes que eliminar, y tu misión. Al soltarla se vuelve a tapar.
+
+<img src="img/carta-boca-abajo.png" alt="Carta boca abajo" width="250"> <img src="img/carta-vista.png" alt="Carta con el objetivo y la misión" width="250">
+
+Si tu objetivo ha borrado su cuenta, en su lugar pone «Cuenta eliminada».
+
+### 5.2 Solo tú la ves
+
+Tu objetivo y tu misión solo los ves tú. Nadie más puede verlos, tampoco el máster, aunque juegue. Si el máster no juega, no tiene carta.
+
+### 5.3 Las misiones
+
+La misión sale de una biblioteca de misiones revisadas, y en una misma partida no se repite hasta que se acaban. Ninguna implica contacto físico ni objetos que simulen armas: son cosas como conseguir que tu objetivo te diga la hora o que te recomiende una canción.
