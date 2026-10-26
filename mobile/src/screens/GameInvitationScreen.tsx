@@ -57,7 +57,11 @@ export function GameInvitationScreen({ navigation, route }: Props) {
       </ScrollView>
       {!loading && state.status === "loaded" && state.game.estado === "EN_INSCRIPCION"
         ? <PrimaryButton onPress={() => navigation.replace("GameNorms", { code, game: state.game })}>VER NORMAS</PrimaryButton>
-        : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>IR A MIS PARTIDAS</PrimaryButton>}
+        : !loading && state.status === "loaded" && state.game.estado === "EN_JUEGO"
+          ? <PrimaryButton onPress={() => navigation.replace("GameStarted", { game: state.game })}>VER PARTIDA</PrimaryButton>
+          : !loading && state.status === "loaded" && state.game.estado === "CANCELADA"
+            ? <PrimaryButton onPress={() => navigation.replace("GameCancelled", { game: state.game })}>VER PARTIDA</PrimaryButton>
+            : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>IR A MIS PARTIDAS</PrimaryButton>}
     </Screen>
   );
 }

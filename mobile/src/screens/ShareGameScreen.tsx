@@ -53,7 +53,7 @@ export function ShareGameScreen({ navigation, route }: Props) {
           <Ionicons name="link-outline" size={25} color={colors.text} />
           <Text style={styles.copyLabel}>COPIAR ENLACE</Text>
         </Pressable>
-        <PrimaryButton onPress={() => navigation.replace("GameInvitation", { code: game.codigoInvitacion })}>IR A LA PARTIDA</PrimaryButton>
+        <PrimaryButton onPress={() => navigation.replace("WaitingRoom", { gameId: game.id, game })}>IR A LA PARTIDA</PrimaryButton>
       </View>
     </Screen>
   );

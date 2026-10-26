@@ -16,6 +16,9 @@ const publicGame = {
   nombre: 'Aceptacion PBI 3', estado: 'EN_INSCRIPCION', aliasMaster: 'master-real',
   inicioEn: '2099-11-01T10:00:00Z', finEn: '2099-11-02T10:00:00Z', numInscritos: 1,
 };
+const gameSummary = {
+  id: partidaId, ...publicGame, soyMaster: false, motivoCancelacion: null,
+};
 let tree;
 
 afterEach(async () => {
@@ -85,6 +88,9 @@ function app() {
     assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer test-pbi3');
     if (method === 'GET' && pathname === `/api/v1/partidas/codigo/${code}`) {
       return Response.json(publicGame);
+    }
+    if (method === 'GET' && pathname === '/api/v1/cuentas/yo/partidas') {
+      return Response.json([gameSummary]);
     }
     if (method === 'POST' && pathname === '/api/v1/inscripciones') {
       assert.deepEqual(body, { codigo: code, aceptaNormas: true });

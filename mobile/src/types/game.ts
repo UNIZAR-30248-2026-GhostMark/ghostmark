@@ -19,7 +19,12 @@ export type Game = GameConfiguration & {
   creadaEn: string;
 };
 
-export type GameSummary = Pick<Game, "id" | "nombre" | "estado" | "inicioEn" | "finEn" | "numInscritos"> & { soyMaster: boolean };
+export type CancellationReason = "POCOS_JUGADORES" | "MASTER_SIN_CUENTA";
+
+export type GameSummary = Pick<Game, "id" | "nombre" | "estado" | "inicioEn" | "finEn" | "numInscritos"> & {
+  soyMaster: boolean;
+  motivoCancelacion: CancellationReason | null;
+};
 export type GameDraft = Pick<GameConfiguration, "nombre" | "inicioEn" | "finEn">;
 
 export type PublicGame = Pick<Game, "nombre" | "estado" | "inicioEn" | "finEn" | "numInscritos"> & {

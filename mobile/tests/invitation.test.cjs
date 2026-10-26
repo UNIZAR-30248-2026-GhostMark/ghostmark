@@ -83,7 +83,7 @@ test('consulta el contrato de la #48 con autenticación y propaga el 404', async
   await assert.rejects(api.getGameByCode(code), (error) => error instanceof client.ApiError && error.status === 404);
   client.setAccessToken(undefined);
 });
-test('el QR y copiar usan el enlace del servidor; ir a la partida lleva su código', async () => {
+test('el QR y copiar usan el enlace del servidor; ir a la partida abre la sala', async () => {
   let copied, destination;
   const serverLink = 'ghostmark://unirse/23456789';
   const { ShareGameScreen } = load('screens/ShareGameScreen.tsx', { ...common,
@@ -99,7 +99,7 @@ test('el QR y copiar usan el enlace del servidor; ir a la partida lleva su códi
   await act(async () => buttons[0].props.onPress());
   assert.equal(copied, serverLink);
   act(() => tree.root.findByType('PrimaryButton').props.onPress());
-  assert.deepEqual(destination, ['GameInvitation', { code }]);
+  assert.deepEqual(destination, ['WaitingRoom', { gameId: game.id, game: { ...game, enlace: serverLink } }]);
 });
 test('crear una partida abre compartir y retira los formularios del historial', async () => {
   let calls = 0, reset;
@@ -123,6 +123,7 @@ test('crear una partida abre compartir y retira los formularios del historial', 
             estado: game.estado,
             numInscritos: game.numInscritos,
             soyMaster: true,
+            motivoCancelacion: null,
           },
         },
       },
@@ -204,6 +205,26 @@ test('la vista muestra el nombre real de la partida y permite reintentar tras un
   assert.equal(calls, 2);
   assert.match(JSON.stringify(tree.toJSON()), /Partida EINA/);
 });
+
+test('una invitación de una partida ya iniciada o cancelada abre su pantalla de estado', async () => {
+  let destination;
+  const viewButton = () => tree.root.findAllByType('PrimaryButton')
+    .find((item) => item.props.children === 'VER PARTIDA');
+  const { GameInvitationScreen } = load('screens/GameInvitationScreen.tsx', { ...common,
+    '../api/game': { getGameByCode: async () => ({ ...game, estado: 'EN_JUEGO' }) },
+  });
+  await mount(GameInvitationScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { code } } });
+  await act(async () => viewButton().props.onPress());
+  assert.equal(destination[0], 'GameStarted');
+  await act(async () => tree.unmount());
+  tree = undefined;
+  const CancelledInvitation = load('screens/GameInvitationScreen.tsx', { ...common,
+    '../api/game': { getGameByCode: async () => ({ ...game, estado: 'CANCELADA' }) },
+  }).GameInvitationScreen;
+  await mount(CancelledInvitation, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { code } } });
+  await act(async () => viewButton().props.onPress());
+  assert.equal(destination[0], 'GameCancelled');
+});
 test('al abrir dos invitaciones no se muestra la respuesta tardía de la primera', async () => {
   const pending = new Map();
   const { GameInvitationScreen } = load('screens/GameInvitationScreen.tsx', { ...common,
@@ -248,7 +269,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);
