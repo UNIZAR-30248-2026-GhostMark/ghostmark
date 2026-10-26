@@ -7,8 +7,8 @@ Referencias: PBI 3 (#4), tarea 3.6 (#58) y los cuatro criterios de
 
 La tarea pide al menos un test automático por cada caso de los criterios,
 un test de acceso de un jugador no inscrito y ampliar el de borrado de cuenta.
-La comprobación del horario después del arranque real se completa al integrar
-la PBI 4. No exige una suite de todos los detalles de implementación de #57.
+La comprobación del horario después del arranque real la hace el test del
+arranque de la PBI 4 (#61). No exige una suite de todos los detalles de implementación de #57.
 
 Se reutilizan las pruebas existentes de 3.2, 3.3 y 3.4. Los casos nuevos
 completan la cobertura por capas, sin modificar producción ni migraciones.
@@ -24,7 +24,7 @@ completan la cobertura por capas, sin modificar producción ni migraciones.
 | CA2: aceptación omitida o nula | `AceptacionInscripcionTest.ca2SinAceptacionNoApareceEnNingunaLista`, dos casos parametrizados |
 | CA3: consultar y editar horario antes del arranque | `AceptacionInscripcionTest.ca3RevisarYEditarHorarioAntesDelArranqueConservaLaInscripcion`; `inscription.test.cjs`: «revisar el horario de una partida no toca el de la cuenta» |
 | CA3: conservar la copia al cambiar el horario general | `AceptacionInscripcionTest.ca3CambiarElHorarioGeneralNoReescribeElDeLaPartida` |
-| CA3: horario inmutable después del arranque real | Pendiente de integrar PBI 4, excepción expresa de #58 |
+| CA3: horario inmutable después del arranque real | `ArranqueTest.horarioQuedaCongeladoAlArrancar`: con tres inscritos el máster pulsa «Arrancar ya» y cambiar el horario de la partida da 409 `PARTIDA_NO_EDITABLE` |
 | CA4: varias partidas simultáneas | `InscripcionTest.jugadorPuedeEstarEnVariasPartidasYVerlasSinDuplicados` |
 | CA4: independencia entre partidas y jugadores | `AceptacionInscripcionTest.ca4HorarioIndependienteEntrePartidasYEntreJugadores` |
 | Rol: un jugador no inscrito no ve datos privados | `AceptacionInscripcionTest.rolAjenoNoVeLaPartidaEnSusPartidasNiAccedeADatosPrivados` |
