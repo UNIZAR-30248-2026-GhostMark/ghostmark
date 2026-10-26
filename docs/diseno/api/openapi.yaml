@@ -19,7 +19,11 @@ tags:
   - name: inscripcion
     description: Inscribirse en una partida (PBI 3, #4)
   - name: juego
-    description: Arrancar la partida y ver mi objetivo y mi misión (PBI 4, #5, y PBI 5, #31)
+    description: |
+      Arrancar la partida y ver mi objetivo y mi misión (PBI 4, #5, y PBI 5, #31).
+      A la hora de inicio la partida arranca sola si tiene 3 o más jugadores, o se cancela si tiene menos
+      (`motivoCancelacion` `POCOS_JUGADORES`); no hay ruta para eso: el servidor lo revisa cada minuto
+      y antes de atender cada petición.
 security:
   - bearerAuth: []
 paths:
