@@ -60,6 +60,7 @@ class ArranqueTest {
                 .body("id", equalTo(juego.id().toString()))
                 .body("estado", equalTo("EN_JUEGO"))
                 .body("soyMaster", equalTo(true))
+                .body("soyJugador", equalTo(true))
                 .body("numInscritos", equalTo(3));
         assertEquals("EN_JUEGO", estado(juego));
         assertEquals(List.of("ADELANTADO|3"), arranques(juego));

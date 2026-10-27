@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import type { RootStackParamList } from "../types/navigation";
@@ -31,7 +32,9 @@ export function GameStartedScreen({ navigation, route }: Props) {
       <Text style={styles.detail}>Cada jugador tiene un objetivo y una misión</Text>
     </View>
     <View style={styles.footer}>
-      <Pressable accessibilityRole="button" disabled={!gameId} onPress={() => gameId && navigation.navigate("MissionCard", { gameId })} style={styles.cardButton}><Text style={styles.cardButtonText}>VER MI CARTA</Text></Pressable>
+      {game.soyJugador
+        ? <Pressable accessibilityRole="button" disabled={!gameId} onPress={() => gameId && navigation.navigate("MissionCard", { gameId })} style={styles.cardButton}><Text style={styles.cardButtonText}>VER MI CARTA</Text></Pressable>
+        : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>VOLVER A MIS PARTIDAS</PrimaryButton>}
     </View>
   </View></Screen>;
 }

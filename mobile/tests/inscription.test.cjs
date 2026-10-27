@@ -248,7 +248,7 @@ test('cancelada porque el máster borró su cuenta lo dice', async () => {
 
 test('la partida iniciada muestra la fecha como el prototipo', async () => {
   const { GameStartedScreen } = load('screens/GameStartedScreen.tsx', common);
-  await mount(GameStartedScreen, { navigation: {}, route: { params: { game: { nombre: 'Partida EINA', numInscritos: 7, inicioEn: new Date(2026, 9, 5, 9, 0).toISOString() } } } });
+  await mount(GameStartedScreen, { navigation: {}, route: { params: { game: { nombre: 'Partida EINA', numInscritos: 7, inicioEn: new Date(2026, 9, 5, 9, 0).toISOString(), soyJugador: true } } } });
   assert.match(shown(), /Lun 5 oct · 9:00/);
 });
 

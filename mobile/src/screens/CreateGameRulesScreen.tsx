@@ -39,6 +39,7 @@ export function CreateGameRulesScreen({ navigation, route }: Props) {
                 estado: game.estado,
                 numInscritos: game.numInscritos,
                 soyMaster: true,
+                soyJugador: masterJuega,
                 motivoCancelacion: null,
               },
             },

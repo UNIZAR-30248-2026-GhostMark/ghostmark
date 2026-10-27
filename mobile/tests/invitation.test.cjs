@@ -123,6 +123,7 @@ test('crear una partida abre compartir y retira los formularios del historial', 
             estado: game.estado,
             numInscritos: game.numInscritos,
             soyMaster: true,
+            soyJugador: true,
             motivoCancelacion: null,
           },
         },
@@ -436,6 +437,19 @@ test('Unirse desde Inicio abre el escáner', async () => {
   const join = tree.root.findAllByType('Pressable').find((button) => button.findAllByType('Text').some((label) => label.props.children === 'UNIRSE'));
   act(() => join.props.onPress());
   assert.deepEqual(destinations, ['ScanInvitation']);
+});
+
+test('Inicio solo ofrece «VER MISIÓN» en una partida en juego si la cuenta juega', async () => {
+  for (const soyJugador of [true, false]) {
+    const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
+      '@expo/vector-icons': { Ionicons: 'Ionicons' },
+      '../api/game': { getMyGames: async () => [{ ...game, estado: 'EN_JUEGO', soyMaster: !soyJugador, soyJugador }] },
+    });
+    await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
+    assert.equal(/VER MISIÓN/.test(JSON.stringify(tree.toJSON())), soyJugador);
+    await act(async () => tree.unmount());
+    tree = undefined;
+  }
 });
 
 test('Inicio desplaza las partidas y mantiene las acciones fuera de la lista', async () => {

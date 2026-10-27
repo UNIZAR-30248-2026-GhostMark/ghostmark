@@ -283,6 +283,7 @@ public class ServicioPartida {
         vista.put("inicioEn", partida.getInicioEn().toString());
         vista.put("finEn", partida.getFinEn().toString());
         vista.put("soyMaster", cuentaId.equals(partida.getMasterId()));
+        vista.put("soyJugador", inscripciones.existe(partida.getId(), cuentaId));
         vista.put("numInscritos", inscripciones.contar(partida.getId()));
         vista.put("motivoCancelacion", motivoCancelacion(partida));
         return vista;
