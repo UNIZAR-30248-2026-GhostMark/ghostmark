@@ -52,6 +52,8 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string>();
   const isMaster = gameState?.soyMaster ?? false;
+  const masterPlays = players?.some((player) => player.esMaster) ?? false;
+  const canReviewSchedule = !isMaster || masterPlays;
   const canStart = (players?.length ?? 0) >= MIN_PLAYERS;
   const rows = Math.ceil((players?.length ?? 0) / 3);
   const canvasHeight = Math.max(245, Math.min(335, height - 420), rows * rowHeight + 30);
@@ -134,9 +136,9 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
     </View>
     <View style={styles.footer}>
       {startError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{startError}</Text> : null}
-      <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Schedule", { gameId })} style={({ pressed }) => [styles.reviewButton, pressed && styles.pressed]}>
+      {canReviewSchedule ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Schedule", { gameId })} style={({ pressed }) => [styles.reviewButton, pressed && styles.pressed]}>
         <Text style={styles.reviewText}>REVISAR MI HORARIO</Text>
-      </Pressable>
+      </Pressable> : null}
       {isMaster ? <PrimaryButton disabled={isStarting || !canStart} onPress={start}>{isStarting ? "ARRANCANDO…" : "ARRANCAR YA"}</PrimaryButton> : null}
     </View>
   </View></Screen>;

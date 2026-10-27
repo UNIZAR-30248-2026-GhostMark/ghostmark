@@ -50,6 +50,7 @@ export function GameInvitationScreen({ navigation, route }: Props) {
           <Text style={styles.detail}>Inicio: {formatGameDate(state.game.inicioEn)}</Text>
           <Text style={styles.detail}>Fin: {formatGameDate(state.game.finEn)}</Text>
           <Text style={styles.detail}>Inscritos: {state.game.numInscritos}</Text>
+          {state.game.estado === "EN_JUEGO" ? <Text style={styles.notice}>La partida ya ha empezado y no admite jugadores nuevos.</Text> : null}
         </View> : null}
         {!loading && state.status === "error" ? <View style={styles.error}>
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{state.message}</Text>
@@ -58,9 +59,7 @@ export function GameInvitationScreen({ navigation, route }: Props) {
       </ScrollView>
       {!loading && state.status === "loaded" && state.game.estado === "EN_INSCRIPCION"
         ? <PrimaryButton onPress={() => navigation.replace("GameNorms", { code, game: state.game })}>VER NORMAS</PrimaryButton>
-        : !loading && state.status === "loaded" && state.game.estado === "EN_JUEGO"
-          ? <PrimaryButton onPress={() => navigation.replace("GameStarted", { game: state.game })}>VER PARTIDA</PrimaryButton>
-          : !loading && state.status === "loaded" && state.game.estado === "CANCELADA"
+        : !loading && state.status === "loaded" && state.game.estado === "CANCELADA"
             ? <PrimaryButton onPress={() => navigation.replace("GameCancelled", { game: state.game })}>VER PARTIDA</PrimaryButton>
             : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>IR A MIS PARTIDAS</PrimaryButton>}
     </Screen>
@@ -74,5 +73,6 @@ const styles = StyleSheet.create({
   title: { color: colors.text, ...bangers(32) },
   status: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 17 },
   detail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 16, lineHeight: 24 },
+  notice: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 20 },
   error: { gap: 20 },
 });

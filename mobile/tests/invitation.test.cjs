@@ -207,18 +207,22 @@ test('la vista muestra el nombre real de la partida y permite reintentar tras un
   assert.match(JSON.stringify(tree.toJSON()), /Partida EINA/);
 });
 
-test('una invitación de una partida ya iniciada o cancelada abre su pantalla de estado', async () => {
+test('una invitación de una partida iniciada no permite verla ni inscribirse', async () => {
   let destination;
-  const viewButton = () => tree.root.findAllByType('PrimaryButton')
-    .find((item) => item.props.children === 'VER PARTIDA');
   const { GameInvitationScreen } = load('screens/GameInvitationScreen.tsx', { ...common,
     '../api/game': { getGameByCode: async () => ({ ...game, estado: 'EN_JUEGO' }) },
   });
-  await mount(GameInvitationScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { code } } });
-  await act(async () => viewButton().props.onPress());
-  assert.equal(destination[0], 'GameStarted');
-  await act(async () => tree.unmount());
-  tree = undefined;
+  await mount(GameInvitationScreen, { navigation: { reset: (...args) => { destination = args; } }, route: { params: { code } } });
+  assert.match(JSON.stringify(tree.toJSON()), /La partida ya ha empezado y no admite jugadores nuevos/);
+  const homeButton = tree.root.findAllByType('PrimaryButton').find((item) => item.props.children === 'IR A MIS PARTIDAS');
+  await act(async () => homeButton.props.onPress());
+  assert.deepEqual(destination, [{ index: 0, routes: [{ name: 'Home' }] }]);
+});
+
+test('una invitación cancelada abre su pantalla de estado', async () => {
+  let destination;
+  const viewButton = () => tree.root.findAllByType('PrimaryButton')
+    .find((item) => item.props.children === 'VER PARTIDA');
   const CancelledInvitation = load('screens/GameInvitationScreen.tsx', { ...common,
     '../api/game': { getGameByCode: async () => ({ ...game, estado: 'CANCELADA' }) },
   }).GameInvitationScreen;
@@ -433,6 +437,19 @@ test('Unirse desde Inicio abre el escáner', async () => {
   const join = tree.root.findAllByType('Pressable').find((button) => button.findAllByType('Text').some((label) => label.props.children === 'UNIRSE'));
   act(() => join.props.onPress());
   assert.deepEqual(destinations, ['ScanInvitation']);
+});
+
+test('Inicio desplaza las partidas y mantiene las acciones fuera de la lista', async () => {
+  const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '../api/game': { getMyGames: async () => [game, { ...game, id: 'otra', nombre: 'Otra partida' }] },
+  });
+  await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
+  const scroll = tree.root.findByType('ScrollView');
+  const actionLabels = tree.root.findAllByType('Pressable').filter((button) =>
+    button.findAllByType('Text').some((label) => ['CREAR PARTIDA', 'UNIRSE'].includes(label.props.children)));
+  assert.equal(actionLabels.length, 2);
+  assert.equal(scroll.findAllByType('Pressable').some((button) => actionLabels.includes(button)), false);
 });
 
 test('Inicio muestra carga antes que el estado vacío y solo lo muestra tras una lista vacía', async () => {

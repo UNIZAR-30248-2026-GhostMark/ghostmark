@@ -157,6 +157,13 @@ test('el máster que juega ve «Arrancar ya» en su sala', async () => {
   await mount(waitingRoom([{ id: 'i1', alias: 'ana', esMaster: true }], true), { navigation: {}, route: { params: { gameId: 'p1', game } } });
   assert.match(shown(), /Eres el máster/);
   assert.notEqual(button('ARRANCAR YA'), undefined);
+  assert.notEqual(button('REVISAR MI HORARIO'), undefined);
+});
+
+test('el máster que no juega no ve «Revisar mi horario»', async () => {
+  await mount(waitingRoom([{ id: 'i2', alias: 'bea', esMaster: false }], true), { navigation: {}, route: { params: { gameId: 'p1', game } } });
+  assert.match(shown(), /Eres el máster/);
+  assert.equal(button('REVISAR MI HORARIO'), undefined);
 });
 
 test('volver desde la sala abre Partidas con la partida ya disponible', async () => {
