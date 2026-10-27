@@ -438,6 +438,19 @@ test('Unirse desde Inicio abre el escáner', async () => {
   assert.deepEqual(destinations, ['ScanInvitation']);
 });
 
+test('Inicio desplaza las partidas y mantiene las acciones fuera de la lista', async () => {
+  const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
+    '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '../api/game': { getMyGames: async () => [game, { ...game, id: 'otra', nombre: 'Otra partida' }] },
+  });
+  await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
+  const scroll = tree.root.findByType('ScrollView');
+  const actionLabels = tree.root.findAllByType('Pressable').filter((button) =>
+    button.findAllByType('Text').some((label) => ['CREAR PARTIDA', 'UNIRSE'].includes(label.props.children)));
+  assert.equal(actionLabels.length, 2);
+  assert.equal(scroll.findAllByType('Pressable').some((button) => actionLabels.includes(button)), false);
+});
+
 test('Inicio muestra carga antes que el estado vacío y solo lo muestra tras una lista vacía', async () => {
   let resolveGames;
   const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
