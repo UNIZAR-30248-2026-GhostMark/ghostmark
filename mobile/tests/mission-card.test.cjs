@@ -64,11 +64,23 @@ test('el botón de la partida iniciada abre la carta de su propia partida', asyn
   const { GameStartedScreen } = load('screens/GameStartedScreen.tsx', { ...common });
   await mount(GameStartedScreen, {
     navigation: { navigate: (...args) => { destination = args; } },
-    route: { params: { game: { id: 'partida-propia', nombre: 'Killer EINA', inicioEn: '2026-10-28T10:00:00Z', numInscritos: 3 } } },
+    route: { params: { game: { id: 'partida-propia', nombre: 'Killer EINA', inicioEn: '2026-10-28T10:00:00Z', numInscritos: 3, soyJugador: true } } },
   });
   const button = tree.root.findAllByType('Pressable').find((node) => node.findAllByType('Text').some((text) => text.props.children === 'VER MI CARTA'));
   await act(async () => button.props.onPress());
   assert.deepEqual(destination, ['MissionCard', { gameId: 'partida-propia' }]);
+});
+
+test('el máster que no juega no ve «VER MI CARTA» y vuelve a sus partidas', async () => {
+  let destination;
+  const { GameStartedScreen } = load('screens/GameStartedScreen.tsx', { ...common });
+  await mount(GameStartedScreen, {
+    navigation: { reset: (...args) => { destination = args; } },
+    route: { params: { game: { id: 'partida-propia', nombre: 'Killer EINA', inicioEn: '2026-10-28T10:00:00Z', numInscritos: 3, soyJugador: false } } },
+  });
+  assert.doesNotMatch(JSON.stringify(tree.toJSON()), /VER MI CARTA/);
+  await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
+  assert.deepEqual(destination, [{ index: 0, routes: [{ name: 'Home' }] }]);
 });
 
 test('la carta no falla si el objetivo borró su cuenta', async () => {

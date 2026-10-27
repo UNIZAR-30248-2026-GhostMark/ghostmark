@@ -529,7 +529,7 @@ components:
     PartidaResumen:
       description: Tarjeta de la pestaña «Partidas»
       type: object
-      required: [id, nombre, estado, inicioEn, finEn, soyMaster, numInscritos, motivoCancelacion]
+      required: [id, nombre, estado, inicioEn, finEn, soyMaster, soyJugador, numInscritos, motivoCancelacion]
       properties:
         id: { type: string, format: uuid }
         nombre: { type: string }
@@ -537,6 +537,7 @@ components:
         inicioEn: { type: string, format: date-time }
         finEn: { type: string, format: date-time }
         soyMaster: { type: boolean }
+        soyJugador: { type: boolean, description: La cuenta tiene inscripción en la partida; falso para el máster que no juega }
         numInscritos: { type: integer, minimum: 0 }
         motivoCancelacion:
           type: [string, 'null']

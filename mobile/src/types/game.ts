@@ -23,6 +23,7 @@ export type CancellationReason = "POCOS_JUGADORES" | "MASTER_SIN_CUENTA";
 
 export type GameSummary = Pick<Game, "id" | "nombre" | "estado" | "inicioEn" | "finEn" | "numInscritos"> & {
   soyMaster: boolean;
+  soyJugador: boolean;
   motivoCancelacion: CancellationReason | null;
 };
 export type GameDraft = Pick<GameConfiguration, "nombre" | "inicioEn" | "finEn">;

@@ -155,8 +155,11 @@ class InscripcionTest {
         alta(jugador, segunda).then().statusCode(201);
         misPartidas(jugador).then().statusCode(200).body("size()", equalTo(2))
                 .body("id", hasItems(primera.id().toString(), segunda.id().toString()))
-                .body("soyMaster", equalTo(List.of(false, false)));
-        misPartidas(master).then().statusCode(200).body("size()", equalTo(2));
+                .body("soyMaster", equalTo(List.of(false, false)))
+                .body("soyJugador", equalTo(List.of(true, true)));
+        misPartidas(master).then().statusCode(200).body("size()", equalTo(2))
+                .body("find { it.id == '" + primera.id() + "' }.soyJugador", equalTo(true))
+                .body("find { it.id == '" + segunda.id() + "' }.soyJugador", equalTo(false));
         given().port(puerto).auth().oauth2(jugador.token()).when()
                 .get("/api/v1/partidas/codigo/{codigo}", primera.codigo()).then()
                 .statusCode(200).body("numInscritos", equalTo(2));
