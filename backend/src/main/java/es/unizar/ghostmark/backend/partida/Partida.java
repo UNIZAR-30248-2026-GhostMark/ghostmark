@@ -152,6 +152,9 @@ public class Partida {
     }
 
     public void arrancar(Instant ahora) {
+        if (ahora.isBefore(inicioEn)) {
+            this.inicioEn = ahora;
+        }
         this.estado = "EN_JUEGO";
         this.actualizadaEn = ahora;
     }

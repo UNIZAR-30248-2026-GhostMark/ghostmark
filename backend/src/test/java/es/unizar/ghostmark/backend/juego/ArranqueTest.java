@@ -12,6 +12,7 @@ import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,6 +64,26 @@ class ArranqueTest {
                 .body("numInscritos", equalTo(3));
         assertEquals("EN_JUEGO", estado(juego));
         assertEquals(List.of("ADELANTADO|3"), arranques(juego));
+    }
+
+    @Test
+    void arrancarYaGuardaLaHoraRealDeInicio() {
+        Persona master = registrar();
+        Juego juego = conTresJugadores(master);
+        Instant programado = inicio(juego);
+        Instant antes = Instant.now().minusSeconds(1);
+        Response arrancada = arrancarYa(master, juego).then().statusCode(200)
+                .body("estado", equalTo("EN_JUEGO")).extract().response();
+        Instant guardado = inicio(juego);
+        assertTrue(guardado.isAfter(antes));
+        assertTrue(guardado.isBefore(programado));
+        Instant enRespuesta = Instant.parse(arrancada.path("inicioEn"));
+        assertTrue(Duration.between(guardado, enRespuesta).abs()
+                .compareTo(Duration.ofMillis(1)) < 0);
+        String enLista = given().port(puerto).auth().oauth2(master.token())
+                .get("/api/v1/cuentas/yo/partidas").then().statusCode(200)
+                .extract().path("find { it.id == '" + juego.id() + "' }.inicioEn");
+        assertEquals(guardado, Instant.parse(enLista));
     }
 
     @Test
@@ -143,9 +164,11 @@ class ArranqueTest {
         assertEquals("EN_INSCRIPCION", estado(juego));
         jdbc.update("update partida set inicio_en = now() - interval '1 minute' where id = ?",
                 juego.id());
+        Instant programado = inicio(juego);
         assertTrue(arranque.aplicarInicio(juego.id(), Instant.now()));
         assertFalse(arranque.aplicarInicio(juego.id(), Instant.now()));
         assertEquals("EN_JUEGO", estado(juego));
+        assertEquals(programado, inicio(juego));
         assertEquals(List.of("PROGRAMADO|3"), arranques(juego));
         assertEquals(1, ciclos(juego));
     }
@@ -391,6 +414,11 @@ class ArranqueTest {
     private String estado(Juego juego) {
         return jdbc.queryForObject("select estado from partida where id = ?", String.class,
                 juego.id());
+    }
+
+    private Instant inicio(Juego juego) {
+        return jdbc.queryForObject("select inicio_en from partida where id = ?",
+                OffsetDateTime.class, juego.id()).toInstant();
     }
 
     private List<String> arranques(Juego juego) {
