@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 /**
- * Comprueba en producción que la API solo responde por HTTPS. Se ejecuta solo si existe la
+ * Comprueba en producción que la API solo responde por HTTPS. Se ejecuta cuando existe la
  * variable {@code URL_PRODUCCION} (por ejemplo {@code ghostmark-api-kx1q.onrender.com}, sin
- * esquema): la pasa el flujo de despliegue después de desplegar, no la integración continua de
- * cada pull request.
+ * esquema), configurada tanto en la integración continua del backend como en el flujo de
+ * despliegue a producción.
  */
 @EnabledIfEnvironmentVariable(named = "URL_PRODUCCION", matches = ".+")
 class HttpsTest {
