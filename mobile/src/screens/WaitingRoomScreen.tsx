@@ -28,11 +28,23 @@ function memberCountLabel(count: number) {
 
 function countdownLabel(start: string) {
   const remaining = Math.max(0, new Date(start).getTime() - Date.now());
-  const totalMinutes = Math.floor(remaining / 60_000);
-  const days = Math.floor(totalMinutes / (24 * 60));
-  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-  const minutes = totalMinutes % 60;
-  return `${days} D ${String(hours).padStart(2, "0")} H ${String(minutes).padStart(2, "0")} MIN`;
+  const totalSeconds = Math.floor(remaining / 1000);
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${days} D ${pad(hours)} H ${pad(minutes)} MIN ${pad(seconds)} S`;
+}
+
+// Se repinta cada segundo por su cuenta para no recargar la sala entera.
+function Countdown({ start }: { start: string }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((value) => value + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={[styles.countdownText, styles.countdownCentered]}>{countdownLabel(start)}</Text>;
 }
 
 // Tres columnas con un pequeño desfase para que los fantasmas no queden alineados.
@@ -117,7 +129,7 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
         <View style={styles.memberTag}><Text style={styles.memberTagText}>{isMaster ? "Eres el máster" : "Te has unido"}</Text></View>
       </View>
       <View style={styles.countdown}>
-        <Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.countdownText}>{countdownLabel(game.inicioEn)}</Text>
+        <Countdown start={game.inicioEn} />
         <Text style={styles.countdownCaption}>para empezar</Text>
       </View>
       <View style={styles.playerArea}>
@@ -154,6 +166,7 @@ const styles = StyleSheet.create({
   countdown: { alignItems: "center", backgroundColor: colors.ink, borderRadius: 18, marginTop: 16, paddingHorizontal: 8, paddingVertical: 10 },
   countdownText: { color: colors.lime, fontFamily: "Bangers", fontSize: 35, letterSpacing: 0.6, width: "100%" },
   countdownCaption: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 1 },
+  countdownCentered: { textAlign: "center" },
   playerArea: { alignItems: "center", flex: 1, justifyContent: "center", marginTop: 8 },
   playerCanvas: { position: "relative", width: 300 },
   player: { alignItems: "center", position: "absolute", width: 88 },

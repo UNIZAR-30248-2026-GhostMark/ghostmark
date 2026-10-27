@@ -192,6 +192,21 @@ test('arrancar ya abre la partida iniciada y avisa si faltan jugadores', async (
   assert.equal(destination[1].game.estado, 'EN_JUEGO');
 });
 
+test('la cuenta atrás de la sala va en segundos, centrada, y corre cada segundo', async () => {
+  const start = Date.parse(game.inicioEn);
+  mock.timers.enable({ apis: ['setInterval', 'Date'], now: start - ((((1 * 24 + 23) * 60 + 58) * 60 + 12) * 1000) });
+  await mount(waitingRoom([{ id: 'i1', alias: 'ana', esMaster: false }]), { navigation: {}, route: { params: { gameId: 'p1', game } } });
+  const countdown = () => tree.root.findAll((node) => node.type === 'Text' && /\bS$/.test(String(node.props.children)))[0];
+  assert.equal(countdown().props.children, '1 D 23 H 58 MIN 12 S');
+  assert.equal(countdown().props.numberOfLines, 1);
+  assert.ok(countdown().props.style.some((style) => style.textAlign === 'center'));
+  await act(async () => mock.timers.tick(1000));
+  assert.equal(countdown().props.children, '1 D 23 H 58 MIN 11 S');
+  await act(async () => mock.timers.setTime(start + 5000));
+  await act(async () => mock.timers.tick(1000));
+  assert.equal(countdown().props.children, '0 D 00 H 00 MIN 00 S');
+});
+
 test('con menos de 3 inscritos «Arrancar ya» está desactivado', async () => {
   await mount(waitingRoom([{ id: 'i1', alias: 'ana', esMaster: true }, { id: 'i2', alias: 'bea', esMaster: false }], true), { navigation: {}, route: { params: { gameId: 'p1', game } } });
   assert.equal(button('ARRANCAR YA').props.disabled, true);
