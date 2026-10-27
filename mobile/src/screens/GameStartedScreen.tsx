@@ -33,7 +33,7 @@ export function GameStartedScreen({ navigation, route }: Props) {
     </View>
     <View style={styles.footer}>
       {game.soyJugador
-        ? <Pressable accessibilityRole="button" disabled={!gameId} onPress={() => gameId && navigation.navigate("MissionCard", { gameId })} style={styles.cardButton}><Text style={styles.cardButtonText}>VER MI CARTA</Text></Pressable>
+        ? <Pressable accessibilityRole="button" disabled={!gameId} onPress={() => gameId && navigation.replace("MissionCard", { gameId })} style={styles.cardButton}><Text style={styles.cardButtonText}>VER MI CARTA</Text></Pressable>
         : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>VOLVER A MIS PARTIDAS</PrimaryButton>}
     </View>
   </View></Screen>;

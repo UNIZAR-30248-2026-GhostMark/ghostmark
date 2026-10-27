@@ -51,7 +51,8 @@ export function HomeScreen({ navigation, route }: Props) {
 
 function Header() { return <View style={styles.header}><View style={styles.brand}><Image accessibilityLabel="GhostMark" source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.brandGhost} /><Text style={styles.brandText}>GHOSTMARK</Text></View><View style={styles.notification}><Ionicons color={colors.text} name="notifications-outline" size={22} /></View></View>; }
 function openGame(navigation: Props["navigation"], game: GameSummary) {
-  if (game.estado === "EN_JUEGO") navigation.navigate("GameStarted", { game });
+  if (game.estado === "EN_JUEGO" && game.soyJugador) navigation.navigate("MissionCard", { gameId: game.id });
+  else if (game.estado === "EN_JUEGO") navigation.navigate("GameStarted", { game });
   else if (game.estado === "CANCELADA") navigation.navigate("GameCancelled", { game });
   else navigation.navigate("WaitingRoom", { gameId: game.id, game });
 }

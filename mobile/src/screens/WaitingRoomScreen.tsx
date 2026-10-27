@@ -52,6 +52,11 @@ function position(index: number) {
   return { left: (columns[index % 3] ?? 9) + (index % 2) * 4, top: Math.floor(index / 3) * rowHeight + (index % 3 === 2 ? 16 : 0) };
 }
 
+// Debajo del aviso solo queda Inicio: el botón atrás nunca vuelve a la sala.
+function showStarted(navigation: Props["navigation"], game: GameSummary) {
+  navigation.reset({ index: 1, routes: [{ name: "Home" }, { name: "GameStarted", params: { game } }] });
+}
+
 export function WaitingRoomScreen({ navigation, route }: Props) {
   const { height } = useWindowDimensions();
   const { gameId, game } = route.params;
@@ -85,7 +90,7 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
       setError(undefined);
       setPlayers(list);
       setGameState(current);
-      if (current.estado === "EN_JUEGO") navigation.replace("GameStarted", { game: current });
+      if (current.estado === "EN_JUEGO") showStarted(navigation, current);
       if (current.estado === "CANCELADA") navigation.replace("GameCancelled", { game: current });
     }).catch(() => {
       if (active) setError("No hemos podido cargar los inscritos. Comprueba la conexión e inténtalo de nuevo.");
@@ -98,7 +103,7 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
     setIsStarting(true);
     try {
       const started = await startGame(gameId);
-      navigation.replace("GameStarted", { game: started });
+      showStarted(navigation, started);
     } catch (requestError) {
       if (requestError instanceof ApiError && requestError.code === "POCOS_JUGADORES") {
         setStartError("Aún no se puede arrancar: hacen falta al menos 3 jugadores inscritos.");
