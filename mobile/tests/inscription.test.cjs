@@ -197,6 +197,22 @@ test('con menos de 3 inscritos «Arrancar ya» está desactivado', async () => {
   assert.equal(button('ARRANCAR YA').props.disabled, true);
 });
 
+test('la sala pasa a «Partida cancelada» si cancelan la partida con el inscrito dentro', async () => {
+  mock.timers.enable({ apis: ['setInterval'] });
+  let estado = 'EN_INSCRIPCION';
+  let destination;
+  const WaitingRoomScreen = load('screens/WaitingRoomScreen.tsx', { ...common,
+    '../api/inscription': { getPlayers: async () => [{ id: 'i1', alias: 'ana', esMaster: false }] },
+    '../api/game': { getMyGames: async () => [{ id: 'p1', ...game, estado, soyMaster: false, motivoCancelacion: estado === 'CANCELADA' ? 'POCOS_JUGADORES' : null }], startGame: async () => undefined },
+  }).WaitingRoomScreen;
+  await mount(WaitingRoomScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { gameId: 'p1', game } } });
+  assert.equal(destination, undefined);
+  estado = 'CANCELADA';
+  await act(async () => mock.timers.tick(10_000));
+  assert.equal(destination[0], 'GameCancelled');
+  assert.equal(destination[1].game.motivoCancelacion, 'POCOS_JUGADORES');
+});
+
 test('la sala se recarga cada 10 s y abre la partida cuando arranca', async () => {
   mock.timers.enable({ apis: ['setInterval'] });
   let estado = 'EN_INSCRIPCION';
