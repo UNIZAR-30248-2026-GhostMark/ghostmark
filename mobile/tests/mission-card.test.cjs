@@ -14,6 +14,7 @@ function load(file, imports = {}) {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', code)((id) => {
     if (id in imports) return imports[id];
+    if (id.endsWith('/theme/bangers')) return { bangers: (fontSize) => ({ fontFamily: 'Bangers', fontSize, paddingRight: Math.ceil(fontSize * 0.18) }) };
     if (id.endsWith('.png')) return 1;
     return require(id);
   }, module, module.exports);

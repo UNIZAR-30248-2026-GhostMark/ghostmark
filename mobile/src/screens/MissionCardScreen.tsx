@@ -7,6 +7,7 @@ import { getMyMissionCard, type MissionCard } from "../api/game";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MissionCard">;
@@ -99,12 +100,12 @@ const styles = StyleSheet.create({
   tab: { alignItems: "center", flex: 1, justifyContent: "center" },
   tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 11, borderWidth: 2, flex: 1, justifyContent: "center", shadowColor: colors.border, shadowOffset: { height: 3, width: 0 }, shadowOpacity: 1, shadowRadius: 0 },
   tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 14 },
-  tabOnText: { color: colors.ink, fontFamily: "Bangers", fontSize: 19, letterSpacing: 0.5 },
+  tabOnText: { color: colors.ink, ...bangers(19), letterSpacing: 0.5 },
   objectiveLabel: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 22 },
   card: { height: 392, marginTop: 12, position: "relative", transform: [{ rotate: "2deg" }], width: 286 },
   cardFace: { ...StyleSheet.absoluteFill, backfaceVisibility: "hidden", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, overflow: "hidden", shadowColor: colors.ink, shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.6, shadowRadius: 0 },
   loadingCard: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 28, borderWidth: 3, height: 392, justifyContent: "center", marginTop: 12, width: 286 },
-  loading: { color: colors.lime, fontFamily: "Bangers", fontSize: 25 },
+  loading: { color: colors.lime, ...bangers(25) },
   errorState: { flex: 1, gap: 20, justifyContent: "center", width: "100%" },
   error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 21, textAlign: "center" },
   cardBack: { backgroundColor: colors.white, flex: 1, padding: 10 },
@@ -118,14 +119,14 @@ const styles = StyleSheet.create({
   cardFront: { backgroundColor: colors.white, flex: 1, paddingHorizontal: 20, paddingTop: 22 },
   objectiveTag: { alignSelf: "flex-start", backgroundColor: colors.textMuted, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, paddingHorizontal: 12, paddingVertical: 5 },
   objectiveTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
-  targetName: { color: colors.ink, fontFamily: "Bangers", fontSize: 55, letterSpacing: 1, marginTop: 16, minHeight: 62 },
+  targetName: { color: colors.ink, ...bangers(55), letterSpacing: 1, marginTop: 16, minHeight: 62 },
   ruleDivider: { backgroundColor: colors.ink, height: 3, marginTop: 10, opacity: 0.2, width: "100%" },
   missionTag: { alignSelf: "flex-start", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, marginTop: 17, paddingHorizontal: 12, paddingVertical: 5 },
   missionTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
-  missionText: { color: colors.ink, flex: 1, fontFamily: "Bangers", fontSize: 31, letterSpacing: 0.4, lineHeight: 36, marginTop: 15 },
+  missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 36, marginTop: 15 },
   footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
   codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, paddingVertical: 12, shadowColor: colors.ink, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.7, shadowRadius: 0 },
-  codeText: { color: colors.text, fontFamily: "Bangers", fontSize: 21, letterSpacing: 0.7 },
+  codeText: { color: colors.text, ...bangers(21), letterSpacing: 0.7 },
   removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, paddingVertical: 12, shadowColor: colors.border, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.7, shadowRadius: 0 },
-  removeText: { color: colors.ink, fontFamily: "Bangers", fontSize: 21, letterSpacing: 0.7 },
+  removeText: { color: colors.ink, ...bangers(21), letterSpacing: 0.7 },
 });

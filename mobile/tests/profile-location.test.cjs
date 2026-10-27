@@ -12,7 +12,7 @@ function load(file, imports) {
   const source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS } }).outputText;
   const module = { exports: {} };
-  new Function('require', 'module', 'exports', code)((id) => (id in imports ? imports[id] : id.endsWith('.png') ? 1 : require(id)), module, module.exports);
+  new Function('require', 'module', 'exports', code)((id) => (id in imports ? imports[id] : id.endsWith('/theme/bangers') ? { bangers: (fontSize) => ({ fontFamily: 'Bangers', fontSize, paddingRight: Math.ceil(fontSize * 0.18) }) } : id.endsWith('.png') ? 1 : require(id)), module, module.exports);
   return module.exports;
 }
 

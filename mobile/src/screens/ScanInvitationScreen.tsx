@@ -8,6 +8,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, useWindowDimen
 import { Screen } from "../components/Screen";
 import { parseInvitationLink } from "../utils/invitation";
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ScanInvitation">;
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   tint: { ...StyleSheet.absoluteFill, backgroundColor: "#1A0B2E66" },
   header: { alignItems: "center", flexDirection: "row", gap: 14, paddingHorizontal: 24, paddingTop: 22 },
   closeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 20, borderWidth: 3, height: 52, justifyContent: "center", width: 52 },
-  heading: { color: colors.white, flex: 1, fontFamily: "Bangers", fontSize: 30, textShadowColor: colors.ink, textShadowOffset: { width: 2, height: 3 }, textShadowRadius: 0 },
+  heading: { color: colors.white, flex: 1, ...bangers(30), textShadowColor: colors.ink, textShadowOffset: { width: 2, height: 3 }, textShadowRadius: 0 },
   scanArea: { alignItems: "center", flex: 1, justifyContent: "center", paddingHorizontal: 24 },
   frame: { justifyContent: "center" },
   corner: { borderColor: colors.lime, height: 68, position: "absolute", width: 68 },
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", flex: 1, gap: 22, justifyContent: "center", padding: 24 },
   message: { color: colors.text, fontFamily: "ZenMaru", fontSize: 17, lineHeight: 25, textAlign: "center" },
   button: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 13, borderWidth: 3, justifyContent: "center", minHeight: 54, paddingHorizontal: 22, width: "100%" },
-  buttonText: { color: colors.ink, fontFamily: "Bangers", fontSize: 22 },
+  buttonText: { color: colors.ink, ...bangers(22) },
   secondaryButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, justifyContent: "center", minHeight: 54, width: "100%" },
-  secondaryText: { color: colors.text, fontFamily: "Bangers", fontSize: 22 },
+  secondaryText: { color: colors.text, ...bangers(22) },
 });

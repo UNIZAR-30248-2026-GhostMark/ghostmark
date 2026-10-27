@@ -12,7 +12,7 @@ function load(file, imports = {}) {
   const source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
   const module = { exports: {} };
-  new Function('require', 'module', 'exports', code)((id) => imports[id] ?? require(id), module, module.exports);
+  new Function('require', 'module', 'exports', code)((id) => imports[id] ?? (id.endsWith('/theme/bangers') ? { bangers: (fontSize) => ({ fontFamily: 'Bangers', fontSize, paddingRight: Math.ceil(fontSize * 0.18) }) } : require(id)), module, module.exports);
   return module.exports;
 }
 

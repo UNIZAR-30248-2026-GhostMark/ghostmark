@@ -1,12 +1,11 @@
 import { colors } from "./colors";
+import { bangers } from "./bangers";
 
 export const typography = {
   title: {
     color: colors.white,
-    fontFamily: "Bangers",
-    fontSize: 34,
+    ...bangers(34),
     letterSpacing: 1,
-    paddingRight: 3,
   },
   heading: {
     color: colors.text,

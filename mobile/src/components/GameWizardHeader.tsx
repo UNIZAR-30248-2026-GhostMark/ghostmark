@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 
 type Props = { step: 1 | 2 | 3; label: string; onBack: () => void };
 
@@ -10,5 +11,5 @@ export function GameWizardHeader({ step, label, onBack }: Props) {
 }
 
 const styles = StyleSheet.create({
-  top: { alignItems: "center", flexDirection: "row", gap: 14 }, back: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, height: 44, justifyContent: "center", width: 44 }, title: { color: colors.text, fontFamily: "Bangers", fontSize: 27, letterSpacing: 0.8, paddingRight: 3 }, progress: { flexDirection: "row", gap: 8, marginTop: 17 }, segment: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 8, borderWidth: 2, flex: 1, height: 11 }, segmentOn: { backgroundColor: colors.lime, borderColor: colors.ink }, stepRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 9 }, stepText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13 }, stepStrong: { color: colors.text, fontFamily: "ZenMaruBold" }, pressed: { opacity: 0.78, transform: [{ scale: 0.96 }] },
+  top: { alignItems: "center", flexDirection: "row", gap: 14 }, back: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, height: 44, justifyContent: "center", width: 44 }, title: { color: colors.text, ...bangers(27), letterSpacing: 0.8 }, progress: { flexDirection: "row", gap: 8, marginTop: 17 }, segment: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 8, borderWidth: 2, flex: 1, height: 11 }, segmentOn: { backgroundColor: colors.lime, borderColor: colors.ink }, stepRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 9 }, stepText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13 }, stepStrong: { color: colors.text, fontFamily: "ZenMaruBold" }, pressed: { opacity: 0.78, transform: [{ scale: 0.96 }] },
 });
