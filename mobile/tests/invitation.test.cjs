@@ -206,18 +206,22 @@ test('la vista muestra el nombre real de la partida y permite reintentar tras un
   assert.match(JSON.stringify(tree.toJSON()), /Partida EINA/);
 });
 
-test('una invitación de una partida ya iniciada o cancelada abre su pantalla de estado', async () => {
+test('una invitación de una partida iniciada no permite verla ni inscribirse', async () => {
   let destination;
-  const viewButton = () => tree.root.findAllByType('PrimaryButton')
-    .find((item) => item.props.children === 'VER PARTIDA');
   const { GameInvitationScreen } = load('screens/GameInvitationScreen.tsx', { ...common,
     '../api/game': { getGameByCode: async () => ({ ...game, estado: 'EN_JUEGO' }) },
   });
-  await mount(GameInvitationScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { code } } });
-  await act(async () => viewButton().props.onPress());
-  assert.equal(destination[0], 'GameStarted');
-  await act(async () => tree.unmount());
-  tree = undefined;
+  await mount(GameInvitationScreen, { navigation: { reset: (...args) => { destination = args; } }, route: { params: { code } } });
+  assert.match(JSON.stringify(tree.toJSON()), /La partida ya ha empezado y no admite jugadores nuevos/);
+  const homeButton = tree.root.findAllByType('PrimaryButton').find((item) => item.props.children === 'IR A MIS PARTIDAS');
+  await act(async () => homeButton.props.onPress());
+  assert.deepEqual(destination, [{ index: 0, routes: [{ name: 'Home' }] }]);
+});
+
+test('una invitación cancelada abre su pantalla de estado', async () => {
+  let destination;
+  const viewButton = () => tree.root.findAllByType('PrimaryButton')
+    .find((item) => item.props.children === 'VER PARTIDA');
   const CancelledInvitation = load('screens/GameInvitationScreen.tsx', { ...common,
     '../api/game': { getGameByCode: async () => ({ ...game, estado: 'CANCELADA' }) },
   }).GameInvitationScreen;
