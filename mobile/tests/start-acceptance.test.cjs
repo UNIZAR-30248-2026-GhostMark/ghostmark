@@ -36,7 +36,7 @@ const gameDate = load('utils/gameDate.ts');
 const serverWakeup = load('utils/serverWakeup.ts');
 const common = {
   'react-native': {
-    View: 'View', Text: 'Text', Pressable: 'Pressable', Image: 'Image',
+    View: 'View', Text: 'Text', Pressable: 'Pressable', Image: 'Image', ScrollView: 'ScrollView',
     ActivityIndicator: 'ActivityIndicator',
     StyleSheet: { create: (styles) => styles },
     useWindowDimensions: () => ({ width: 390, height: 844 }),
