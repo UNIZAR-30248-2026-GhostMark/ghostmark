@@ -63,7 +63,7 @@ export function ShareGameScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingBottom: 12 },
   heading: { color: colors.lime, ...bangers(39), marginVertical: 25, textAlign: "center" },
-  card: { alignItems: "center", alignSelf: "center", backgroundColor: "#FFFFFF", borderColor: colors.ink, borderRadius: 25, borderWidth: 3, padding: 10, shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.7, shadowRadius: 0 },
+  card: { alignItems: "center", alignSelf: "center", backgroundColor: "#FFFFFF", borderColor: colors.ink, borderRadius: 25, borderWidth: 3, boxShadow: `0px 6px 0px ${colors.ink}`, padding: 10 },
   cardFooter: { alignItems: "center", flexDirection: "row", width: "100%" },
   gameName: { flex: 1, color: colors.ink, ...bangers(25), maxWidth: "100%", paddingHorizontal: 12, paddingBottom: 12, textAlign: "center" },
   ghost: { height: 60, resizeMode: "contain", width: 60 },
