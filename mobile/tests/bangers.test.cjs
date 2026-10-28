@@ -27,6 +27,6 @@ test('el margen de Bangers aumenta con el tamaño de letra', () => {
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const module = { exports: {} };
   new Function('module', 'exports', code)(module, module.exports);
-  assert.deepEqual(module.exports.bangers(20), { fontFamily: 'Bangers', fontSize: 20, paddingRight: 4 });
-  assert.deepEqual(module.exports.bangers(40), { fontFamily: 'Bangers', fontSize: 40, paddingRight: 8 });
+  assert.deepEqual(module.exports.bangers(20), { fontFamily: 'Bangers', fontSize: 20, paddingRight: 6 });
+  assert.deepEqual(module.exports.bangers(40), { fontFamily: 'Bangers', fontSize: 40, paddingRight: 12 });
 });
