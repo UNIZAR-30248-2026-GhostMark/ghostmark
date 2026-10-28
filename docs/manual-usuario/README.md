@@ -112,7 +112,7 @@ Al unirte entras en la sala de espera: la cuenta atrás hasta el inicio y los in
 
 ### 3.4 Tu horario en esta partida
 
-Al unirte, la partida copia tu horario lectivo de la cuenta. En la sala, «Revisar mi horario» abre el horario de esta partida: los cambios que hagas ahí solo valen para ella, no para tu cuenta ni para tus otras partidas. Se puede cambiar hasta la hora de inicio; desde entonces queda fijo para toda la partida.
+Al unirte, la partida copia tu horario lectivo de la cuenta. En la sala, «Revisar mi horario» abre el horario de esta partida: los cambios que hagas ahí solo valen para ella, no para tu cuenta ni para tus otras partidas. Se puede cambiar hasta la hora de inicio; desde entonces queda fijo para toda la partida. Si eres el máster y no juegas, la sala no muestra «Revisar mi horario», porque no tienes horario en la partida.
 
 ### 3.5 Varias partidas a la vez
 
@@ -122,7 +122,7 @@ Puedes estar en varias partidas a la vez, aunque coincidan en fechas. Cada una a
 
 ### 4.1 Arrancar antes de la hora
 
-Si eres el máster, pulsa la partida en Inicio para abrir su sala de espera: verás «Eres el máster», la cuenta atrás y los inscritos. La sala se actualiza sola cada pocos segundos. «Arrancar ya» empieza la partida en ese momento, sin esperar a la hora de inicio, y solo se activa cuando hay al menos 3 inscritos.
+Si eres el máster, pulsa la partida en Inicio para abrir su sala de espera: verás «Eres el máster», la cuenta atrás y los inscritos. La sala se actualiza sola cada pocos segundos. «Arrancar ya» empieza la partida en ese momento, sin esperar a la hora de inicio, y solo se activa cuando hay al menos 3 inscritos. Desde entonces, la hora de inicio de la partida es la del arranque.
 
 <img src="img/arranque-sala.png" alt="Sala de espera del máster con «Arrancar ya»" width="250">
 
@@ -130,7 +130,7 @@ Si eres el máster, pulsa la partida en Inicio para abrir su sala de espera: ver
 
 Al llegar la hora de inicio, la partida arranca sola si tiene al menos 3 inscritos. Cada jugador recibe como objetivo a otro jugador, y entre todos forman una única cadena cerrada: nadie se persigue a sí mismo y todos son el objetivo de alguien. Desde ese momento tu horario en esta partida queda fijo.
 
-Si estás en la sala, pasas a «¡La partida ha empezado!». En Inicio, la partida aparece «En juego» y, al pulsarla, se abre esa misma pantalla.
+Si estás en la sala, pasas a «¡La partida ha empezado!»; con el botón atrás vuelves a Inicio. En Inicio, la partida aparece «En juego» y, al pulsarla, se abre directamente tu carta. Si eres el máster y no juegas, se abre «¡La partida ha empezado!» con «Volver a mis partidas», porque no tienes carta.
 
 <img src="img/arranque-empezada.png" alt="La partida ha empezado" width="250">
 
@@ -144,7 +144,7 @@ Si a la hora de inicio hay menos de 3 inscritos, la partida no empieza: se cance
 
 ### 5.1 Ver tu carta
 
-Cuando la partida empieza, en «¡La partida ha empezado!» pulsa «Ver mi carta». La carta sale boca abajo para que nadie la vea por encima de tu hombro: mantenla pulsada para leer tu objetivo, el alias del jugador al que tienes que eliminar, y tu misión. Al soltarla se vuelve a tapar.
+Cuando la partida empieza, pulsa «Ver mi carta» en «¡La partida ha empezado!» o pulsa la partida en Inicio. La carta sale boca abajo para que nadie la vea por encima de tu hombro: mantenla pulsada para leer tu objetivo, el alias del jugador al que tienes que eliminar, y tu misión. Al soltarla se vuelve a tapar.
 
 <img src="img/carta-boca-abajo.png" alt="Carta boca abajo" width="250"> <img src="img/carta-vista.png" alt="Carta con el objetivo y la misión" width="250">
 
