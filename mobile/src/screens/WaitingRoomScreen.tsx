@@ -10,6 +10,7 @@ import { getPlayers } from "../api/inscription";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 import type { Player } from "../types/inscription";
 import type { GameSummary } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
@@ -160,11 +161,11 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 13 },
   header: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   back: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 12, borderWidth: 2, height: 42, justifyContent: "center", width: 42 },
-  title: { color: colors.text, fontFamily: "Bangers", fontSize: 37, lineHeight: 35 },
+  title: { color: colors.text, ...bangers(37), lineHeight: 35 },
   memberTag: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 6, transform: [{ rotate: "4deg" }] },
   memberTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
   countdown: { alignItems: "center", backgroundColor: colors.ink, borderRadius: 18, marginTop: 16, paddingHorizontal: 8, paddingVertical: 10 },
-  countdownText: { color: colors.lime, fontFamily: "Bangers", fontSize: 35, letterSpacing: 0.6, width: "100%" },
+  countdownText: { color: colors.lime, ...bangers(35), letterSpacing: 0.6, width: "100%" },
   countdownCaption: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 1 },
   countdownCentered: { textAlign: "center" },
   playerArea: { alignItems: "center", flex: 1, justifyContent: "center", marginTop: 8 },
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   memberCountText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 12 },
   footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
   reviewButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, paddingVertical: 12, shadowColor: colors.ink, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.7, shadowRadius: 0 },
-  reviewText: { color: colors.text, fontFamily: "Bangers", fontSize: 21, letterSpacing: 0.7 },
+  reviewText: { color: colors.text, ...bangers(21), letterSpacing: 0.7 },
   pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
   errorBox: { gap: 14, width: "100%" },
   error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 13, lineHeight: 18, textAlign: "center" },

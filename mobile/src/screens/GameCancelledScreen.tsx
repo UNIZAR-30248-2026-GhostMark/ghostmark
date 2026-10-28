@@ -4,6 +4,7 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "GameCancelled">;
@@ -39,12 +40,12 @@ const styles = StyleSheet.create({
   content: { alignItems: "center", flex: 1, paddingHorizontal: 24, paddingTop: 10 },
   tag: { backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5 },
   tagText: { color: colors.ink, fontFamily: "ZenMaruBlack", fontSize: 11 },
-  title: { color: colors.text, fontFamily: "Bangers", fontSize: 38, lineHeight: 39, marginTop: 18, textAlign: "center", width: "100%" },
+  title: { color: colors.text, ...bangers(38), lineHeight: 39, marginTop: 18, textAlign: "center", width: "100%" },
   gameName: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 15, marginTop: 14, textAlign: "center" },
   detail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 14, lineHeight: 20, marginTop: 17, textAlign: "center" },
   counts: { alignSelf: "stretch", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 14, borderWidth: 2, flexDirection: "row", marginTop: 22, paddingVertical: 16 },
   count: { alignItems: "center", flex: 1 },
-  countValue: { fontFamily: "Bangers", fontSize: 40, lineHeight: 42 },
+  countValue: { ...bangers(40), lineHeight: 42 },
   countMissing: { color: colors.danger },
   countNeeded: { color: colors.lime },
   countLabel: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 4 },

@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "GameStarted">;
@@ -47,10 +48,10 @@ const styles = StyleSheet.create({
   content: { alignItems: "center", flex: 1, paddingHorizontal: 24 },
   dateTag: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 7, borderWidth: 1, marginTop: -12, paddingHorizontal: 10, paddingVertical: 4 },
   dateText: { color: colors.ink, fontFamily: "ZenMaruBlack", fontSize: 10 },
-  title: { color: colors.text, fontFamily: "Bangers", fontSize: 42, lineHeight: 40, marginTop: 20, textAlign: "center" },
+  title: { color: colors.text, ...bangers(42), lineHeight: 40, marginTop: 20, textAlign: "center" },
   gameName: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 13, textAlign: "center" },
   detail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 13, lineHeight: 19, marginTop: 9, textAlign: "center" },
   footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 },
   cardButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 14, borderWidth: 3, paddingVertical: 13, shadowColor: colors.border, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 1, shadowRadius: 0 },
-  cardButtonText: { color: colors.ink, fontFamily: "Bangers", fontSize: 21, letterSpacing: 0.7 },
+  cardButtonText: { color: colors.ink, ...bangers(21), letterSpacing: 0.7 },
 });

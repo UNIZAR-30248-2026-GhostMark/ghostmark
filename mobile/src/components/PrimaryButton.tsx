@@ -2,6 +2,7 @@ import type { PropsWithChildren } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 
 type Props = PropsWithChildren<{ disabled?: boolean; onPress: () => void }>;
 
@@ -33,5 +34,5 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
   },
   pressed: { opacity: 0.7 },
-  label: { color: colors.ink, fontFamily: "Bangers", fontSize: 22, letterSpacing: 0.8, paddingRight: 3 },
+  label: { color: colors.ink, ...bangers(22), letterSpacing: 0.8 },
 });

@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { slotKey } from "./WeeklyScheduleGrid";
 import { colors } from "../theme/colors";
+import { bangers } from "../theme/bangers";
 import type { Weekday } from "../types/schedule";
 
 const START_MINUTES = 8 * 60;
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
   modal: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 22, borderWidth: 3, padding: 20, shadowColor: colors.ink, shadowOffset: { width: 0, height: 7 }, shadowOpacity: 1, shadowRadius: 0, width: "100%" },
   header: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
   kicker: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 12, letterSpacing: 1 },
-  title: { color: colors.text, fontFamily: "Bangers", fontSize: 34, letterSpacing: 1, marginTop: 2, paddingRight: 3 },
+  title: { color: colors.text, ...bangers(34), letterSpacing: 1, marginTop: 2 },
   closeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 18, borderWidth: 2, height: 36, justifyContent: "center", width: 36 },
   closeText: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 22, lineHeight: 24 },
   description: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 14, marginTop: 8 },
@@ -128,8 +129,8 @@ const styles = StyleSheet.create({
   timeControlGroup: { flex: 1, gap: 7 }, timeLabel: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 12, textAlign: "center" },
   timeControl: { alignItems: "center", backgroundColor: colors.background, borderColor: colors.border, borderRadius: 14, borderWidth: 2, flexDirection: "row", justifyContent: "space-between", padding: 5 },
   timeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderRadius: 9, height: 32, justifyContent: "center", width: 32 }, timeButtonText: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 20, lineHeight: 22 }, timeValue: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 14 },
-  addButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 13, borderWidth: 2, marginTop: 14, paddingVertical: 10 }, addText: { color: colors.ink, fontFamily: "Bangers", fontSize: 17, letterSpacing: 0.8, paddingRight: 3 },
-  rangesSection: { gap: 6, marginTop: 16 }, rangesTitle: { color: colors.text, fontFamily: "Bangers", fontSize: 19, letterSpacing: 0.7, paddingRight: 3 }, emptyText: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, textAlign: "center" },
+  addButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 13, borderWidth: 2, marginTop: 14, paddingVertical: 10 }, addText: { color: colors.ink, ...bangers(17), letterSpacing: 0.8 },
+  rangesSection: { gap: 6, marginTop: 16 }, rangesTitle: { color: colors.text, ...bangers(19), letterSpacing: 0.7 }, emptyText: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, textAlign: "center" },
   range: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 11, borderWidth: 2, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 6 }, rangeText: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 12 }, removeText: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 17, lineHeight: 18 },
-  saveButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 16, borderWidth: 3, marginTop: 18, paddingVertical: 11, shadowColor: colors.border, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }, saveText: { color: colors.ink, fontFamily: "Bangers", fontSize: 19, letterSpacing: 0.8, paddingRight: 3 },
+  saveButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 16, borderWidth: 3, marginTop: 18, paddingVertical: 11, shadowColor: colors.border, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }, saveText: { color: colors.ink, ...bangers(19), letterSpacing: 0.8 },
 });
