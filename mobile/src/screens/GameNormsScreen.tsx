@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: colors.textMuted, fontSize: 14, marginTop: 7 },
   heading: { ...typography.title, color: colors.text, fontSize: 25, marginTop: 25 },
   rules: { gap: 12, marginTop: 16 },
-  rule: { alignItems: "center", borderColor: colors.ink, borderRadius: 16, borderWidth: 3, flexDirection: "row", gap: 13, minHeight: 55, paddingHorizontal: 15, shadowColor: colors.ink, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.75, shadowRadius: 0 },
+  rule: { alignItems: "center", borderColor: colors.ink, borderRadius: 16, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, flexDirection: "row", gap: 13, minHeight: 55, paddingHorizontal: 15 },
   ruleText: { color: colors.ink, flex: 1, fontFamily: "ZenMaruBold", fontSize: 16, lineHeight: 21 },
   footer: { gap: 10, paddingBottom: 14, paddingHorizontal: 24, paddingTop: 8 },
   error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 13, lineHeight: 18, textAlign: "center" },

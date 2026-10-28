@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
   gameName: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 13, textAlign: "center" },
   detail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 13, lineHeight: 19, marginTop: 9, textAlign: "center" },
   footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 },
-  cardButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 14, borderWidth: 3, paddingVertical: 13, shadowColor: colors.border, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 1, shadowRadius: 0 },
+  cardButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 14, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, paddingVertical: 13 },
   cardButtonText: { color: colors.ink, ...bangers(21), letterSpacing: 0.7 },
 });

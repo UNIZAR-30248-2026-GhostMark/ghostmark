@@ -118,7 +118,7 @@ function TimeControl({ label, value, onDecrease, onIncrease }: { label: string; 
 const styles = StyleSheet.create({
   overlay: { alignItems: "center", flex: 1, justifyContent: "center", paddingHorizontal: 24 },
   backdrop: { backgroundColor: "rgba(8, 2, 15, 0.78)", bottom: 0, left: 0, position: "absolute", right: 0, top: 0 },
-  modal: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 22, borderWidth: 3, padding: 20, shadowColor: colors.ink, shadowOffset: { width: 0, height: 7 }, shadowOpacity: 1, shadowRadius: 0, width: "100%" },
+  modal: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 22, borderWidth: 3, boxShadow: `0px 7px 0px ${colors.ink}`, padding: 20, width: "100%" },
   header: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
   kicker: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 12, letterSpacing: 1 },
   title: { color: colors.text, ...bangers(34), letterSpacing: 1, marginTop: 2 },
@@ -132,5 +132,5 @@ const styles = StyleSheet.create({
   addButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 13, borderWidth: 2, marginTop: 14, paddingVertical: 10 }, addText: { color: colors.ink, ...bangers(17), letterSpacing: 0.8 },
   rangesSection: { gap: 6, marginTop: 16 }, rangesTitle: { color: colors.text, ...bangers(19), letterSpacing: 0.7 }, emptyText: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, textAlign: "center" },
   range: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 11, borderWidth: 2, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 6 }, rangeText: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 12 }, removeText: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 17, lineHeight: 18 },
-  saveButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 16, borderWidth: 3, marginTop: 18, paddingVertical: 11, shadowColor: colors.border, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }, saveText: { color: colors.ink, ...bangers(19), letterSpacing: 0.8 },
+  saveButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 16, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, marginTop: 18, paddingVertical: 11 }, saveText: { color: colors.ink, ...bangers(19), letterSpacing: 0.8 },
 });
