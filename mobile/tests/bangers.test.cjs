@@ -13,7 +13,7 @@ function sourceFiles(directory) {
   });
 }
 
-test('todos los estilos Bangers usan el margen proporcional compartido', () => {
+test('todos los estilos Bangers usan el helper compartido', () => {
   const sourceRoot = path.join(__dirname, '../src');
   const files = sourceFiles(sourceRoot).filter((file) => !file.endsWith(`${path.sep}theme${path.sep}bangers.ts`));
   for (const file of files) {
@@ -22,7 +22,7 @@ test('todos los estilos Bangers usan el margen proporcional compartido', () => {
   }
 });
 
-test('el margen de Bangers aumenta con el tamaño de letra', () => {
+test('el helper Bangers conserva el tamaño solicitado', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/theme/bangers.ts'), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const module = { exports: {} };
@@ -56,4 +56,18 @@ test('los textos Bangers de botones y pestañas no quedan ajustados a su conteni
     assert.match(match[1], /textAlign:\s*"center"/,
       `${file}:${style} debe centrar dentro de una caja amplia`);
   }
+});
+
+test('Inicio y los controles en fila reservan ancho para Bangers', () => {
+  const sourceRoot = path.join(__dirname, '../src');
+  const home = fs.readFileSync(path.join(sourceRoot, 'screens/HomeScreen.tsx'), 'utf8');
+  const cancelled = fs.readFileSync(path.join(sourceRoot, 'screens/GameCancelledScreen.tsx'), 'utf8');
+  const createGame = fs.readFileSync(path.join(sourceRoot, 'screens/CreateGameDataScreen.tsx'), 'utf8');
+
+  assert.match(home, /styles\.createText, styles\.buttonBangersText/);
+  assert.match(home, /styles\.joinText, styles\.buttonBangersText/);
+  assert.match(home, /brandWide:\s*\{\s*flex:\s*1\s*\}/);
+  assert.match(home, /brandTextWide:\s*\{\s*flex:\s*1\s*\}/);
+  assert.match(cancelled, /countValueWide:\s*\{[^}]*alignSelf:\s*"stretch"[^}]*textAlign:\s*"center"/);
+  assert.match(createGame, /timeWide:\s*\{[^}]*flex:\s*1[^}]*textAlign:\s*"center"/);
 });
