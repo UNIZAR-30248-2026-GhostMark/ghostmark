@@ -86,10 +86,10 @@ function HiddenCard() {
 function RevealedCard({ card }: { card: MissionCard }) {
   return <View style={styles.cardFront}>
     <View style={styles.objectiveTag}><Text style={styles.objectiveTagText}>Objetivo</Text></View>
-    <Text adjustsFontSizeToFit minimumFontScale={0.58} numberOfLines={2} style={styles.targetName}>{card.aliasObjetivo?.toUpperCase() ?? "CUENTA ELIMINADA"}</Text>
+    <Text adjustsFontSizeToFit minimumFontScale={0.4} numberOfLines={1} style={styles.targetName}>{card.aliasObjetivo?.toUpperCase() ?? "CUENTA ELIMINADA"}</Text>
     <View style={styles.ruleDivider} />
     <View style={styles.missionTag}><Text style={styles.missionTagText}>Misión</Text></View>
-    <Text adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={5} style={styles.missionText}>{card.mision.toUpperCase()}</Text>
+    <Text adjustsFontSizeToFit minimumFontScale={0.35} numberOfLines={5} style={styles.missionText}>{card.mision.toUpperCase()}</Text>
   </View>;
 }
 
@@ -98,14 +98,14 @@ const styles = StyleSheet.create({
   content: { alignItems: "center", flex: 1, paddingHorizontal: 24, paddingTop: 18 },
   tabs: { backgroundColor: colors.ink, borderRadius: 15, flexDirection: "row", height: 49, padding: 4, width: "100%" },
   tab: { alignItems: "center", flex: 1, justifyContent: "center" },
-  tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 11, borderWidth: 2, flex: 1, justifyContent: "center", shadowColor: colors.border, shadowOffset: { height: 3, width: 0 }, shadowOpacity: 1, shadowRadius: 0 },
+  tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 11, borderWidth: 2, boxShadow: `0px 3px 0px ${colors.border}`, flex: 1, justifyContent: "center" },
   tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 14 },
   tabOnText: { alignSelf: "stretch", color: colors.ink, ...bangers(19), letterSpacing: 0.5, textAlign: "center" },
   objectiveLabel: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 22 },
   card: { height: 392, marginTop: 12, position: "relative", transform: [{ rotate: "2deg" }], width: 286 },
-  cardFace: { ...StyleSheet.absoluteFill, backfaceVisibility: "hidden", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, overflow: "hidden", shadowColor: colors.ink, shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.6, shadowRadius: 0 },
+  cardFace: { ...StyleSheet.absoluteFill, backfaceVisibility: "hidden", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, boxShadow: `0px 8px 0px ${colors.ink}`, overflow: "hidden" },
   loadingCard: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 28, borderWidth: 3, height: 392, justifyContent: "center", marginTop: 12, width: 286 },
-  loading: { alignSelf: "stretch", color: colors.lime, ...bangers(25), textAlign: "center" },
+  loading: { color: colors.lime, ...bangers(25) },
   errorState: { flex: 1, gap: 20, justifyContent: "center", width: "100%" },
   error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 21, textAlign: "center" },
   cardBack: { backgroundColor: colors.white, flex: 1, padding: 10 },
@@ -119,14 +119,14 @@ const styles = StyleSheet.create({
   cardFront: { backgroundColor: colors.white, flex: 1, paddingHorizontal: 20, paddingTop: 22 },
   objectiveTag: { alignSelf: "flex-start", backgroundColor: colors.textMuted, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, paddingHorizontal: 12, paddingVertical: 5 },
   objectiveTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
-  targetName: { color: colors.ink, ...bangers(55), letterSpacing: 1, marginTop: 16, minHeight: 62 },
+  targetName: { color: colors.ink, ...bangers(55), height: 62, letterSpacing: 1, marginTop: 16, width: "100%" },
   ruleDivider: { backgroundColor: colors.ink, height: 3, marginTop: 10, opacity: 0.2, width: "100%" },
   missionTag: { alignSelf: "flex-start", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, marginTop: 17, paddingHorizontal: 12, paddingVertical: 5 },
   missionTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
-  missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 36, marginTop: 15 },
+  missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 34, marginTop: 12 },
   footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
-  codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, paddingVertical: 12, shadowColor: colors.ink, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.7, shadowRadius: 0 },
+  codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 12 },
   codeText: { alignSelf: "stretch", color: colors.text, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
-  removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, paddingVertical: 12, shadowColor: colors.border, shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.7, shadowRadius: 0 },
+  removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, paddingVertical: 12 },
   removeText: { alignSelf: "stretch", color: colors.ink, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
 });

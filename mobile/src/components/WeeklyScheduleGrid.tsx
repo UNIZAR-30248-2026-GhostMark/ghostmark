@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   wrapper: { alignItems: "stretch", flexDirection: "row", gap: 7 },
   hours: { height: 347, justifyContent: "space-between", paddingBottom: 2, paddingTop: 32, width: 39 },
   hour: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 10 },
-  gridShell: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, flex: 1, paddingBottom: 9, paddingHorizontal: 8, paddingTop: 7, shadowColor: colors.border, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0 },
+  gridShell: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, boxShadow: `0px 6px 0px ${colors.border}`, flex: 1, paddingBottom: 9, paddingHorizontal: 8, paddingTop: 7 },
   dayLabels: { flexDirection: "row", gap: 4, height: 27 },
   dayButton: { alignItems: "center", borderRadius: 7, flex: 1, justifyContent: "center" },
   dayButtonPressed: { backgroundColor: colors.border },

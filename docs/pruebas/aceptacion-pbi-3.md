@@ -1,7 +1,7 @@
 # PBI 3 — Tests de aceptación (#58)
 
 Referencias: PBI 3 (#4), tarea 3.6 (#58) y los cuatro criterios de
-`docs/pilaDeProducto/instantaneas/S1-antes-de-planificar.md`.
+`docs/pilaDeProducto/instantaneas/S1-especificacion-revisada.md`.
 
 ## Alcance y trazabilidad
 

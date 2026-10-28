@@ -39,7 +39,6 @@ test('los textos Bangers de botones y pestañas no quedan ajustados a su conteni
     ['components/DayScheduleModal.tsx', 'saveText'],
     ['screens/CreateGameDataScreen.tsx', 'doneText'],
     ['screens/GameStartedScreen.tsx', 'cardButtonText'],
-    ['screens/HomeScreen.tsx', 'buttonBangersText'],
     ['screens/MissionCardScreen.tsx', 'tabOnText'],
     ['screens/MissionCardScreen.tsx', 'codeText'],
     ['screens/MissionCardScreen.tsx', 'removeText'],
@@ -64,10 +63,11 @@ test('Inicio y los controles en fila reservan ancho para Bangers', () => {
   const cancelled = fs.readFileSync(path.join(sourceRoot, 'screens/GameCancelledScreen.tsx'), 'utf8');
   const createGame = fs.readFileSync(path.join(sourceRoot, 'screens/CreateGameDataScreen.tsx'), 'utf8');
 
-  assert.match(home, /styles\.createText, styles\.buttonBangersText/);
-  assert.match(home, /styles\.joinText, styles\.buttonBangersText/);
-  assert.match(home, /brandWide:\s*\{\s*flex:\s*1\s*\}/);
-  assert.match(home, /brandTextWide:\s*\{\s*flex:\s*1\s*\}/);
+  assert.match(home, /styles\.createText, bangersLayout\.buttonText/);
+  assert.match(home, /styles\.joinText, bangersLayout\.buttonText/);
+  assert.match(home, /brand:\s*\{\s*flex:\s*1\s*\}/);
+  assert.match(home, /brandText:\s*\{\s*flex:\s*1\s*\}/);
+  assert.match(home, /buttonText:\s*\{[^}]*alignSelf:\s*"stretch"[^}]*textAlign:\s*"center"/);
   assert.match(cancelled, /countValueWide:\s*\{[^}]*alignSelf:\s*"stretch"[^}]*textAlign:\s*"center"/);
   assert.match(createGame, /timeWide:\s*\{[^}]*flex:\s*1[^}]*textAlign:\s*"center"/);
 });
