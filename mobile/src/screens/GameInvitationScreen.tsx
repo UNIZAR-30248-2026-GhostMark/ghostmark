@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
 import { getGameByCode } from "../api/game";
@@ -43,14 +43,14 @@ export function GameInvitationScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.heading}>PARTIDA</Text>
         {loading ? <ActivityIndicator accessibilityLabel="Cargando partida" color={colors.lime} size="large" /> : null}
-        {!loading && state.status === "loaded" ? <View style={styles.card}>
+        {!loading && state.status === "loaded" && state.game.estado === "EN_JUEGO" ? <LateInvitation game={state.game} /> : null}
+        {!loading && state.status === "loaded" && state.game.estado !== "EN_JUEGO" ? <View style={styles.card}>
           <Text style={styles.title}>{state.game.nombre}</Text>
           <Text style={styles.status}>{labels[state.game.estado]}</Text>
           <Text style={styles.detail}>Máster: {state.game.aliasMaster ?? "Cuenta eliminada"}</Text>
           <Text style={styles.detail}>Inicio: {formatGameDate(state.game.inicioEn)}</Text>
           <Text style={styles.detail}>Fin: {formatGameDate(state.game.finEn)}</Text>
           <Text style={styles.detail}>Inscritos: {state.game.numInscritos}</Text>
-          {state.game.estado === "EN_JUEGO" ? <Text style={styles.notice}>La partida ya ha empezado y no admite jugadores nuevos.</Text> : null}
         </View> : null}
         {!loading && state.status === "error" ? <View style={styles.error}>
           <Text accessibilityLiveRegion="polite" style={styles.detail}>{state.message}</Text>
@@ -61,9 +61,19 @@ export function GameInvitationScreen({ navigation, route }: Props) {
         ? <PrimaryButton onPress={() => navigation.replace("GameNorms", { code, game: state.game })}>VER NORMAS</PrimaryButton>
         : !loading && state.status === "loaded" && state.game.estado === "CANCELADA"
             ? <PrimaryButton onPress={() => navigation.replace("GameCancelled", { game: state.game })}>VER PARTIDA</PrimaryButton>
-            : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>IR A MIS PARTIDAS</PrimaryButton>}
+            : <PrimaryButton onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })}>{!loading && state.status === "loaded" && state.game.estado === "EN_JUEGO" ? "VOLVER A MIS PARTIDAS" : "IR A MIS PARTIDAS"}</PrimaryButton>}
     </Screen>
   );
+}
+
+function LateInvitation({ game }: { game: PublicGame }) {
+  return <View style={styles.lateInvitation}>
+    <Image accessibilityLabel="Fantasma despidiéndose" source={require("../../assets/ghosts/fantasma-chao.png")} style={styles.lateGhost} />
+    <View style={styles.lateTag}><Text style={styles.lateTagText}>En juego</Text></View>
+    <Text style={styles.lateTitle}>¡LLEGAS TARDE!{"\n"}ESTA PARTIDA YA{"\n"}HA EMPEZADO</Text>
+    <Text numberOfLines={2} style={styles.lateGameName}>{game.nombre}</Text>
+    <Text style={styles.lateDetail}>No admite jugadores nuevos. Pídele al máster que te avise de la próxima.</Text>
+  </View>;
 }
 
 const styles = StyleSheet.create({
@@ -73,6 +83,12 @@ const styles = StyleSheet.create({
   title: { color: colors.text, ...bangers(32) },
   status: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 17 },
   detail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 16, lineHeight: 24 },
-  notice: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 20 },
   error: { gap: 20 },
+  lateInvitation: { alignItems: "center", flex: 1, justifyContent: "center", paddingHorizontal: 10 },
+  lateGhost: { height: 184, marginBottom: 6, resizeMode: "contain", width: 190 },
+  lateTag: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5 },
+  lateTagText: { color: colors.ink, fontFamily: "ZenMaruBlack", fontSize: 11 },
+  lateTitle: { color: colors.text, ...bangers(34), lineHeight: 36, marginTop: 18, textAlign: "center" },
+  lateGameName: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 14, textAlign: "center" },
+  lateDetail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 14, lineHeight: 21, marginTop: 18, textAlign: "center" },
 });
