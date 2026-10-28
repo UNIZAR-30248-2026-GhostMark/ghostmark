@@ -31,5 +31,5 @@ const styles = StyleSheet.create({
     boxShadow: `0px 5px 0px ${colors.border}`,
   },
   pressed: { opacity: 0.7 },
-  label: { color: colors.ink, ...bangers(22), letterSpacing: 0.8 },
+  label: { alignSelf: "stretch", color: colors.ink, ...bangers(22), letterSpacing: 0.8, textAlign: "center" },
 });

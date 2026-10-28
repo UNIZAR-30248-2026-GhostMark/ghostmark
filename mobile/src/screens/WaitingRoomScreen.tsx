@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   memberCountText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 12 },
   footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
   reviewButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 12 },
-  reviewText: { color: colors.text, ...bangers(21), letterSpacing: 0.7 },
+  reviewText: { alignSelf: "stretch", color: colors.text, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
   pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
   errorBox: { gap: 14, width: "100%" },
   error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 13, lineHeight: 18, textAlign: "center" },

@@ -21,8 +21,8 @@ export function GameCancelledScreen({ navigation, route }: Props) {
         <Text style={styles.title}>NO HAY JUGADORES{"\n"}SUFICIENTES</Text>
         <Text numberOfLines={2} style={styles.gameName}>{game.nombre}</Text>
         <View style={styles.counts}>
-          <View style={styles.count}><Text style={[styles.countValue, styles.countMissing]}>{game.numInscritos}</Text><Text style={styles.countLabel}>inscritos</Text></View>
-          <View style={styles.count}><Text style={[styles.countValue, styles.countNeeded]}>{MIN_PLAYERS}</Text><Text style={styles.countLabel}>hacen falta</Text></View>
+          <View style={styles.count}><Text style={[styles.countValue, styles.countValueWide, styles.countMissing]}>{game.numInscritos}</Text><Text style={styles.countLabel}>inscritos</Text></View>
+          <View style={styles.count}><Text style={[styles.countValue, styles.countValueWide, styles.countNeeded]}>{MIN_PLAYERS}</Text><Text style={styles.countLabel}>hacen falta</Text></View>
         </View>
       </> : <>
         <Text style={styles.title}>PARTIDA{"\n"}CANCELADA</Text>
@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
   counts: { alignSelf: "stretch", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 14, borderWidth: 2, flexDirection: "row", marginTop: 22, paddingVertical: 16 },
   count: { alignItems: "center", flex: 1 },
   countValue: { ...bangers(40), lineHeight: 42 },
+  countValueWide: { alignSelf: "stretch", textAlign: "center" },
   countMissing: { color: colors.danger },
   countNeeded: { color: colors.lime },
   countLabel: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 4 },

@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   tab: { alignItems: "center", flex: 1, justifyContent: "center" },
   tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 11, borderWidth: 2, boxShadow: `0px 3px 0px ${colors.border}`, flex: 1, justifyContent: "center" },
   tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 14 },
-  tabOnText: { color: colors.ink, ...bangers(19), letterSpacing: 0.5 },
+  tabOnText: { alignSelf: "stretch", color: colors.ink, ...bangers(19), letterSpacing: 0.5, textAlign: "center" },
   objectiveLabel: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 22 },
   card: { height: 392, marginTop: 12, position: "relative", transform: [{ rotate: "2deg" }], width: 286 },
   cardFace: { ...StyleSheet.absoluteFill, backfaceVisibility: "hidden", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, boxShadow: `0px 8px 0px ${colors.ink}`, overflow: "hidden" },
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 34, marginTop: 12 },
   footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
   codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 12 },
-  codeText: { color: colors.text, ...bangers(21), letterSpacing: 0.7 },
+  codeText: { alignSelf: "stretch", color: colors.text, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
   removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, paddingVertical: 12 },
-  removeText: { color: colors.ink, ...bangers(21), letterSpacing: 0.7 },
+  removeText: { alignSelf: "stretch", color: colors.ink, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
 });

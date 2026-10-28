@@ -72,6 +72,6 @@ const styles = StyleSheet.create({
   message: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 13, textAlign: "center" },
   actions: { gap: 14, paddingTop: 12, paddingBottom: 4 },
   copyButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, flexDirection: "row", gap: 12, justifyContent: "center", minHeight: 54 },
-  copyLabel: { color: colors.text, ...bangers(23) },
+  copyLabel: { color: colors.text, flex: 1, ...bangers(23), textAlign: "center" },
   pressed: { opacity: 0.75 },
 });
