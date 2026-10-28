@@ -453,6 +453,23 @@ test('Inicio solo ofrece «VER MISIÓN» en una partida en juego si la cuenta ju
   }
 });
 
+test('Inicio abre la carta de una partida en juego si la cuenta juega y el aviso si no', async () => {
+  for (const [soyJugador, expected] of [[true, ['MissionCard', { gameId: 'private-id' }]], [false, 'GameStarted']]) {
+    const destinations = [];
+    const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
+      '@expo/vector-icons': { Ionicons: 'Ionicons' },
+      '../api/game': { getMyGames: async () => [{ ...game, estado: 'EN_JUEGO', soyMaster: !soyJugador, soyJugador }] },
+    });
+    await mount(HomeScreen, { navigation: { navigate: (...args) => destinations.push(args) }, route: { params: undefined } });
+    const featured = tree.root.findAllByType('Pressable').find((node) => node.findAllByType('Text').some((text) => text.props.children === 'PARTIDA EINA'));
+    await act(async () => featured.props.onPress());
+    if (soyJugador) assert.deepEqual(destinations, [expected]);
+    else assert.equal(destinations[0][0], expected);
+    await act(async () => tree.unmount());
+    tree = undefined;
+  }
+});
+
 test('Inicio desplaza las partidas y mantiene las acciones fuera de la lista', async () => {
   const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
     '@expo/vector-icons': { Ionicons: 'Ionicons' },

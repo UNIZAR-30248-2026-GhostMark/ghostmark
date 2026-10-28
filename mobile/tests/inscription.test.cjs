@@ -187,10 +187,11 @@ test('arrancar ya abre la partida iniciada y avisa si faltan jugadores', async (
       startGame: async () => ({ id: 'p1', ...game, estado: 'EN_JUEGO', soyMaster: true }),
     },
   }).WaitingRoomScreen;
-  await mount(WaitingRoomScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { gameId: 'p1', game } } });
+  await mount(WaitingRoomScreen, { navigation: { reset: (state) => { destination = state; } }, route: { params: { gameId: 'p1', game } } });
   await act(async () => button('ARRANCAR YA').props.onPress());
-  assert.equal(destination[0], 'GameStarted');
-  assert.equal(destination[1].game.estado, 'EN_JUEGO');
+  assert.deepEqual(destination.routes.map((route) => route.name), ['Home', 'GameStarted']);
+  assert.equal(destination.index, 1);
+  assert.equal(destination.routes[1].params.game.estado, 'EN_JUEGO');
 });
 
 test('la cuenta atrás de la sala va en segundos, centrada, y corre cada segundo', async () => {
@@ -238,14 +239,14 @@ test('la sala se recarga cada 10 s y abre la partida cuando arranca', async () =
     '../api/inscription': { getPlayers: async () => { loads += 1; return [{ id: 'i1', alias: 'ana', esMaster: false }]; } },
     '../api/game': { getMyGames: async () => [{ id: 'p1', ...game, estado, soyMaster: false, motivoCancelacion: null }], startGame: async () => undefined },
   }).WaitingRoomScreen;
-  await mount(WaitingRoomScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { gameId: 'p1', game } } });
+  await mount(WaitingRoomScreen, { navigation: { reset: (state) => { destination = state; } }, route: { params: { gameId: 'p1', game } } });
   assert.equal(loads, 1);
   await act(async () => mock.timers.tick(9_999));
   assert.equal(loads, 1);
   estado = 'EN_JUEGO';
   await act(async () => mock.timers.tick(1));
   assert.equal(loads, 2);
-  assert.equal(destination[0], 'GameStarted');
+  assert.deepEqual(destination.routes.map((route) => route.name), ['Home', 'GameStarted']);
 });
 
 test('sin el foco la sala no se recarga', async () => {

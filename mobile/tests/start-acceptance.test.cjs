@@ -129,11 +129,11 @@ test('criterio 1: el inscrito ve el arranque al consultar la sala', async () => 
   let destination;
   const { WaitingRoomScreen } = load('screens/WaitingRoomScreen.tsx', common);
   await mount(WaitingRoomScreen, {
-    navigation: { replace: (...args) => { destination = args; } },
+    navigation: { reset: (state) => { destination = state; } },
     route: { params: { gameId: game.id, game } },
   });
   assert.deepEqual(new Set(calls), new Set([
     '/api/v1/cuentas/yo/partidas', `/api/v1/partidas/${game.id}/inscritos`,
   ]));
-  assert.deepEqual(destination, ['GameStarted', { game: started }]);
+  assert.deepEqual(destination, { index: 1, routes: [{ name: 'Home' }, { name: 'GameStarted', params: { game: started } }] });
 });
