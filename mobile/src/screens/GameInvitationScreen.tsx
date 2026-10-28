@@ -38,10 +38,11 @@ export function GameInvitationScreen({ navigation, route }: Props) {
   }, [code, attempt]);
 
   const loading = state.code !== code || state.attempt !== attempt || state.status === "loading";
+  const lateGame = !loading && state.status === "loaded" && state.game.estado === "EN_JUEGO";
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>PARTIDA</Text>
+        {!lateGame ? <Text style={styles.heading}>PARTIDA</Text> : null}
         {loading ? <ActivityIndicator accessibilityLabel="Cargando partida" color={colors.lime} size="large" /> : null}
         {!loading && state.status === "loaded" && state.game.estado === "EN_JUEGO" ? <LateInvitation game={state.game} /> : null}
         {!loading && state.status === "loaded" && state.game.estado !== "EN_JUEGO" ? <View style={styles.card}>
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   lateGhost: { height: 184, marginBottom: 6, resizeMode: "contain", width: 190 },
   lateTag: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5 },
   lateTagText: { color: colors.ink, fontFamily: "ZenMaruBlack", fontSize: 11 },
-  lateTitle: { color: colors.text, ...bangers(34), lineHeight: 36, marginTop: 18, textAlign: "center" },
+  lateTitle: { alignSelf: "stretch", color: colors.text, ...bangers(34), lineHeight: 36, marginTop: 18, textAlign: "center" },
   lateGameName: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 14, textAlign: "center" },
   lateDetail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 14, lineHeight: 21, marginTop: 18, textAlign: "center" },
 });

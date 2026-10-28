@@ -220,6 +220,7 @@ test('una invitación de una partida iniciada muestra la pantalla de llegar tard
   assert.match(content, /No admite jugadores nuevos/);
   assert.doesNotMatch(content, /Máster:/);
   assert.doesNotMatch(content, /Inscritos:/);
+  assert.equal(tree.root.findAllByType('Text').some((text) => text.props.children === 'PARTIDA'), false);
   const homeButton = tree.root.findAllByType('PrimaryButton').find((item) => item.props.children === 'VOLVER A MIS PARTIDAS');
   await act(async () => homeButton.props.onPress());
   assert.deepEqual(destination, [{ index: 0, routes: [{ name: 'Home' }] }]);
