@@ -34,5 +34,5 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
   },
   pressed: { opacity: 0.7 },
-  label: { color: colors.ink, ...bangers(22), letterSpacing: 0.8 },
+  label: { alignSelf: "stretch", color: colors.ink, ...bangers(22), letterSpacing: 0.8, textAlign: "center" },
 });

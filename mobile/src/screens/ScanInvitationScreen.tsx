@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", flex: 1, gap: 22, justifyContent: "center", padding: 24 },
   message: { color: colors.text, fontFamily: "ZenMaru", fontSize: 17, lineHeight: 25, textAlign: "center" },
   button: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 13, borderWidth: 3, justifyContent: "center", minHeight: 54, paddingHorizontal: 22, width: "100%" },
-  buttonText: { color: colors.ink, ...bangers(22) },
+  buttonText: { alignSelf: "stretch", color: colors.ink, ...bangers(22), textAlign: "center" },
   secondaryButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, justifyContent: "center", minHeight: 54, width: "100%" },
-  secondaryText: { color: colors.text, ...bangers(22) },
+  secondaryText: { alignSelf: "stretch", color: colors.text, ...bangers(22), textAlign: "center" },
 });

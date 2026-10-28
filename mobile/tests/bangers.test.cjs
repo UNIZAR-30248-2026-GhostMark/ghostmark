@@ -27,6 +27,33 @@ test('el margen de Bangers aumenta con el tamaño de letra', () => {
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const module = { exports: {} };
   new Function('module', 'exports', code)(module, module.exports);
-  assert.deepEqual(module.exports.bangers(20), { fontFamily: 'Bangers', fontSize: 20, paddingRight: 6 });
-  assert.deepEqual(module.exports.bangers(40), { fontFamily: 'Bangers', fontSize: 40, paddingRight: 12 });
+  assert.deepEqual(module.exports.bangers(20), { fontFamily: 'Bangers', fontSize: 20 });
+  assert.deepEqual(module.exports.bangers(40), { fontFamily: 'Bangers', fontSize: 40 });
+});
+
+test('los textos Bangers de botones y pestañas no quedan ajustados a su contenido', () => {
+  const sourceRoot = path.join(__dirname, '../src');
+  const buttonTexts = [
+    ['components/PrimaryButton.tsx', 'label'],
+    ['components/DayScheduleModal.tsx', 'addText'],
+    ['components/DayScheduleModal.tsx', 'saveText'],
+    ['screens/CreateGameDataScreen.tsx', 'doneText'],
+    ['screens/GameStartedScreen.tsx', 'cardButtonText'],
+    ['screens/HomeScreen.tsx', 'buttonBangersText'],
+    ['screens/MissionCardScreen.tsx', 'tabOnText'],
+    ['screens/MissionCardScreen.tsx', 'codeText'],
+    ['screens/MissionCardScreen.tsx', 'removeText'],
+    ['screens/ScanInvitationScreen.tsx', 'buttonText'],
+    ['screens/ScanInvitationScreen.tsx', 'secondaryText'],
+    ['screens/WaitingRoomScreen.tsx', 'reviewText'],
+  ];
+  for (const [file, style] of buttonTexts) {
+    const source = fs.readFileSync(path.join(sourceRoot, file), 'utf8');
+    const match = source.match(new RegExp(`${style}:\\s*\\{([^}]*)\\}`));
+    assert.ok(match, `${file} debe declarar ${style}`);
+    assert.match(match[1], /alignSelf:\s*"stretch"/,
+      `${file}:${style} debe ocupar el ancho del contenedor`);
+    assert.match(match[1], /textAlign:\s*"center"/,
+      `${file}:${style} debe centrar dentro de una caja amplia`);
+  }
 });
