@@ -86,10 +86,10 @@ function HiddenCard() {
 function RevealedCard({ card }: { card: MissionCard }) {
   return <View style={styles.cardFront}>
     <View style={styles.objectiveTag}><Text style={styles.objectiveTagText}>Objetivo</Text></View>
-    <Text adjustsFontSizeToFit minimumFontScale={0.58} numberOfLines={2} style={styles.targetName}>{card.aliasObjetivo?.toUpperCase() ?? "CUENTA ELIMINADA"}</Text>
+    <Text adjustsFontSizeToFit minimumFontScale={0.4} numberOfLines={1} style={styles.targetName}>{card.aliasObjetivo?.toUpperCase() ?? "CUENTA ELIMINADA"}</Text>
     <View style={styles.ruleDivider} />
     <View style={styles.missionTag}><Text style={styles.missionTagText}>Misión</Text></View>
-    <Text adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={5} style={styles.missionText}>{card.mision.toUpperCase()}</Text>
+    <Text adjustsFontSizeToFit minimumFontScale={0.35} numberOfLines={5} style={styles.missionText}>{card.mision.toUpperCase()}</Text>
   </View>;
 }
 
@@ -119,11 +119,11 @@ const styles = StyleSheet.create({
   cardFront: { backgroundColor: colors.white, flex: 1, paddingHorizontal: 20, paddingTop: 22 },
   objectiveTag: { alignSelf: "flex-start", backgroundColor: colors.textMuted, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, paddingHorizontal: 12, paddingVertical: 5 },
   objectiveTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
-  targetName: { color: colors.ink, ...bangers(55), letterSpacing: 1, marginTop: 16, minHeight: 62 },
+  targetName: { color: colors.ink, ...bangers(55), height: 62, letterSpacing: 1, marginTop: 16, width: "100%" },
   ruleDivider: { backgroundColor: colors.ink, height: 3, marginTop: 10, opacity: 0.2, width: "100%" },
   missionTag: { alignSelf: "flex-start", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, marginTop: 17, paddingHorizontal: 12, paddingVertical: 5 },
   missionTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
-  missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 36, marginTop: 15 },
+  missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 34, marginTop: 12 },
   footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
   codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 12 },
   codeText: { color: colors.text, ...bangers(21), letterSpacing: 0.7 },

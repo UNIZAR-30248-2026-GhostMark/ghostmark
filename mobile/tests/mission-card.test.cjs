@@ -92,3 +92,22 @@ test('la carta no falla si el objetivo borró su cuenta', async () => {
   await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
   assert.match(JSON.stringify(tree.toJSON()), /CUENTA ELIMINADA/);
 });
+
+test('la carta reserva espacio y reduce el texto para el alias y la misión máximos', async () => {
+  const alias = 'abcdefghijklmnopqrst';
+  const mission = 'completa esta misión sin salirte de la carta '.repeat(5).slice(0, 200);
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
+    '../api/client': { ApiError: class ApiError extends Error {} },
+    '../api/game': { getMyMissionCard: async () => ({ aliasObjetivo: alias, mision: mission }) },
+  });
+  await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
+  const texts = tree.root.findAllByType('Text');
+  const target = texts.find((text) => text.props.children === alias.toUpperCase());
+  const missionText = texts.find((text) => text.props.children === mission.toUpperCase());
+  assert.equal(target.props.numberOfLines, 1);
+  assert.equal(target.props.minimumFontScale, 0.4);
+  assert.equal(target.props.style.height, 62);
+  assert.equal(missionText.props.numberOfLines, 5);
+  assert.equal(missionText.props.minimumFontScale, 0.35);
+  assert.equal(missionText.props.style.lineHeight, 34);
+});
