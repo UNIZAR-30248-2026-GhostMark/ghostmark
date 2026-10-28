@@ -436,6 +436,7 @@ test('Unirse desde Inicio abre el escáner', async () => {
   });
   await mount(HomeScreen, { navigation: { navigate: (name) => destinations.push(name) }, route: { params: undefined } });
   const join = tree.root.findAllByType('Pressable').find((button) => button.findAllByType('Text').some((label) => label.props.children === 'UNIRSE'));
+  assert.equal(join.props.style({ pressed: false })[0].opacity, undefined);
   act(() => join.props.onPress());
   assert.deepEqual(destinations, ['ScanInvitation']);
 });
