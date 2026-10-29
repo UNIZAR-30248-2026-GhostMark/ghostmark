@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 13 },
   header: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   back: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 12, borderWidth: 2, height: 42, justifyContent: "center", width: 42 },
-  title: { color: colors.text, ...bangers(37), lineHeight: 35 },
+  title: { color: colors.text, flex: 1, ...bangers(37), lineHeight: 35 },
   memberTag: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 6, transform: [{ rotate: "4deg" }] },
   memberTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
   countdown: { alignItems: "center", backgroundColor: colors.ink, borderRadius: 18, marginTop: 16, paddingHorizontal: 8, paddingVertical: 10 },
