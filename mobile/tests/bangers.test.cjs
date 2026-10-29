@@ -71,3 +71,8 @@ test('Inicio y los controles en fila reservan ancho para Bangers', () => {
   assert.match(cancelled, /countValueWide:\s*\{[^}]*alignSelf:\s*"stretch"[^}]*textAlign:\s*"center"/);
   assert.match(createGame, /timeWide:\s*\{[^}]*flex:\s*1[^}]*textAlign:\s*"center"/);
 });
+
+test('Sala de espera reserva ancho para el título entre los controles', () => {
+  const waitingRoom = fs.readFileSync(path.join(__dirname, '../src/screens/WaitingRoomScreen.tsx'), 'utf8');
+  assert.match(waitingRoom, /title:\s*\{[^}]*flex:\s*1/);
+});
