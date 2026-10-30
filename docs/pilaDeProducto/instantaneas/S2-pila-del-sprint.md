@@ -1,33 +1,33 @@
 <!-- Instantánea congelada: no se edita. -->
-> **Instantánea S2 · Pila del sprint**, tal como quedó en la planificación del 30 de octubre de 2026: objetivo, capacidad, PBI elegidas y sus tareas estimadas en horas-persona, comprobadas contra los issues #192-#204 de GitHub y los #185-#188 que vienen del sprint 1. La pila del producto de la que se partió está en [`S2-antes-de-planificar.md`](S2-antes-de-planificar.md), con los criterios de cada PBI.
+> **Instantánea S2 · Pila del sprint**, tal como quedó en la planificación del 30 de octubre de 2026: objetivo, capacidad, PBI elegidas y sus tareas estimadas en horas-persona, comprobadas contra los issues #192-#204 y #206-#211 de GitHub y los #185-#188 que vienen del sprint 1. La pila del producto de la que se partió está en [`S2-antes-de-planificar.md`](S2-antes-de-planificar.md), con los criterios de cada PBI.
 
 # Pila del sprint 2
 
 ## Objetivo del sprint
 
-**Se puede jugar una partida de principio a fin: cada jugador elimina con el código de vida, hereda objetivo y misión, y la partida se cierra con un ganador.**
+**Se puede jugar una partida de principio a fin, con misiones de la biblioteca o generadas con IA y aprobadas por el máster: cada jugador elimina con el código de vida, hereda objetivo y misión, y la partida se cierra con un ganador.**
 
-Lo decidió el Dueño del Producto, Imad Habib Jali, el 2026-10-30. Al acabar el sprint 1 la partida arrancaba y cada jugador veía su carta, pero no se podía jugar; con la 7a, la 7b y la 8 se juega y termina. Para eso la 7a, la 7b y la 8 pasaron por delante de las misiones con IA (6a y 6b).
+Lo decidió el Dueño del Producto, Imad Habib Jali, el 2026-10-30. Al acabar el sprint 1 la partida arrancaba y cada jugador veía su carta, pero no se podía jugar; con la 7a, la 8 y la 7b se juega y termina. En la misma planificación entraron también las misiones con IA (6a y 6b), para no dejar demasiado trabajo para el sprint 3, y el objetivo se amplió con ellas. Orden de prioridad: 7a, 8, 7b, 6a y 6b. Para la IA se usa Gemini con la clave gratuita de Google AI Studio, sin coste.
 
 ## Capacidad del equipo
 
-Las horas son las de la previsión del proyecto para el sprint 2, hecha el 8 de octubre con la misma base que la del sprint 1 (unas 120 h por persona en todo el proyecto). Incluyen 8 h para el informe de los sprints 1 y 2, que no son de ninguna PBI. Las actividades Scrum y la gestión van aparte, en el 27 % que la hoja de costes suma sobre el desarrollo.
+La previsión del proyecto, hecha el 8 de octubre con la misma base que la del sprint 1 (unas 120 h por persona en todo el proyecto), daba 68,5 h para el sprint 2. Al entrar la 6a y la 6b se suman 22,5 h, entre 4 y 8 h más por persona, pendientes de que cada uno las confirme. Incluyen 8 h para el informe de los sprints 1 y 2, que no son de ninguna PBI. Las actividades Scrum y la gestión van aparte, en el 27 % que la hoja de costes suma sobre el desarrollo.
 
 | Persona | Desarrollo (h) | Scrum y gestión, 27 % (h) | Total del sprint (h) |
 |--|--|--|--|
-| Imad Habib Jali | 14,5 | 3,9 | 18,4 |
-| Alejo Beamonte Andreu | 17 | 4,6 | 21,6 |
-| Sergio Saura Oliva | 18,5 | 5,0 | 23,5 |
-| Diego Simón Íñiguez | 18,5 | 5,0 | 23,5 |
-| **Total** | **68,5** | **18,5** | **87** |
+| Imad Habib Jali | 22,5 | 6,1 | 28,6 |
+| Alejo Beamonte Andreu | 22 | 5,9 | 27,9 |
+| Sergio Saura Oliva | 24 | 6,5 | 30,5 |
+| Diego Simón Íñiguez | 22,5 | 6,1 | 28,6 |
+| **Total** | **91** | **24,6** | **115,6** |
 
-Capacidad para la pila del sprint: 68,5 − 8 del informe = 60,5 h.
+Capacidad para la pila del sprint: 91 − 8 del informe = 83 h.
 
 ## PBI y tareas
 
-Por cada PBI elegida (en orden de prioridad): se le asigna el milestone `S2`, se parte en tareas (issues con la etiqueta `tarea`, *sub-issue* de su PBI) y se resta su total. Antes se restan los defectos y mejoras que vienen del sprint 1. Las tareas, sin orden ni persona asignada, se crearon en GitHub el 2026-10-30.
+Por cada PBI elegida (en orden de prioridad): se le asigna el milestone `S2`, se parte en tareas (issues con la etiqueta `tarea`, *sub-issue* de su PBI) y se resta su total. Antes se restan los defectos y mejoras que vienen del sprint 1. Las tareas, sin orden ni persona asignada, se crearon en GitHub el 2026-10-30 (las de la 6a y la 6b, el 31).
 
-**Diferencia con el S1.** Las tareas se unen por pieza de trabajo para que haya menos *pull requests*: el servidor de una PBI va en una o dos tareas según tenga una o dos partes independientes, la app igual, y los tests de aceptación, el manual y la comprobación en producción de cada PBI van juntos en una tarea al final (dos personas como mucho). En el S1 salieron 38 tareas de 2,7 h de media; aquí, 13 de 3,9 h.
+**Diferencia con el S1.** Las tareas se unen por pieza de trabajo para que haya menos *pull requests*: el servidor de una PBI va en una o dos tareas según tenga una o dos partes independientes, la app igual, y los tests de aceptación, el manual y la comprobación en producción de cada PBI van juntos en una tarea al final (dos personas como mucho). En el S1 salieron 38 tareas de 2,7 h de media; aquí, 19 de 3,9 h.
 
 ### Defectos y mejoras del S1 que pasan al S2 (se restan antes)
 
@@ -53,15 +53,6 @@ La partida solo existe hoy como eventos (`CICLO_FORMADO`, `MISIONES_REPARTIDAS`)
 | 7a.6 | Tests de aceptación de los tres criterios (con dos vivos, cada uno objetivo del otro), manual de usuario y comprobación a mano en producción y en Android | #197 | pruebas y documentación | 5 |
 | | | | **Total PBI 7a** | **25,5** |
 
-### PBI 7b · Códigos rechazados y eliminaciones simultáneas (#189)
-
-| N.º | Tarea | Issue | Tipo | Estimación (h) |
-|--|--|--|--|--|
-| 7b.1 | Servidor: rechazo de códigos caducados, ajenos o de un eliminado, bloqueo tras 3 fallos hasta que el código rote y, si dos eliminaciones coinciden, solo la primera; errores en OpenAPI | #198 | implementación | 4 |
-| 7b.2 | App: «Te quedan N intentos», mensajes de cada rechazo y bloqueo con cuenta atrás en «Eliminar» | #199 | implementación | 2 |
-| 7b.3 | Tests de aceptación de los dos criterios (incluida la concurrencia), manual de usuario y comprobación a mano en producción | #200 | pruebas y documentación | 2,5 |
-| | | | **Total PBI 7b** | **8,5** |
-
 ### PBI 8 · Cierre de partida, ganador y empate (#8)
 
 El cierre por fecha de fin sigue el mismo camino que el arranque: tarea programada cada minuto y cierre pendiente al consultar, porque Render duerme el servidor. El borrado de los datos al cerrar es de la PBI 14.
@@ -74,14 +65,45 @@ El cierre por fecha de fin sigue el mismo camino que el arranque: tarea programa
 | 8.4 | Tests de aceptación de los tres casos de cierre, del ganador y del empate, manual de usuario y comprobación a mano en producción y en Android | #204 | pruebas y documentación | 4,5 |
 | | | | **Total PBI 8** | **17** |
 
+### PBI 7b · Códigos rechazados y eliminaciones simultáneas (#189)
+
+| N.º | Tarea | Issue | Tipo | Estimación (h) |
+|--|--|--|--|--|
+| 7b.1 | Servidor: rechazo de códigos caducados, ajenos o de un eliminado, bloqueo tras 3 fallos hasta que el código rote y, si dos eliminaciones coinciden, solo la primera; errores en OpenAPI | #198 | implementación | 4 |
+| 7b.2 | App: «Te quedan N intentos», mensajes de cada rechazo y bloqueo con cuenta atrás en «Eliminar» | #199 | implementación | 2 |
+| 7b.3 | Tests de aceptación de los dos criterios (incluida la concurrencia), manual de usuario y comprobación a mano en producción | #200 | pruebas y documentación | 2,5 |
+| | | | **Total PBI 7b** | **8,5** |
+
+### PBI 6a · Misiones generadas con IA y aprobadas por el máster (#6)
+
+El generador va detrás de una interfaz, con Gemini como primera implementación (R11-8) y el servicio simulado en los tests, para que la integración continua no gaste cuota. El formato se controla pidiendo a Gemini un JSON con esquema fijo y validándolo en el servidor; el filtro de categorías usa las prohibidas de la Descripción (§7: contacto físico, alcohol, riesgo físico, contenido sexual, entrar sin permiso y ridiculizar).
+
+| N.º | Tarea | Issue | Tipo | Estimación (h) |
+|--|--|--|--|--|
+| 6a.1 | Diseño: misiones propuestas y aprobadas, interfaz del generador, esquema JSON de la respuesta, filtro de categorías prohibidas y contrato en OpenAPI (pedir tanda, aprobar y rechazar) | #206 | diseño | 2 |
+| 6a.2 | Servidor: cliente de Gemini, validación de formato y filtro, pedir una tanda de 8 con contexto, aprobar y rechazar, límite de 5 tandas, y reparto al arrancar con las aprobadas y la biblioteca si faltan | #207 | implementación | 6 |
+| 6a.3 | App: paso «Misiones» del asistente (Biblioteca o Generar con IA, contexto en chips) y pila de cartas para aprobar o rechazar | #208 | implementación | 5 |
+| 6a.4 | Tests de aceptación de los dos criterios, manual de usuario y comprobación a mano en producción y en Android | #209 | pruebas y documentación | 4 |
+| | | | **Total PBI 6a** | **17** |
+
+### PBI 6b · La partida sigue con la biblioteca si la IA falla (#190)
+
+| N.º | Tarea | Issue | Tipo | Estimación (h) |
+|--|--|--|--|--|
+| 6b.1 | Servidor y app: si la IA falla, no responde a tiempo o se agota la cuota gratuita, se usan misiones de la biblioteca y el máster ve un aviso; servicio simulado caído | #210 | implementación | 3,5 |
+| 6b.2 | Test de aceptación con el servicio simulado caído, manual de usuario y comprobación en producción | #211 | pruebas y documentación | 2 |
+| | | | **Total PBI 6b** | **5,5** |
+
 ### Total del sprint
 
 | Parte | Horas estimadas | Acumulado (h) |
 |--|--|--|
 | Defectos y mejoras (#185-#188) | 9,5 | 9,5 |
 | 7a (#7) | 25,5 | 35 |
-| 7b (#189) | 8,5 | 43,5 |
-| 8 (#8) | 17 | 60,5 |
-| Informe de los sprints 1 y 2 (15 nov), fuera de la pila | 8 | 68,5 |
+| 8 (#8) | 17 | 52 |
+| 7b (#189) | 8,5 | 60,5 |
+| 6a (#6) | 17 | 77,5 |
+| 6b (#190) | 5,5 | 83 |
+| Informe de los sprints 1 y 2 (15 nov), fuera de la pila | 8 | 91 |
 
-Pila del sprint: 3 PBI, 13 tareas y 4 issues del S1, 60,5 h; con el informe, 68,5 h, las mismas de la previsión del 8 de octubre. Si al consultar las horas con el equipo no llega, sale primero la 7b (8,5 h): el objetivo se cumple sin ella, porque solo protege frente a trampas y casos límite.
+Pila del sprint: 5 PBI, 19 tareas y 4 issues del S1, 83 h; con el informe, 91 h. Con la 7a, la 8 y la 7b eran 68,5 h, las de la previsión del 8 de octubre; la 6a y la 6b suman 22,5 h más. Si el sprint se retrasa, salen juntas la 6a y la 6b (22,5 h), porque la 6b no tiene sentido sin la 6a y la 6a sin la 6b deja la partida colgada si la IA falla.
