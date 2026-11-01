@@ -25,6 +25,8 @@ tags:
       (`motivoCancelacion` `POCOS_JUGADORES`); no hay ruta para eso: el servidor lo revisa cada minuto
       y antes de atender cada petición.
       Código de vida, eliminación, herencia y feed (PBI 7a, #7), y códigos rechazados y bloqueo (PBI 7b, #189).
+      Cierre de la partida y resultado (PBI 8, #8): la partida se cierra sola al quedar un único vivo o al llegar
+      la fecha de fin (revisado cada minuto y antes de atender cada petición), o cuando la cierra el máster.
 security:
   - bearerAuth: []
 paths:
@@ -413,7 +415,31 @@ paths:
         '401': { $ref: '#/components/responses/NoAutenticado' }
         '404': { $ref: '#/components/responses/NoEncontrada' }
         '409':
-          description: La partida todavía no está en juego (`PARTIDA_NO_EN_JUEGO`)
+          description: La partida no está en juego, porque aún no ha arrancado o ya se ha cerrado (`PARTIDA_NO_EN_JUEGO`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/cierre:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    post:
+      tags: [juego]
+      operationId: cerrarPartida
+      summary: «Cerrar partida» (solo el máster, con la partida en juego)
+      description: |
+        Cierra la partida con el mismo resultado que en la fecha de fin: entre los vivos, gana quien más
+        eliminaciones tiene, un empate en cabeza es empate de partida y, si solo queda uno, es el último superviviente.
+      responses:
+        '200':
+          description: Partida cerrada, con su resultado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PartidaResumen' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/NoEsMaster' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida no está en juego (`PARTIDA_NO_EN_JUEGO`), también si ya se ha cerrado por otra vía
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -641,7 +667,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ConfiguracionPartida'
         - type: object
-          required: [id, estado, codigoInvitacion, enlace, numInscritos, creadaEn]
+          required: [id, estado, codigoInvitacion, enlace, numInscritos, creadaEn, resultado]
           properties:
             id: { type: string, format: uuid }
             estado: { $ref: '#/components/schemas/EstadoPartida' }
@@ -649,10 +675,11 @@ components:
             enlace: { type: string, example: 'ghostmark://unirse/K7PX4MQ2', description: Lo que contiene el QR }
             numInscritos: { type: integer, minimum: 0 }
             creadaEn: { type: string, format: date-time }
+            resultado: { $ref: '#/components/schemas/ResultadoPartida' }
     PartidaResumen:
       description: Tarjeta de la pestaña «Partidas»
       type: object
-      required: [id, nombre, estado, inicioEn, finEn, soyMaster, soyJugador, numInscritos, motivoCancelacion]
+      required: [id, nombre, estado, inicioEn, finEn, soyMaster, soyJugador, numInscritos, motivoCancelacion, resultado]
       properties:
         id: { type: string, format: uuid }
         nombre: { type: string }
@@ -666,6 +693,20 @@ components:
           type: [string, 'null']
           enum: [POCOS_JUGADORES, MASTER_SIN_CUENTA, null]
           description: Solo en una partida `CANCELADA`, el motivo de su evento `PARTIDA_CANCELADA`; nulo en los demás estados
+        resultado: { $ref: '#/components/schemas/ResultadoPartida' }
+    ResultadoPartida:
+      description: Solo en una partida `CERRADA`, el resultado de su evento `PARTIDA_CERRADA`; nulo en los demás estados
+      type: [object, 'null']
+      required: [tipo, motivo, aliasGanadores, eliminaciones]
+      properties:
+        tipo: { type: string, enum: [SUPERVIVIENTE, GANADOR, EMPATE], description: '«X, último superviviente», «Gana X con N eliminaciones» o «Empate entre X e Y»' }
+        motivo: { type: string, enum: [ULTIMO_SUPERVIVIENTE, FECHA_FIN, MASTER] }
+        aliasGanadores:
+          type: array
+          minItems: 1
+          items: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
+          description: Uno con `SUPERVIVIENTE` o `GANADOR`; dos o más con `EMPATE`
+        eliminaciones: { type: integer, minimum: 0, description: Las del ganador o de cada empatado }
     PartidaPublica:
       description: Lo que ve quien abre el enlace antes de unirse
       type: object
