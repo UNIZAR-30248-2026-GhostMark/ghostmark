@@ -1,6 +1,10 @@
-# Blueprint de Render (tarea 1.4, #37): servidor en Docker y PostgreSQL en el plan gratuito.
-# La base de datos gratuita caduca a los 30 días (riesgo Ri19); PostGIS lo activa la migración
-# V202610240900__postgis.sql. Solo despliega el flujo despliegue-backend, con el deploy hook.
+# Blueprint de Render (tarea 1.4, #37): servidor en Docker. La base de datos es un PostgreSQL
+# gratuito de Neon (tarea #218), sin caducidad; PostGIS lo activa la migración
+# V202610240900__postgis.sql. La conexión se configura en el panel del servicio:
+# SPRING_DATASOURCE_URL=jdbc:postgresql://<host>/<base>?sslmode=require, con el host de la
+# conexión directa de Neon (no el del pooler, para que Flyway migre sin problemas), y el
+# usuario y la contraseña en DB_USER y DB_PASSWORD.
+# Solo despliega el flujo despliegue-backend, con el deploy hook.
 services:
   - type: web
     name: ghostmark-api
@@ -11,30 +15,11 @@ services:
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /api/v1/health
     envVars:
-      - key: DB_HOST
-        fromDatabase:
-          name: ghostmark-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: ghostmark-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: ghostmark-db
-          property: database
+      - key: SPRING_DATASOURCE_URL
+        sync: false
       - key: DB_USER
-        fromDatabase:
-          name: ghostmark-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: ghostmark-db
-          property: password
+        sync: false
       - key: JWT_SECRETO
         generateValue: true
-databases:
-  - name: ghostmark-db
-    databaseName: ghostmark
-    user: ghostmark
-    plan: free
