@@ -257,5 +257,82 @@ Los eventos no se modifican ni se borran, salvo al cerrar la partida, cuando se 
 | `CICLO_FORMADO` | Justo después de arrancar | `orden`: lista de `inscripcionId` en el orden del ciclo | 4.3 |
 | `PARTIDA_CANCELADA` | Llega `inicio_en` con menos de 3, o el máster borra su cuenta antes del arranque | `motivo` (`POCOS_JUGADORES`, `MASTER_SIN_CUENTA`), `numJugadores` | 4.4, 2.2 |
 | `MISIONES_REPARTIDAS` | Justo después de `CICLO_FORMADO` | `asignaciones`: lista de `{inscripcionId, misionId}` | 5.2 |
+| `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo) | 7a.3 |
 
-**Reconstruir el estado** (test de la tarea 4.6): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado` y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (eliminación, disputa, abandono…) a esta tabla.
+**Reconstruir el estado** (test de la tarea 4.6): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a) y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (disputa, abandono…) a esta tabla.
+
+## Código de vida y eliminación (PBI 7a, #7, y PBI 7b, #189)
+
+Al eliminar, el cazador hereda el objetivo y la misión de su víctima y el ciclo se acorta sin romperse. Para no reproducir todos los eventos en cada consulta, el estado actual de cada jugador se guarda en `jugador_partida`, una copia que se actualiza en la misma transacción que cada evento, igual que `partida.estado`.
+
+```mermaid
+erDiagram
+    inscripcion ||--|| jugador_partida : "estado en la partida"
+    partida ||--o{ jugador_partida : "jugadores"
+    jugador_partida }o--o| inscripcion : "objetivo"
+    jugador_partida }o--o| mision : "misión actual"
+    jugador_partida {
+        uuid inscripcion_id PK, FK
+        uuid partida_id FK
+        varchar estado "VIVO, ELIMINADO"
+        uuid objetivo_id FK "nulo si eliminado o único vivo"
+        uuid mision_id FK "nulo si eliminado o único vivo"
+        smallint eliminaciones
+        bytea secreto_codigo "20 bytes, nunca sale del servidor"
+        smallint intentos_fallidos "0-3"
+        timestamptz bloqueado_hasta "nulo si no"
+        timestamptz eliminado_en "nulo si vivo"
+    }
+```
+
+### `jugador_partida`
+
+| Columna | Tipo | Restricciones | Regla de producto |
+|--|--|--|--|
+| `inscripcion_id` | `uuid` | clave primaria; clave ajena a `inscripcion`, `on delete cascade` | Una fila por jugador de la partida, incluido el máster si juega |
+| `partida_id` | `uuid` | clave ajena a `partida`, `on delete cascade`; índice | |
+| `estado` | `varchar(20)` | no nulo; `check (estado in ('VIVO', 'ELIMINADO'))` | La PBI 12 añade `ABANDONADO` y `EXPULSADO` |
+| `objetivo_id` | `uuid` | clave ajena a `inscripcion` (sin acción al borrar: la fila se borra con la partida); nulo si el jugador está eliminado o es el único vivo | A quién persigue ahora |
+| `mision_id` | `uuid` | clave ajena a `mision`; nulo en los mismos casos | La misión que tiene que cumplir ahora. La 6a.1 decide cómo se guardan las misiones aprobadas de la IA |
+| `eliminaciones` | `smallint` | no nulo; por defecto 0 | Las que ha hecho; deciden el ganador (PBI 8) |
+| `secreto_codigo` | `bytea` | no nulo; 20 bytes de `SecureRandom` | Secreto del código de vida. No lo devuelve ninguna operación de la API |
+| `intentos_fallidos` | `smallint` | no nulo; por defecto 0; `check (intentos_fallidos between 0 and 3)` | Códigos incorrectos seguidos del cazador sobre su objetivo actual (PBI 7b) |
+| `bloqueado_hasta` | `timestamptz` | nulo si no está bloqueado | Tras 3 fallos seguidos, el instante en que rota el código (PBI 7b) |
+| `eliminado_en` | `timestamptz` | nulo mientras está vivo | |
+
+- **Se crea al arrancar:** en la transacción del arranque, después de `CICLO_FORMADO` y `MISIONES_REPARTIDAS`, una fila `VIVO` por jugador con su objetivo, su misión y un secreto nuevo. La migración rellena las partidas que ya estén `EN_JUEGO` a partir de esos dos eventos; como en SQL no hay `SecureRandom`, el secreto de esas filas son los 20 primeros bytes de `uuid_send(gen_random_uuid()) || uuid_send(gen_random_uuid())`, sin extensiones.
+- **Qué tarea la toca:** la **7a.2** crea la tabla (migración con el relleno) y la llena al arrancar; la **7a.3** la actualiza al eliminar y pasa la carta a leer de ella; la **7b.1** usa `intentos_fallidos` y `bloqueado_hasta`. Por eso la 7a.3 y la 7b.1 requieren la 7a.2.
+- **Borrar la cuenta:** la fila no tiene datos de la persona y se queda con la inscripción, que en `EN_JUEGO` sigue con `cuenta_id` a `null`; en el feed y en la carta de su cazador sale como «cuenta eliminada». Qué pasa con su lugar en el ciclo se decide con la PBI 12. El test de borrado de cuenta comprueba que la fila sigue y que la API devuelve su alias nulo.
+
+### Código de vida
+
+- **Cálculo:** TOTP (RFC 6238) con HMAC-SHA1 sobre `secreto_codigo`, pasos de 60 s alineados con el reloj (paso = segundos desde 1970 / 60) y 6 dígitos, con ceros a la izquierda. El servidor lo calcula cada vez; el código no se guarda.
+- **Solo lo obtiene su dueño, vivo:** `GET /partidas/{id}/yo/codigo` devuelve el código del paso actual y `caducaEn`, el final del paso. La app lo muestra con la cuenta atrás y lo vuelve a pedir al llegar a `caducaEn`. Nadie obtiene el código de otro, y un eliminado tampoco el suyo.
+- **Tolerancia (R11-13):** al eliminar se acepta el código del paso actual y, durante los 15 primeros segundos de cada paso, también el del paso anterior.
+
+### Eliminar
+
+`POST /partidas/{id}/eliminaciones` con el código. La víctima es siempre el objetivo actual del cazador: el cazador no elige a quién elimina. En una transacción, con la fila de la partida bloqueada como al guardar cualquier evento:
+
+1. La partida tiene que estar `EN_JUEGO` (`PARTIDA_NO_EN_JUEGO`) y quien llama, ser jugador de ella (si no, 404, también el máster que no juega).
+2. Quien llama tiene que estar `VIVO` (`JUGADOR_ELIMINADO`) y no bloqueado (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`).
+3. Se compara el código con el de su objetivo, con la tolerancia de arriba. Si no coincide, suma un fallo y responde `CODIGO_CADUCADO` si es un código de su objetivo de los últimos 10 minutos, o `CODIGO_INCORRECTO` si no (también si es el código de otro jugador), con `intentosRestantes`. Al tercer fallo seguido, `bloqueado_hasta` pasa a ser el inicio del paso siguiente, `intentos_fallidos` vuelve a 0 y responde `INTENTOS_BLOQUEADOS`. Un código que no tiene 6 dígitos responde 400 `DATOS_NO_VALIDOS` y no cuenta como fallo. El código de una víctima ya eliminada se rechaza como `CODIGO_INCORRECTO`, porque un eliminado no es objetivo de nadie.
+4. Si coincide: se guarda `JUGADOR_ELIMINADO`; la víctima pasa a `ELIMINADO`, con `eliminado_en` y sin objetivo ni misión; el cazador hereda su objetivo y su misión, suma una eliminación y vuelve a 0 fallos sin bloqueo. Si el objetivo heredado es él mismo, es el único vivo: se queda sin objetivo ni misión y la partida se cierra con la PBI 8.
+
+**Eliminaciones a la vez (PBI 7b):** el bloqueo de la fila de la partida hace que las eliminaciones de una misma partida se apliquen de una en una. Si A elimina a B a la vez que B elimina a C, la que llega segunda ve que su cazador ya está eliminado y se rechaza con `JUGADOR_ELIMINADO`.
+
+### Feed y jugador eliminado
+
+- **Feed:** `GET /partidas/{id}/feed`, con la partida `EN_JUEGO` o `CERRADA`, lista las eliminaciones, de la más reciente a la más antigua, con el alias de la víctima y la hora, sin el cazador. Sale de los eventos `JUGADOR_ELIMINADO`. Las anulaciones, abandonos y expulsiones llegan con sus PBI.
+- **Jugador eliminado:** su carta devuelve `estado = ELIMINADO`, sin objetivo ni misión. La app le enseña una vez «Te han cazado», sin decir quién (R11-14), y después la pestaña Misión en gris como espectador, con el feed. La disputa de los 10 minutos llega con la PBI 11.
+
+### Quién puede hacer qué
+
+Un test por rol comprueba que lo demás se rechaza.
+
+| Operación | Jugador vivo | Jugador eliminado | Máster que juega | Máster que no juega | Otra cuenta |
+|--|--|--|--|--|--|
+| Mi código | Sí | No (`JUGADOR_ELIMINADO`) | Como jugador | No (404) | No (404) |
+| Eliminar | Sí, a su objetivo | No (`JUGADOR_ELIMINADO`) | Como jugador | No (404) | No (404) |
+| Feed | Sí | Sí | Sí | Sí | No (404) |
+| Mi carta | Sí | Sí, con `estado = ELIMINADO` | Como jugador | No (404) | No (404) |
