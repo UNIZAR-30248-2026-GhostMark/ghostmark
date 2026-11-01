@@ -11,7 +11,7 @@ Lo decidió el Dueño del Producto, Imad Habib Jali, el 2026-10-30. Al acabar el
 
 ## Capacidad del equipo
 
-La previsión del proyecto, hecha el 8 de octubre con la misma base que la del sprint 1 (unas 120 h por persona en todo el proyecto), daba 68,5 h para el sprint 2. Al entrar la 6a y la 6b se suman 22,5 h, entre 3,5 y 8,5 h más por persona, pendientes de que cada uno las confirme. Incluyen 8 h para el informe de los sprints 1 y 2, que no son de ninguna PBI. Las actividades Scrum y la gestión van aparte, en el 27 % que la hoja de costes suma sobre el desarrollo.
+La previsión del proyecto, hecha el 8 de octubre con la misma base que la del sprint 1 (unas 120 h por persona en todo el proyecto), daba 68,5 h para el sprint 2. Al entrar la 6a y la 6b se suman 22,5 h, entre 3,5 y 8,5 h más por persona, que cada uno confirmó el 1 de noviembre. Incluyen 8 h para el informe de los sprints 1 y 2, que no son de ninguna PBI. Las actividades Scrum y la gestión van aparte, en el 27 % que la hoja de costes suma sobre el desarrollo.
 
 | Persona | Desarrollo (h) | Scrum y gestión, 27 % (h) | Total del sprint (h) |
 |--|--|--|--|
