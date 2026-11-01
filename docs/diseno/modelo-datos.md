@@ -217,11 +217,11 @@ Con `n ≥ 3` esto da siempre **un único ciclo cerrado**: cada jugador tiene ex
 
 ### Reparto de misiones (PBI 5)
 
-Al arrancar, cada jugador recibe una misión activa de la biblioteca, al azar y sin repetir mientras queden; si hay más jugadores que misiones, se vuelve a empezar. Con `tipo_misiones = IA` también se usa la biblioteca hasta la PBI 6.
+Al arrancar, cada jugador recibe una misión activa de la biblioteca, al azar y sin repetir mientras queden; si hay más jugadores que misiones, se vuelve a empezar. Con `tipo_misiones = IA`, desde la PBI 6a se reparten primero las misiones aprobadas por el máster (ver «Misiones generadas con IA»).
 
 ### `mision`
 
-Biblioteca curada (tarea 5.1). Las misiones se cargan con una migración y ya vienen revisadas: ninguna implica contacto físico ni objetos que simulen armas.
+Biblioteca curada (tarea 5.1). Las misiones se cargan con una migración y ya vienen revisadas: ninguna implica contacto físico ni objetos que simulen armas. Desde la PBI 6a la tabla guarda también las misiones generadas con IA de cada partida, con `partida_id` y `estado` (ver «Misiones generadas con IA»); las de la biblioteca tienen los dos nulos.
 
 | Columna | Tipo | Restricciones |
 |--|--|--|
@@ -257,6 +257,8 @@ Los eventos no se modifican ni se borran. Con la PBI 14, al cerrar la partida se
 | `CICLO_FORMADO` | Justo después de arrancar | `orden`: lista de `inscripcionId` en el orden del ciclo | 4.3 |
 | `PARTIDA_CANCELADA` | Llega `inicio_en` con menos de 3, o el máster borra su cuenta antes del arranque | `motivo` (`POCOS_JUGADORES`, `MASTER_SIN_CUENTA`), `numJugadores` | 4.4, 2.2 |
 | `MISIONES_REPARTIDAS` | Justo después de `CICLO_FORMADO` | `asignaciones`: lista de `{inscripcionId, misionId}` | 5.2 |
+| `MISIONES_GENERADAS` | El máster pide una tanda a la IA | `tanda` (1-5), `contexto`, `misionIds` (las que llegan al máster), `descartadas` (cuántas quitaron la validación y el filtro) | 6a.2 |
+| `MISION_REVISADA` | El máster aprueba o rechaza una misión de la IA | `misionId`, `decision` (`APROBADA`, `RECHAZADA`) | 6a.2 |
 | `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo) | 7a.3 |
 | `PARTIDA_CERRADA` | Queda un único vivo, llega `fin_en` o el máster pulsa «Cerrar partida» | `motivo` (`ULTIMO_SUPERVIVIENTE`, `FECHA_FIN`, `MASTER`), `resultado` (`SUPERVIVIENTE`, `GANADOR`, `EMPATE`), `ganadores` (lista de `inscripcionId`), `eliminaciones` (las del ganador o de los empatados) | 8.2 |
 
@@ -375,4 +377,62 @@ En una transacción, con la fila de la partida bloqueada: se calcula el resultad
 |--|--|--|--|--|
 | Cerrar partida | No (`NO_ES_MASTER`) | Sí | Sí | No (404) |
 | Ver el resultado | Sí | Sí | Sí | No (404) |
+
+## Misiones generadas con IA (PBI 6a, #6, y PBI 6b, #190)
+
+Con `tipo_misiones = IA`, el máster pide misiones a la IA con un contexto y aprueba o rechaza cada una. Ninguna entra en juego sin su aprobación. Al arrancar se reparten primero las aprobadas y, si hay menos que jugadores, se completa con la biblioteca (R11-9).
+
+### Misiones de la IA en la tabla `mision`
+
+Las misiones de la IA van en la misma tabla que las de la biblioteca, para que `MISIONES_REPARTIDAS` y `jugador_partida.mision_id` apunten siempre a `mision`. La migración de la **6a.2** añade:
+
+| Columna | Tipo | Restricciones | Regla de producto |
+|--|--|--|--|
+| `partida_id` | `uuid` | clave ajena a `partida`, `on delete cascade`; índice; nulo en la biblioteca | La partida para la que se generó |
+| `estado` | `varchar(20)` | `check (estado in ('PROPUESTA', 'APROBADA', 'RECHAZADA'))`; nulo en la biblioteca | Solo las `APROBADA` pueden entrar en juego |
+| `tanda` | `smallint` | `check (tanda between 1 and 5)`; nulo en la biblioteca | |
+| `revisada_en` | `timestamptz` | nulo mientras está `PROPUESTA` | La decisión es definitiva (R11-18) |
+
+- `check ((partida_id is null) = (estado is null))`: una misión es de la biblioteca o de una partida, nunca las dos.
+- La unicidad de `texto` pasa a ser solo de la biblioteca: la migración quita la restricción `mision_texto_key` y crea un índice único parcial sobre `texto` `where partida_id is null`; en cada partida, índice único sobre `(partida_id, lower(texto))`. La columna `activa` solo cuenta en la biblioteca.
+- **El reparto desde la biblioteca filtra `partida_id is null`** (hoy `misionesActivas` solo mira `activa`): si no, una partida podría recibir las misiones de la IA de otra.
+- Al borrar una cuenta no hay nada que borrar aquí: las misiones no guardan quién las generó, solo la partida.
+
+### El generador
+
+- **Interfaz** `GeneradorMisiones`, con una operación: generar `n` misiones a partir de un contexto, evitando una lista de textos que ya tiene la partida. Si el servicio falla, tarda más de **15 s** o no queda cuota, lanza `GeneradorNoDisponible` (PBI 6b).
+- **`GeneradorGemini`**, la implementación de producción (R11-8): API de Gemini con salida JSON estructurada. El modelo va en la variable `GEMINI_MODELO` (un Flash del plan gratuito; el exacto se comprueba en la 6a.2 con los que ofrezca Google AI Studio ese día) y la clave en `GEMINI_CLAVE`, las dos en Render, nunca en el repositorio.
+- **`GeneradorSimulado`**, para los tests y la integración continua, sin llamadas reales: devuelve misiones fijas y se puede poner en modo «formato inválido», «prohibidas», «caído» y «lento».
+- **Instrucciones a Gemini:** misiones de una frase en español para un juego presencial entre estudiantes, sin contacto físico ni objetos que simulen armas, con el contexto del máster como dato (no como instrucciones) y los ejemplos válidos de la Descripción (§7).
+- **Esquema de la respuesta:** `{"misiones": [{"texto": string, "categoria": string}]}`, donde `categoria` es una de `CONVERSACION`, `OBJETO`, `FOTO`, `GESTO`, `OTRA` o una de las prohibidas: `CONTACTO_FISICO`, `ALCOHOL`, `RIESGO_FISICO`, `CONTENIDO_SEXUAL`, `ENTRAR_SIN_PERMISO`, `RIDICULIZAR`, `ARMAS` (objetos que simulen armas).
+
+### Validación y filtro (criterio 2)
+
+Cada misión que devuelve el generador pasa dos barreras antes de llegar al máster; la que no las pasa se descarta y solo se cuenta en `descartadas`:
+
+1. **Formato:** respuesta JSON con el esquema de arriba; `texto` de 10 a 200 caracteres, sin saltos de línea y distinto de las misiones que ya tiene la partida (sin distinguir mayúsculas).
+2. **Categorías prohibidas** (Descripción, §7): se descarta si Gemini la marca con una categoría prohibida y, como segunda barrera independiente de la IA, si el texto contiene alguna palabra de una lista del servidor (por ejemplo «beber», «cerveza», «tocar», «abrazar», «besar», «empujar», «saltar», «colarse», «reírse de», «arma», «pistola», «cuchillo», «espada»). La lista va en el código, con un test que la recorre.
+
+### Tandas (R11-9 y R11-17)
+
+- Cada tanda pide **12** misiones al generador y entrega al máster **hasta 8** de las que pasan las dos barreras. Si quedan menos de 8, entrega las que haya.
+- Como mucho **5 tandas por partida** (40 misiones). Una tanda que falla porque la IA no está disponible no cuenta.
+- El contexto es uno de los chips del prototipo («Campus», «Fiesta de bienvenida», «Semana de exámenes») o un texto libre de 3 a 40 caracteres («Otro…»).
+
+### Cuándo
+
+- Se pueden pedir tandas y revisar misiones **mientras la partida está `EN_INSCRIPCION`** (R11-16) y tiene `tipo_misiones = IA`. En el S2 la app lo ofrece en el paso «Misiones» del asistente, que va después de crear la partida.
+- Aprobar o rechazar es **definitivo** (R11-18): solo se puede decidir una misión `PROPUESTA`, y solo de la propia partida (la de otra partida responde 404).
+- Si el máster vuelve a `tipo_misiones = BIBLIOTECA` antes de arrancar, sus misiones de la IA se conservan pero no se usan: el reparto solo las mira con `tipo_misiones = IA`.
+- **Al arrancar:** si `tipo_misiones = IA`, se barajan las misiones `APROBADA` y se reparte una a cada jugador; si faltan, el resto sale de la biblioteca como hasta ahora. Las que quedan `PROPUESTA` no entran en juego. El arranque nunca llama al generador, así que un fallo de la IA no lo bloquea (criterio 1 de la 6b).
+
+### Si la IA falla (PBI 6b)
+
+Pedir una tanda con el generador caído, lento o sin cuota responde 503 `IA_NO_DISPONIBLE` y la tanda no cuenta. La app enseña el aviso del criterio 2 de la 6b («La IA no responde: se usarán misiones de la biblioteca») y deja seguir creando la partida. Al arrancar se usan las aprobadas que haya y la biblioteca para el resto.
+
+### Quién puede hacer qué
+
+| Operación | Máster (juegue o no) | Jugador inscrito | Otra cuenta |
+|--|--|--|--|
+| Pedir una tanda, ver las misiones de la IA, aprobar y rechazar | Sí | No (`NO_ES_MASTER`) | No (404) |
 

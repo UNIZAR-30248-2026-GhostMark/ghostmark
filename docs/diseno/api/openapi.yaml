@@ -18,6 +18,10 @@ tags:
     description: Crear, configurar y compartir una partida (PBI 2, #3)
   - name: inscripcion
     description: Inscribirse en una partida (PBI 3, #4)
+  - name: misiones
+    description: |
+      Misiones generadas con IA y aprobadas por el máster (PBI 6a, #6), y biblioteca si la IA falla (PBI 6b, #190).
+      Solo el máster, con la partida en inscripción y `tipoMisiones = IA`.
   - name: juego
     description: |
       Arrancar la partida y ver mi objetivo y mi misión (PBI 4, #5, y PBI 5, #31).
@@ -373,6 +377,92 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/misiones-ia:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [misiones]
+      operationId: listarMisionesIa
+      summary: Misiones de la IA de la partida y tandas que quedan
+      responses:
+        '200':
+          description: Las misiones generadas para la partida, con su estado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MisionesIa' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/NoEsMaster' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+  /api/v1/partidas/{partidaId}/misiones-ia/tandas:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    post:
+      tags: [misiones]
+      operationId: pedirTandaMisionesIa
+      summary: Pedir una tanda de misiones a la IA
+      description: |
+        Pide 12 misiones al generador con el contexto y entrega hasta 8 que pasen la validación de formato y el
+        filtro de categorías prohibidas, en estado `PROPUESTA`. Como mucho 5 tandas por partida; una tanda que
+        falla porque la IA no está disponible no cuenta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuevaTanda' }
+      responses:
+        '201':
+          description: Tanda generada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TandaMisiones' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/NoEsMaster' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: |
+            La partida ya no está en inscripción (`PARTIDA_NO_ABIERTA`), no tiene `tipoMisiones = IA`
+            (`MISIONES_DE_BIBLIOTECA`) o ya ha pedido 5 tandas (`LIMITE_TANDAS`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: La IA falla, no responde en 15 s o no queda cuota (`IA_NO_DISPONIBLE`); la tanda no cuenta y la partida seguirá con la biblioteca
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/misiones-ia/{misionId}:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+      - name: misionId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [misiones]
+      operationId: revisarMisionIa
+      summary: Aprobar o rechazar una misión de la IA
+      description: La decisión es definitiva; solo se puede revisar una misión `PROPUESTA`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RevisionMision' }
+      responses:
+        '200':
+          description: Misión revisada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MisionIa' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/NoEsMaster' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida ya no está en inscripción (`PARTIDA_NO_ABIERTA`) o la misión ya está revisada (`MISION_YA_REVISADA`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
   /api/v1/partidas/{partidaId}/arranque:
     parameters:
       - $ref: '#/components/parameters/PartidaId'
@@ -587,6 +677,38 @@ components:
         aliasObjetivo: { type: [string, 'null'], description: 'Nulo si el objetivo borró su cuenta («cuenta eliminada»), si el jugador está eliminado o si es el único vivo' }
         mision: { type: [string, 'null'], example: Que te diga la palabra «compilador», description: Nula si el jugador está eliminado o es el único vivo }
         eliminaciones: { type: integer, minimum: 0 }
+    MisionIa:
+      type: object
+      required: [id, texto, estado, tanda]
+      properties:
+        id: { type: string, format: uuid }
+        texto: { type: string, minLength: 10, maxLength: 200, example: Que te diga qué asignatura le cuesta más }
+        estado: { type: string, enum: [PROPUESTA, APROBADA, RECHAZADA] }
+        tanda: { type: integer, minimum: 1, maximum: 5 }
+    MisionesIa:
+      type: object
+      required: [misiones, tandasRestantes]
+      properties:
+        misiones: { type: array, items: { $ref: '#/components/schemas/MisionIa' } }
+        tandasRestantes: { type: integer, minimum: 0, maximum: 5 }
+    NuevaTanda:
+      type: object
+      required: [contexto]
+      properties:
+        contexto: { type: string, minLength: 3, maxLength: 40, example: Campus, description: Uno de los chips o el texto libre de «Otro…» }
+    TandaMisiones:
+      type: object
+      required: [tanda, misiones, descartadas, tandasRestantes]
+      properties:
+        tanda: { type: integer, minimum: 1, maximum: 5 }
+        misiones: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/MisionIa' } }
+        descartadas: { type: integer, minimum: 0, description: Las que quitaron la validación de formato y el filtro de categorías prohibidas }
+        tandasRestantes: { type: integer, minimum: 0, maximum: 4 }
+    RevisionMision:
+      type: object
+      required: [estado]
+      properties:
+        estado: { type: string, enum: [APROBADA, RECHAZADA] }
     CodigoVida:
       type: object
       required: [codigo, caducaEn]
@@ -798,7 +920,7 @@ components:
         detail: { type: string }
         codigo:
           type: string
-          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS]
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS, MISIONES_DE_BIBLIOTECA, LIMITE_TANDAS, MISION_YA_REVISADA, IA_NO_DISPONIBLE]
         intentosRestantes: { type: integer, minimum: 0, maximum: 2, description: Solo en `CODIGO_INCORRECTO` y `CODIGO_CADUCADO` }
         bloqueadoHasta: { type: string, format: date-time, description: Solo en `INTENTOS_BLOQUEADOS` }
         errores:
