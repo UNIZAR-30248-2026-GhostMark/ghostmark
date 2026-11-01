@@ -100,16 +100,17 @@ El generador va detrás de una interfaz, con Gemini como primera implementación
 | 6b.4 | Manual de usuario y comprobación a mano en producción | #217 | documentación | 1 |
 | | | | **Total PBI 6b** | **5,5** |
 
-### Total del sprint
+### Capacidad restante
 
-| Parte | Horas estimadas | Acumulado (h) |
+| Parte | Horas estimadas | Capacidad restante (h) |
 |--|--|--|
-| Defectos y mejoras (#185-#188) | 9,5 | 9,5 |
-| 7a (#7) | 26 | 35,5 |
-| 8 (#8) | 17 | 52,5 |
-| 7b (#189) | 8 | 60,5 |
-| 6a (#6) | 17 | 77,5 |
-| 6b (#190) | 5,5 | 83 |
-| Informe de los sprints 1 y 2 (15 nov), fuera de la pila | 8 | 91 |
+| Inicio (91 h confirmadas) | — | 91 |
+| Informe de los sprints 1 y 2 (15 nov), fuera de la pila | 8 | 83 |
+| Defectos y mejoras (#185-#188) | 9,5 | 73,5 |
+| 7a (#7) | 26 | 47,5 |
+| 8 (#8) | 17 | 30,5 |
+| 7b (#189) | 8 | 22,5 |
+| 6a (#6) | 17 | 5,5 |
+| 6b (#190) | 5,5 | 0 |
 
 Pila del sprint: 5 PBI, 25 tareas y 4 issues del S1, 83 h; con el informe, 91 h. Con la 7a, la 8 y la 7b eran 68,5 h, las de la previsión del 8 de octubre; la 6a y la 6b suman 22,5 h más. Si el sprint se retrasa, salen juntas la 6a y la 6b (22,5 h), porque la 6b no tiene sentido sin la 6a y la 6a sin la 6b deja la partida colgada si la IA falla.
