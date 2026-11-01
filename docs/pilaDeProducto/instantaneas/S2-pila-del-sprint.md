@@ -1,5 +1,5 @@
 <!-- Instantánea congelada: no se edita. -->
-> **Instantánea S2 · Pila del sprint**, tal como quedó en la planificación del 30 de octubre de 2026, con las tareas partidas por capa el 1 de noviembre: objetivo, capacidad, PBI elegidas y sus tareas estimadas en horas-persona, comprobadas contra los issues #192-#204 y #206-#217 de GitHub y los #185-#188 que vienen del sprint 1. La pila del producto de la que se partió está en [`S2-antes-de-planificar.md`](S2-antes-de-planificar.md), con los criterios de cada PBI.
+> **Instantánea S2 · Pila del sprint**, tal como quedó en la planificación del 30 de octubre de 2026, con las tareas partidas por capa el 1 de noviembre: objetivo, capacidad, PBI elegidas y sus tareas estimadas en horas-persona, comprobadas contra los issues #192-#204 y #206-#217 de GitHub y los #185-#188 que vienen del sprint 1. La pila del producto de la que se partió está en [`S2-antes-de-planificar.md`](S2-antes-de-planificar.md), con los criterios de cada PBI. Desde entonces la 6b tiene un segundo criterio (1 de noviembre): si la IA falla, el máster ve que se usarán misiones de la biblioteca y puede seguir creando la partida.
 
 # Pila del sprint 2
 
@@ -94,9 +94,9 @@ El generador va detrás de una interfaz, con Gemini como primera implementación
 
 | N.º | Tarea | Issue | Tipo | Estimación (h) |
 |--|--|--|--|--|
-| 6b.1 | Servidor: si la IA falla, no responde a tiempo o se agota la cuota gratuita, se usan misiones de la biblioteca y se avisa al máster; servicio simulado caído | #210 | implementación | 2,5 |
-| 6b.2 | App: aviso al máster en el paso «Misiones» de que se usan misiones de la biblioteca | #216 | implementación | 1 |
-| 6b.3 | Test de aceptación con el servicio simulado caído | #211 | pruebas | 1 |
+| 6b.1 | Servidor: si la IA falla, no responde a tiempo o se agota la cuota gratuita, se usan misiones de la biblioteca y se avisa al máster (criterio 2); servicio simulado caído | #210 | implementación | 2,5 |
+| 6b.2 | App: aviso al máster en el paso «Misiones» de que se usan misiones de la biblioteca (criterio 2) | #216 | implementación | 1 |
+| 6b.3 | Tests de aceptación de los dos criterios con el servicio simulado caído | #211 | pruebas | 1 |
 | 6b.4 | Manual de usuario y comprobación a mano en producción | #217 | documentación | 1 |
 | | | | **Total PBI 6b** | **5,5** |
 
