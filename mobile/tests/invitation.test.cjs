@@ -94,7 +94,7 @@ test('el QR y copiar usan el enlace del servidor; ir a la partida abre la sala',
   });
   await mount(ShareGameScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { game: { ...game, enlace: serverLink } } } });
   assert.equal(tree.root.findByType('QRCode').props.value, serverLink);
-  assert.equal(tree.root.findByType('GameWizardHeader').props.step, 3);
+  assert.equal(tree.root.findByType('GameWizardHeader').props.step, 4);
   const buttons = tree.root.findAllByType('Pressable');
   assert.equal(buttons.length, 1, 'sin «Compartir invitación» (R9-5)');
   await act(async () => buttons[0].props.onPress());
@@ -102,36 +102,12 @@ test('el QR y copiar usan el enlace del servidor; ir a la partida abre la sala',
   act(() => tree.root.findByType('PrimaryButton').props.onPress());
   assert.deepEqual(destination, ['WaitingRoom', { gameId: game.id, game: { ...game, enlace: serverLink } }]);
 });
-test('crear una partida abre compartir y retira los formularios del historial', async () => {
-  let calls = 0, reset;
-  const { CreateGameRulesScreen } = load('screens/CreateGameRulesScreen.tsx', { ...common,
-    '../api/game': { createGame: async () => { calls++; return game; } },
-  });
-  await mount(CreateGameRulesScreen, { navigation: { reset: (value) => { reset = value; } }, route: { params: { game: {} } } });
+test('las reglas llevan al paso Misiones con la configuración elegida', async () => {
+  let destination;
+  const { CreateGameRulesScreen } = load('screens/CreateGameRulesScreen.tsx', common);
+  await mount(CreateGameRulesScreen, { navigation: { navigate: (...value) => { destination = value; } }, route: { params: { game: { nombre: 'Partida', inicioEn: '2026-11-03T10:00:00Z', finEn: '2026-11-04T10:00:00Z' } } } });
   await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
-  assert.equal(calls, 1);
-  assert.deepEqual(reset, {
-    index: 1,
-    routes: [
-      {
-        name: 'Home',
-        params: {
-          createdGame: {
-            finEn: game.finEn,
-            id: game.id,
-            inicioEn: game.inicioEn,
-            nombre: game.nombre,
-            estado: game.estado,
-            numInscritos: game.numInscritos,
-            soyMaster: true,
-            soyJugador: true,
-            motivoCancelacion: null,
-          },
-        },
-      },
-      { name: 'ShareGame', params: { game } },
-    ],
-  });
+  assert.deepEqual(destination, ['CreateGameMissions', { configuration: { nombre: 'Partida', inicioEn: '2026-11-03T10:00:00Z', finEn: '2026-11-04T10:00:00Z', entradasTardias: false, masterJuega: true, plazoDisputaHoras: 12 } }]);
 });
 test('el nombre de la partida empieza vacío, con «Killer Bienvenida EINA» como ejemplo', async () => {
   let destination;
@@ -281,7 +257,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'CreateGameMissions', 'ReviewAiMissions', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);
