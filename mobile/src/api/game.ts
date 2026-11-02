@@ -2,8 +2,20 @@ import { request } from "./client";
 import type { Game, GameConfiguration, GameSummary, PublicGame } from "../types/game";
 
 export type MissionCard = {
+  estado?: "VIVO" | "ELIMINADO";
   aliasObjetivo: string | null;
-  mision: string;
+  mision: string | null;
+  eliminaciones?: number;
+};
+
+export type LifeCode = {
+  codigo: string;
+  caducaEn: string;
+};
+
+export type EliminationResult = {
+  aliasVictima: string | null;
+  carta: MissionCard;
 };
 
 export function createGame(configuration: GameConfiguration) {
@@ -24,4 +36,15 @@ export function getGameByCode(code: string) {
 
 export function getMyMissionCard(gameId: string) {
   return request<MissionCard>(`/api/v1/partidas/${encodeURIComponent(gameId)}/yo/carta`);
+}
+
+export function getMyLifeCode(gameId: string) {
+  return request<LifeCode>(`/api/v1/partidas/${encodeURIComponent(gameId)}/yo/codigo`);
+}
+
+export function eliminateTarget(gameId: string, codigo: string) {
+  return request<EliminationResult>(`/api/v1/partidas/${encodeURIComponent(gameId)}/eliminaciones`, {
+    body: { codigo },
+    method: "POST",
+  });
 }

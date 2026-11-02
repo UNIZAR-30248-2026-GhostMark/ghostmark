@@ -12,7 +12,7 @@ import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MissionCard">;
 
-export function MissionCardScreen({ route }: Props) {
+export function MissionCardScreen({ navigation, route }: Props) {
   const { gameId } = route.params;
   const [card, setCard] = useState<MissionCard>();
   const [error, setError] = useState<string>();
@@ -58,8 +58,8 @@ export function MissionCardScreen({ route }: Props) {
       </Pressable> : <View style={styles.loadingCard}><Text style={styles.loading}>CARGANDO TU CARTA…</Text></View>}
     </View>
     <View style={styles.footer}>
-      <Pressable accessibilityRole="button" disabled style={styles.codeButton}><Text style={styles.codeText}>MI CÓDIGO</Text></Pressable>
-      <Pressable accessibilityRole="button" disabled style={styles.removeButton}><Text style={styles.removeText}>ELIMINAR</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => navigation.navigate("LifeCode", { gameId })} style={styles.codeButton}><Text style={styles.codeText}>MI CÓDIGO</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo })} style={styles.removeButton}><Text style={styles.removeText}>ELIMINAR</Text></Pressable>
     </View>
   </View></Screen>;
 }
@@ -89,7 +89,7 @@ function RevealedCard({ card }: { card: MissionCard }) {
     <Text adjustsFontSizeToFit minimumFontScale={0.4} numberOfLines={1} style={styles.targetName}>{card.aliasObjetivo?.toUpperCase() ?? "CUENTA ELIMINADA"}</Text>
     <View style={styles.ruleDivider} />
     <View style={styles.missionTag}><Text style={styles.missionTagText}>Misión</Text></View>
-    <Text adjustsFontSizeToFit minimumFontScale={0.35} numberOfLines={5} style={styles.missionText}>{card.mision.toUpperCase()}</Text>
+    <Text adjustsFontSizeToFit minimumFontScale={0.35} numberOfLines={5} style={styles.missionText}>{card.mision?.toUpperCase() ?? "SIN MISIÓN"}</Text>
   </View>;
 }
 
