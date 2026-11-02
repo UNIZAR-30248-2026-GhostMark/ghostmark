@@ -12,6 +12,13 @@ const SLOT_MINUTES = 30;
 const DAY_NAMES: Record<Weekday, string> = { 1: "LUNES", 2: "MARTES", 3: "MIÉRCOLES", 4: "JUEVES", 5: "VIERNES" };
 
 type Range = { startMinutes: number; endMinutes: number };
+type RangeChange =
+  | { kind: "added" }
+  | { kind: "merged"; affected: Range[] }
+  | { kind: "replaced"; affected: Range[] }
+  | { kind: "covered"; affected: Range };
+
+export type MergeRangeResult = { ranges: Range[]; change: RangeChange; resultingRange: Range };
 
 type Props = {
   day?: Weekday;
@@ -36,14 +43,42 @@ function rangesForDay(day: Weekday, selectedSlots: Set<string>): Range[] {
   return ranges;
 }
 
-function mergeRange(ranges: Range[], range: Range) {
+export function mergeRange(ranges: Range[], range: Range): MergeRangeResult {
+  const coveredBy = ranges.find((current) => current.startMinutes <= range.startMinutes && current.endMinutes >= range.endMinutes);
+  if (coveredBy) return { ranges, change: { kind: "covered", affected: coveredBy }, resultingRange: coveredBy };
+
+  const affected = ranges.filter((current) => current.startMinutes <= range.endMinutes && current.endMinutes >= range.startMinutes);
+  const coveredRanges = affected.filter((current) => range.startMinutes <= current.startMinutes && range.endMinutes >= current.endMinutes);
   const ordered = [...ranges, range].sort((a, b) => a.startMinutes - b.startMinutes);
-  return ordered.reduce<Range[]>((merged, current) => {
+  const nextRanges = ordered.reduce<Range[]>((merged, current) => {
     const previous = merged.at(-1);
     if (previous && current.startMinutes <= previous.endMinutes) previous.endMinutes = Math.max(previous.endMinutes, current.endMinutes);
     else merged.push({ ...current });
     return merged;
   }, []);
+
+  const resultingRange = nextRanges.find((current) => current.startMinutes <= range.startMinutes && current.endMinutes >= range.endMinutes) ?? range;
+  if (coveredRanges.length > 0) return { ranges: nextRanges, change: { kind: "replaced", affected: coveredRanges }, resultingRange };
+  if (affected.length > 0) return { ranges: nextRanges, change: { kind: "merged", affected }, resultingRange };
+  return { ranges: nextRanges, change: { kind: "added" }, resultingRange };
+}
+
+function rangeText(range: Range) {
+  return `${formatTime(range.startMinutes).replace(/^0/, "")}-${formatTime(range.endMinutes).replace(/^0/, "")}`;
+}
+
+export function rangeChangeMessage(change: RangeChange, range: Range) {
+  if (change.kind === "added") return { color: colors.textMuted, text: `Franja añadida: ${rangeText(range)}.` };
+  if (change.kind === "covered") return { color: colors.danger, text: `Esa franja ya está dentro de ${rangeText(change.affected)}.` };
+
+  const affected = change.affected.map(rangeText).join(" y ");
+  const combined = rangeText(range);
+  if (change.kind === "replaced") return { color: colors.textMuted, text: `Ocupa ${affected}: ahora ${combined}.` };
+  return { color: colors.textMuted, text: `Se ha unido con ${affected}: ahora ${combined}.` };
+}
+
+export function removedRangeMessage(range: Range) {
+  return `Franja ${rangeText(range)} eliminada.`;
 }
 
 export function DayScheduleModal({ day, visible, selectedSlots, onClose, onSave }: Props) {
@@ -56,6 +91,7 @@ function DayScheduleModalContent({ day, visible, selectedSlots, onClose, onSave 
   const [ranges, setRanges] = useState<Range[]>(initialRanges);
   const [startMinutes, setStartMinutes] = useState(9 * 60);
   const [endMinutes, setEndMinutes] = useState(10 * 60);
+  const [feedback, setFeedback] = useState<{ color: string; text: string } | null>(null);
 
   function changeStart(delta: number) {
     setStartMinutes((current) => {
@@ -94,13 +130,22 @@ function DayScheduleModalContent({ day, visible, selectedSlots, onClose, onSave 
             <TimeControl label="DESDE" onDecrease={() => changeStart(-SLOT_MINUTES)} onIncrease={() => changeStart(SLOT_MINUTES)} value={formatTime(startMinutes)} />
             <TimeControl label="HASTA" onDecrease={() => changeEnd(-SLOT_MINUTES)} onIncrease={() => changeEnd(SLOT_MINUTES)} value={formatTime(endMinutes)} />
           </View>
-          <Pressable accessibilityRole="button" onPress={() => setRanges((current) => mergeRange(current, { startMinutes, endMinutes }))} style={styles.addButton}><Text style={styles.addText}>+ AÑADIR FRANJA</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => {
+            const range = { startMinutes, endMinutes };
+            const result = mergeRange(ranges, range);
+            setRanges(result.ranges);
+            setFeedback(rangeChangeMessage(result.change, result.resultingRange));
+          }} style={styles.addButton}><Text style={styles.addText}>+ AÑADIR FRANJA</Text></Pressable>
+          {feedback ? <Text style={[styles.feedback, { color: feedback.color }]}>{feedback.text}</Text> : null}
           <View style={styles.rangesSection}>
             <Text style={styles.rangesTitle}>TUS CLASES</Text>
             {ranges.length === 0 ? <Text style={styles.emptyText}>Todavía no has añadido ninguna franja</Text> : ranges.map((range, index) => (
               <View key={`${range.startMinutes}-${range.endMinutes}`} style={styles.range}>
                 <Text style={styles.rangeText}>{formatTime(range.startMinutes)} — {formatTime(range.endMinutes)}</Text>
-                <Pressable accessibilityLabel="Eliminar franja" accessibilityRole="button" onPress={() => setRanges((current) => current.filter((_, currentIndex) => currentIndex !== index))}><Text style={styles.removeText}>×</Text></Pressable>
+                <Pressable accessibilityLabel="Eliminar franja" accessibilityRole="button" onPress={() => {
+                  setRanges((current) => current.filter((_, currentIndex) => currentIndex !== index));
+                  setFeedback({ color: colors.textMuted, text: removedRangeMessage(range) });
+                }}><Text style={styles.removeText}>×</Text></Pressable>
               </View>
             ))}
           </View>
@@ -130,6 +175,7 @@ const styles = StyleSheet.create({
   timeControl: { alignItems: "center", backgroundColor: colors.background, borderColor: colors.border, borderRadius: 14, borderWidth: 2, flexDirection: "row", justifyContent: "space-between", padding: 5 },
   timeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderRadius: 9, height: 32, justifyContent: "center", width: 32 }, timeButtonText: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 20, lineHeight: 22 }, timeValue: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 14 },
   addButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 13, borderWidth: 2, marginTop: 14, paddingVertical: 10 }, addText: { alignSelf: "stretch", color: colors.ink, ...bangers(17), letterSpacing: 0.8, textAlign: "center" },
+  feedback: { fontFamily: "ZenMaru", fontSize: 12, lineHeight: 16, marginTop: 7, textAlign: "center" },
   rangesSection: { gap: 6, marginTop: 16 }, rangesTitle: { color: colors.text, ...bangers(19), letterSpacing: 0.7 }, emptyText: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, textAlign: "center" },
   range: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 11, borderWidth: 2, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 6 }, rangeText: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 12 }, removeText: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 17, lineHeight: 18 },
   saveButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 16, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, marginTop: 18, paddingVertical: 11 }, saveText: { alignSelf: "stretch", color: colors.ink, ...bangers(19), letterSpacing: 0.8, textAlign: "center" },
