@@ -7,22 +7,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -37,7 +43,18 @@ class EliminacionTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @MockitoBean
+    Clock reloj;
+
     private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
+
+    @BeforeEach
+    void fijarReloj() {
+        // A mitad del minuto: ningún test depende de cuándo cambia el código de verdad.
+        Instant ahora = Instant.now().truncatedTo(ChronoUnit.MINUTES).plusSeconds(30);
+        when(reloj.instant()).thenReturn(ahora);
+        when(reloj.getZone()).thenReturn(ZoneOffset.UTC);
+    }
 
     @Test
     void eliminaConElCodigoDelObjetivoYHeredaObjetivoYMision() {
@@ -52,7 +69,7 @@ class EliminacionTest {
         String aliasVictima = alias(victimaId);
 
         Response respuesta = eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId,
-                Instant.now()));
+                reloj.instant()));
 
         respuesta.then().statusCode(200)
                 .body("aliasVictima", equalTo(aliasVictima))
@@ -101,10 +118,10 @@ class EliminacionTest {
         UUID cazadorId = inscripcion(cazador, mesa.juego());
 
         UUID primera = objetivo(mesa.juego(), cazadorId);
-        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), primera, Instant.now()))
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), primera, reloj.instant()))
                 .then().statusCode(200);
         UUID segunda = objetivo(mesa.juego(), cazadorId);
-        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), segunda, Instant.now()))
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), segunda, reloj.instant()))
                 .then().statusCode(200)
                 .body("carta.estado", equalTo("VIVO"))
                 .body("carta.aliasObjetivo", equalTo(null))
@@ -127,7 +144,7 @@ class EliminacionTest {
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
         UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
-        String correcto = codigoDe(mesa.juego(), victimaId, Instant.now());
+        String correcto = codigoDe(mesa.juego(), victimaId, reloj.instant());
 
         eliminar(cazador, mesa.juego(), distintoDe(correcto))
                 .then().statusCode(422)
@@ -156,10 +173,27 @@ class EliminacionTest {
         UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
 
         eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId,
-                Instant.now().minusSeconds(120)))
+                reloj.instant().minusSeconds(120)))
                 .then().statusCode(422)
                 .body("codigo", equalTo("CODIGO_CADUCADO"))
                 .body("intentosRestantes", equalTo(2));
+    }
+
+    @Test
+    void elCaducadoLlegaHastaDiezMinutosYDespuesEsIncorrecto() {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
+
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId,
+                reloj.instant().minusSeconds(600)))
+                .then().statusCode(422)
+                .body("codigo", equalTo("CODIGO_CADUCADO"));
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId,
+                reloj.instant().minusSeconds(660)))
+                .then().statusCode(422)
+                .body("codigo", equalTo("CODIGO_INCORRECTO"));
     }
 
     @Test
@@ -168,7 +202,7 @@ class EliminacionTest {
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
         UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
-        String correcto = codigoDe(mesa.juego(), victimaId, Instant.now());
+        String correcto = codigoDe(mesa.juego(), victimaId, reloj.instant());
         String incorrecto = distintoDe(correcto);
 
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422)
@@ -184,7 +218,7 @@ class EliminacionTest {
         assertTrue(jdbc.queryForObject("select bloqueado_hasta from jugador_partida"
                 + " where partida_id = ? and inscripcion_id = ?", java.time.OffsetDateTime.class,
                 mesa.juego().id(), inscripcion(cazador, mesa.juego()))
-                .toInstant().isAfter(Instant.now().minusSeconds(60)));
+                .toInstant().isAfter(reloj.instant().minusSeconds(60)));
 
         eliminar(cazador, mesa.juego(), correcto).then().statusCode(409)
                 .body("codigo", equalTo("INTENTOS_BLOQUEADOS"));
@@ -210,7 +244,7 @@ class EliminacionTest {
         Persona cazador = mesa.jugadores().get(0);
         UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
 
-        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, Instant.now()))
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, reloj.instant()))
                 .then().statusCode(200);
         Persona eliminado = mesa.jugadores().stream()
                 .filter(persona -> victimaId.equals(inscripcion(persona, mesa.juego())))
@@ -256,7 +290,7 @@ class EliminacionTest {
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
         UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
-        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, Instant.now()))
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, reloj.instant()))
                 .then().statusCode(200);
         Persona eliminado = mesa.jugadores().stream()
                 .filter(persona -> victimaId.equals(inscripcion(persona, mesa.juego())))
@@ -267,6 +301,81 @@ class EliminacionTest {
                 .body("estado", equalTo("ELIMINADO"))
                 .body("aliasObjetivo", equalTo(null))
                 .body("mision", equalTo(null));
+    }
+
+    @Test
+    void elCodigoAnteriorValeDuranteLosQuincePrimerosSegundosDelPaso() {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
+        String anterior = codigoDe(mesa.juego(), victimaId, reloj.instant());
+        Instant pasoNuevo = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+
+        // R11-13: el segundo 14 del paso nuevo todavía acepta el código anterior.
+        when(reloj.instant()).thenReturn(pasoNuevo.plusSeconds(14));
+        eliminar(cazador, mesa.juego(), anterior).then().statusCode(200);
+    }
+
+    @Test
+    void pasadosLosQuinceSegundosElCodigoAnteriorEstaCaducado() {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
+        String anterior = codigoDe(mesa.juego(), victimaId, reloj.instant());
+        Instant pasoNuevo = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+
+        when(reloj.instant()).thenReturn(pasoNuevo.plusSeconds(15));
+        eliminar(cazador, mesa.juego(), anterior).then().statusCode(422)
+                .body("codigo", equalTo("CODIGO_CADUCADO"));
+        assertEquals("VIVO", jdbc.queryForObject("select estado from jugador_partida"
+                + " where partida_id = ? and inscripcion_id = ?", String.class,
+                mesa.juego().id(), victimaId));
+    }
+
+    @Test
+    void borrarLaCuentaConservaEstadoYEliminacionesYElAliasQuedaNulo() {
+        Mesa mesa = preparar(4, false);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa.juego());
+        UUID victimaId = objetivo(mesa.juego(), cazadorId);
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, reloj.instant()))
+                .then().statusCode(200);
+        Persona victima = persona(mesa, victimaId);
+        Persona perseguidor = persona(mesa, jdbc.queryForObject("select inscripcion_id"
+                + " from jugador_partida where partida_id = ? and objetivo_id = ?", UUID.class,
+                mesa.juego().id(), cazadorId));
+        List<Map<String, Object>> antes = filas(mesa.juego());
+
+        given().port(puerto).auth().oauth2(cazador.token()).delete("/api/v1/cuentas/yo")
+                .then().statusCode(204);
+        given().port(puerto).auth().oauth2(victima.token()).delete("/api/v1/cuentas/yo")
+                .then().statusCode(204);
+
+        // Las filas no tienen datos de la persona: siguen con su estado y sus eliminaciones.
+        assertEquals(antes, filas(mesa.juego()));
+        assertEquals(1, jdbc.queryForObject("select eliminaciones from jugador_partida"
+                + " where inscripcion_id = ?", Integer.class, cazadorId));
+        assertEquals("ELIMINADO", jdbc.queryForObject("select estado from jugador_partida"
+                + " where inscripcion_id = ?", String.class, victimaId));
+        given().port(puerto).auth().oauth2(perseguidor.token()).get(RUTA_CARTA, mesa.juego().id())
+                .then().statusCode(200)
+                .body("estado", equalTo("VIVO"))
+                .body("aliasObjetivo", equalTo(null));
+    }
+
+    private Persona persona(Mesa mesa, UUID inscripcionId) {
+        return mesa.jugadores().stream()
+                .filter(jugador -> inscripcionId.equals(inscripcion(jugador, mesa.juego())))
+                .findFirst().orElseThrow();
+    }
+
+    private List<Map<String, Object>> filas(Juego juego) {
+        return jdbc.queryForList("select inscripcion_id, estado, objetivo_id, mision_id,"
+                + " eliminaciones from jugador_partida where partida_id = ?"
+                + " order by inscripcion_id", juego.id());
     }
 
     private Mesa preparar(int jugadores, boolean masterJuega) {

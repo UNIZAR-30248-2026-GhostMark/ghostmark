@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -140,9 +141,39 @@ class ArranqueAceptacionTest {
                         equalTo(reconstruido.inscritos().size()));
         if ("EN_JUEGO".equals(destino)) {
             comprobarCiclo(reconstruido.objetivos(), reconstruido.inscritos());
+            comprobarJugadores(mesa, reconstruido);
         } else {
             assertTrue(reconstruido.objetivos().isEmpty());
         }
+    }
+
+    @Test
+    void elEstadoConEliminacionesSeReconstruyeDesdeLosEventos() {
+        Mesa mesa = preparar(4);
+        arrancar(mesa).then().statusCode(200);
+        // El mismo cazador elimina dos veces seguidas: hereda dos veces y quedan dos vivos.
+        Persona cazador = mesa.jugadores().get(1);
+        UUID cazadorId = inscripcion(mesa, cazador);
+        for (int i = 0; i < 2; i++) {
+            UUID victimaId = jdbc.queryForObject("select objetivo_id from jugador_partida"
+                    + " where inscripcion_id = ?", UUID.class, cazadorId);
+            byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
+                    + " where inscripcion_id = ?", byte[].class, victimaId);
+            given().port(puerto).auth().oauth2(cazador.token()).contentType(ContentType.JSON)
+                    .body(Map.of("codigo", new GeneradorCodigoVida()
+                            .generar(secreto, Instant.now()).codigo()))
+                    .post("/api/v1/partidas/{id}/eliminaciones", mesa.id())
+                    .then().statusCode(200);
+        }
+
+        EstadoReconstruido reconstruido = reproducir(mesa);
+        assertEquals("EN_JUEGO", reconstruido.estado());
+        assertEquals(2, reconstruido.eliminados().size());
+        assertEquals(2, reconstruido.eliminaciones().get(cazadorId));
+        comprobarJugadores(mesa, reconstruido);
+        Set<UUID> vivos = new HashSet<>(reconstruido.inscritos());
+        vivos.removeAll(reconstruido.eliminados());
+        comprobarCiclo(reconstruido.objetivos(), vivos);
     }
 
     private EstadoReconstruido reproducir(Mesa mesa) {
@@ -150,6 +181,9 @@ class ArranqueAceptacionTest {
         String reconstruido = null;
         Set<UUID> inscritos = new LinkedHashSet<>();
         Map<UUID, UUID> objetivos = new HashMap<>();
+        Map<UUID, UUID> misiones = new HashMap<>();
+        Set<UUID> eliminados = new HashSet<>();
+        Map<UUID, Integer> eliminaciones = new HashMap<>();
         long secuencia = 1;
         List<Map<String, Object>> eventos = jdbc.queryForList("select secuencia, tipo,"
                 + " datos::text as datos from evento where partida_id = ? order by secuencia",
@@ -180,13 +214,71 @@ class ArranqueAceptacionTest {
                     assertEquals(inscritos.size(), datos.getInt("numJugadores"));
                     reconstruido = "CANCELADA";
                 }
-                // Si la PBI 5 ya está integrada, su reparto no cambia el estado ni el ciclo.
-                case "MISIONES_REPARTIDAS" -> assertEquals("EN_JUEGO", reconstruido);
-                default -> fail("Evento no previsto en el recorrido de la PBI 4: "
+                // El reparto de la PBI 5 no cambia el estado ni el ciclo: da la misión de cada uno.
+                case "MISIONES_REPARTIDAS" -> {
+                    assertEquals("EN_JUEGO", reconstruido);
+                    List<String> jugadores = datos.getList("asignaciones.inscripcionId");
+                    List<String> asignadas = datos.getList("asignaciones.misionId");
+                    for (int i = 0; i < jugadores.size(); i++) {
+                        misiones.put(UUID.fromString(jugadores.get(i)),
+                                UUID.fromString(asignadas.get(i)));
+                    }
+                }
+                // PBI 7a: la víctima sale del ciclo y su cazador hereda objetivo y misión.
+                case "JUGADOR_ELIMINADO" -> {
+                    assertEquals("EN_JUEGO", reconstruido);
+                    UUID cazador = UUID.fromString(datos.getString("cazadorId"));
+                    UUID victima = UUID.fromString(datos.getString("victimaId"));
+                    assertEquals(victima, objetivos.get(cazador));
+                    assertEquals(misiones.get(cazador), uuid(datos.getString("misionId")));
+                    UUID heredado = cazador.equals(objetivos.get(victima)) ? null
+                            : objetivos.get(victima);
+                    assertEquals(heredado, uuid(datos.getString("objetivoHeredadoId")));
+                    assertEquals(heredado == null ? null : misiones.get(victima),
+                            uuid(datos.getString("misionHeredadaId")));
+                    objetivos.remove(victima);
+                    misiones.remove(victima);
+                    assertTrue(eliminados.add(victima));
+                    objetivos.put(cazador, heredado);
+                    misiones.put(cazador, uuid(datos.getString("misionHeredadaId")));
+                    eliminaciones.merge(cazador, 1, Integer::sum);
+                }
+                default -> fail("Evento no previsto en el recorrido de las PBI 4 y 7a: "
                         + evento.get("tipo"));
             }
         }
-        return new EstadoReconstruido(reconstruido, inscritos, objetivos);
+        return new EstadoReconstruido(reconstruido, inscritos, objetivos, misiones, eliminados,
+                eliminaciones);
+    }
+
+    private void comprobarJugadores(Mesa mesa, EstadoReconstruido reconstruido) {
+        // Desde la PBI 7a, jugador_partida tiene que coincidir con lo que dicen los eventos.
+        List<Map<String, Object>> filas = jdbc.queryForList("select inscripcion_id, estado,"
+                + " objetivo_id, mision_id, eliminaciones from jugador_partida"
+                + " where partida_id = ?", mesa.id());
+        assertEquals(reconstruido.inscritos().size(), filas.size());
+        for (Map<String, Object> fila : filas) {
+            UUID id = (UUID) fila.get("inscripcion_id");
+            assertTrue(reconstruido.inscritos().contains(id));
+            assertEquals(reconstruido.eliminados().contains(id) ? "ELIMINADO" : "VIVO",
+                    fila.get("estado"));
+            assertEquals(reconstruido.objetivos().get(id), fila.get("objetivo_id"));
+            assertEquals(reconstruido.misiones().get(id), fila.get("mision_id"));
+            assertEquals(reconstruido.eliminaciones().getOrDefault(id, 0),
+                    ((Number) fila.get("eliminaciones")).intValue());
+            if (reconstruido.eliminados().contains(id)) {
+                assertNull(fila.get("objetivo_id"));
+            }
+        }
+    }
+
+    private static UUID uuid(String valor) {
+        return valor == null ? null : UUID.fromString(valor);
+    }
+
+    private UUID inscripcion(Mesa mesa, Persona persona) {
+        return jdbc.queryForObject("select id from inscripcion where partida_id = ?"
+                + " and cuenta_id = ?", UUID.class, mesa.id(), persona.id());
     }
 
     private void comprobarCiclo(Map<UUID, UUID> objetivos, Set<UUID> inscritos) {
@@ -247,7 +339,8 @@ class ArranqueAceptacionTest {
                 .body(Map.of("alias", alias, "email", alias + "@example.com",
                         "contrasena", "fantasma2026"))
                 .post("/api/v1/cuentas").then().statusCode(201).extract().response();
-        return new Persona(respuesta.path("tokenAcceso"));
+        return new Persona(UUID.fromString(respuesta.path("cuenta.id")),
+                respuesta.path("tokenAcceso"));
     }
 
     private Response arrancar(Mesa mesa) {
@@ -293,13 +386,14 @@ class ArranqueAceptacionTest {
                 UUID.class, mesa.id()));
     }
 
-    private record Persona(String token) {
+    private record Persona(UUID id, String token) {
     }
 
     private record Mesa(UUID id, Persona master, List<Persona> jugadores) {
     }
 
     private record EstadoReconstruido(String estado, Set<UUID> inscritos,
-            Map<UUID, UUID> objetivos) {
+            Map<UUID, UUID> objetivos, Map<UUID, UUID> misiones, Set<UUID> eliminados,
+            Map<UUID, Integer> eliminaciones) {
     }
 }
