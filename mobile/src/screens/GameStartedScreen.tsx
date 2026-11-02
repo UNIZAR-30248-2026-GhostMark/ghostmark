@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   content: { alignItems: "center", flex: 1, paddingHorizontal: 24 },
   dateTag: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 7, borderWidth: 1, marginTop: -12, paddingHorizontal: 10, paddingVertical: 4 },
   dateText: { color: colors.ink, fontFamily: "ZenMaruBlack", fontSize: 10 },
-  title: { color: colors.text, ...bangers(42), lineHeight: 40, marginTop: 20, textAlign: "center" },
+  title: { alignSelf: "stretch", color: colors.text, ...bangers(42), lineHeight: 46, marginTop: 20, textAlign: "center" },
   gameName: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 13, textAlign: "center" },
   detail: { color: colors.text, fontFamily: "ZenMaru", fontSize: 13, lineHeight: 19, marginTop: 9, textAlign: "center" },
   footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 },
