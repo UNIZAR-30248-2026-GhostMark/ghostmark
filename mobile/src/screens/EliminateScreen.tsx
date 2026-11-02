@@ -35,16 +35,14 @@ export function EliminateScreen({ navigation, route }: Props) {
     if (sending) return;
     setError(undefined);
     if (key === "←") {
-      setCode((current) => current.slice(0, -1));
+      setCode(code.slice(0, -1));
       return;
     }
-    if (!key) return;
-    setCode((current) => {
-      if (current.length >= 6) return current;
-      const next = `${current}${key}`;
-      if (next.length === 6) void submit(next);
-      return next;
-    });
+    if (!key || code.length >= 6) return;
+    // El envío va fuera del cambio de estado: React puede repetir esa función y mandarlo dos veces.
+    const next = `${code}${key}`;
+    setCode(next);
+    if (next.length === 6) void submit(next);
   }
 
   return <View style={styles.screen}>

@@ -17,7 +17,7 @@ export function EliminationSuccessScreen({ navigation, route }: Props) {
     <Text style={styles.title}>¡ACIERTO!</Text>
     <Text style={styles.text}>Has eliminado a {result.aliasVictima ?? "cuenta eliminada"}.</Text>
     {result.carta.aliasObjetivo ? <View style={styles.inherited}><Text style={styles.inheritedLabel}>TU NUEVO OBJETIVO</Text><Text adjustsFontSizeToFit minimumFontScale={0.5} numberOfLines={1} style={styles.target}>{inheritedTarget.toUpperCase()}</Text></View> : <Text style={styles.lastPlayer}>Ya no tienes objetivo. ¡Eres la última persona en juego!</Text>}
-  </View><View style={styles.footer}><Pressable accessibilityRole="button" onPress={() => navigation.replace("MissionCard", { gameId })} style={styles.button}><Text style={styles.buttonText}>VER MI CARTA</Text></Pressable></View></View></Screen>;
+  </View><View style={styles.footer}><Pressable accessibilityRole="button" onPress={() => navigation.popTo("MissionCard", { gameId })} style={styles.button}><Text style={styles.buttonText}>VER MI CARTA</Text></Pressable></View></View></Screen>;
 }
 
 const styles = StyleSheet.create({

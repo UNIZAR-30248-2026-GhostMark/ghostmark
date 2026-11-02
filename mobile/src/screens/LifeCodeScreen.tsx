@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
 import { ApiError } from "../api/client";
 import { getMyLifeCode, type LifeCode } from "../api/game";
@@ -36,11 +36,17 @@ export function LifeCodeScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (!lifeCode) return undefined;
+    // Al llegar a 0 se pide el código nuevo una sola vez; si el reloj del móvil va adelantado
+    // y el servidor devuelve el mismo, se vuelve a pedir pasados 2 s, no en cada segundo.
+    const pending = lifeCodeSecondsRemaining(lifeCode.caducaEn) === 0;
     const timer = setInterval(() => {
       const next = lifeCodeSecondsRemaining(lifeCode.caducaEn);
       setRemaining(next);
-      if (next === 0) setAttempt((value) => value + 1);
-    }, 1_000);
+      if (next === 0) {
+        clearInterval(timer);
+        setAttempt((value) => value + 1);
+      }
+    }, pending ? 2_000 : 1_000);
     return () => clearInterval(timer);
   }, [lifeCode]);
 
@@ -69,13 +75,15 @@ export function LifeCodeScreen({ navigation, route }: Props) {
 }
 
 function Checkerboard() {
-  return <View pointerEvents="none" style={styles.checkerboard}>{Array.from({ length: 240 }, (_, index) => <View key={index} style={[styles.square, index % 2 === Math.floor(index / 12) % 2 && styles.squareLight]} />)}</View>;
+  return <Svg pointerEvents="none" style={styles.checkerboard}>
+    <Defs><Pattern height="32" id="life-code-checkerboard" patternUnits="userSpaceOnUse" width="32"><Rect fill="#59218A" height="32" width="32" /><Rect fill="#B75BE5" height="16" width="16" x="16" /><Rect fill="#B75BE5" height="16" width="16" y="16" /></Pattern></Defs>
+    <Rect fill="url(#life-code-checkerboard)" height="100%" width="100%" />
+  </Svg>;
 }
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: "#7E37BE", flex: 1, overflow: "hidden" },
-  checkerboard: { flexDirection: "row", flexWrap: "wrap", height: "100%", left: 0, opacity: 0.16, position: "absolute", top: 0, width: "100%" },
-  square: { aspectRatio: 1, backgroundColor: "#4A2074", width: "8.333%" }, squareLight: { backgroundColor: "#D6A6FF" },
+  checkerboard: { bottom: 0, left: 0, opacity: 0.32, position: "absolute", right: 0, top: 0 },
   closeButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 11, borderWidth: 2, boxShadow: `0px 3px 0px ${colors.border}`, height: 42, justifyContent: "center", left: 22, position: "absolute", top: 34, width: 42, zIndex: 2 },
   closeText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 28, lineHeight: 30, marginTop: -3 },
   content: { alignItems: "center", flex: 1, paddingHorizontal: 26 },
@@ -85,7 +93,7 @@ const styles = StyleSheet.create({
   codeLabel: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14 },
   code: { color: colors.white, ...bangers(48), letterSpacing: 1, marginTop: 8 },
   seconds: { color: colors.lime, fontFamily: "ZenMaruBold", fontSize: 14, marginTop: 8 },
-  turnPhone: { alignSelf: "stretch", color: colors.white, ...bangers(29), lineHeight: 32, marginTop: "auto", paddingBottom: 42, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 2, width: 1 }, textShadowRadius: 0 },
+  turnPhone: { alignSelf: "stretch", color: colors.white, ...bangers(29), lineHeight: 38, marginTop: "auto", paddingBottom: 42, paddingTop: 4, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 2, width: 1 }, textShadowRadius: 0 },
   errorState: { alignItems: "center", marginTop: 7, width: "100%" },
   error: { color: colors.white, fontFamily: "ZenMaruBold", fontSize: 12, lineHeight: 17, marginBottom: 8, textAlign: "center" },
   retryButton: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 10, borderWidth: 2, boxShadow: `0px 3px 0px ${colors.border}`, justifyContent: "center", minHeight: 38, paddingHorizontal: 26 },

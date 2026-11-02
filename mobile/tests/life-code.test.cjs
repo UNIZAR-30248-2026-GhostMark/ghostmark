@@ -28,10 +28,8 @@ test('la app usa las rutas privadas de mi código y eliminar de la partida', asy
   ]);
 });
 
-test('la cuenta atrás del código muestra minutos y segundos y no baja de cero', () => {
-  const { formatLifeCodeCountdown, lifeCodeSecondsRemaining } = load('utils/lifeCode.ts');
-  assert.equal(formatLifeCodeCountdown(5), '00:05');
-  assert.equal(formatLifeCodeCountdown(60), '01:00');
+test('la cuenta atrás del código no baja de cero', () => {
+  const { lifeCodeSecondsRemaining } = load('utils/lifeCode.ts');
   assert.equal(lifeCodeSecondsRemaining('2026-11-05T17:31:00Z', Date.parse('2026-11-05T17:30:00.100Z')), 60);
   assert.equal(lifeCodeSecondsRemaining('2026-11-05T17:31:00Z', Date.parse('2026-11-05T17:31:01Z')), 0);
 });

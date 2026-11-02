@@ -37,6 +37,9 @@ const common = {
     __esModule: true,
     default: (props) => React.createElement('Svg', props),
     Circle: (props) => React.createElement('Circle', props),
+    Defs: (props) => React.createElement('Defs', props),
+    Pattern: (props) => React.createElement('Pattern', props),
+    Rect: (props) => React.createElement('Rect', props),
   },
 };
 

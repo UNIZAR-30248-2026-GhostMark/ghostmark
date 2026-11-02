@@ -1,5 +1,6 @@
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
@@ -19,7 +20,7 @@ export function MissionCardScreen({ navigation, route }: Props) {
   const [attempt, setAttempt] = useState(0);
   const flip = useMemo(() => new Animated.Value(0), []);
 
-  useEffect(() => {
+  const loadCard = useCallback(() => {
     let active = true;
     getMyMissionCard(gameId).then((result) => {
       if (active) setCard(result);
@@ -28,7 +29,11 @@ export function MissionCardScreen({ navigation, route }: Props) {
       setError(requestError instanceof ApiError ? requestError.message : "No hemos podido cargar tu carta. Comprueba la conexión e inténtalo de nuevo.");
     });
     return () => { active = false; };
-  }, [attempt, gameId]);
+  }, [gameId]);
+
+  // Se recarga al volver a la carta, por ejemplo tras eliminar a tu objetivo.
+  useFocusEffect(loadCard);
+  useEffect(() => (attempt > 0 ? loadCard() : undefined), [attempt, loadCard]);
 
   function reveal(value: number) {
     Animated.timing(flip, { duration: 170, toValue: value, useNativeDriver: true }).start();
