@@ -93,8 +93,7 @@ for (const position of ['destacada', 'otra']) {
     });
     assert.deepEqual(calls, [['GET', '/api/v1/cuentas/yo/partidas']]);
     const card = tree.root.findAllByType('Pressable').find((node) =>
-      node.findAllByType('Text').some((text) =>
-        text.props.children === (position === 'destacada' ? game.nombre.toUpperCase() : game.nombre)));
+      node.findAllByType('Text').some((text) => text.props.children === game.nombre));
     assert.ok(card, 'La partida del inscrito sigue visible');
     assert.ok(card.findAllByType('Text').some((text) => text.props.children === 'Cancelada'));
     await act(async () => card.props.onPress());
