@@ -1,6 +1,9 @@
 package es.unizar.ghostmark.backend.juego;
 
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -58,6 +61,67 @@ public class JugadorPartidaRepository {
     }
 
     record DatosCodigo(String estado, byte[] secreto) {
+    }
+
+    record EstadoJugador(String estado, UUID objetivoId, UUID misionId, int eliminaciones,
+            byte[] secreto, int intentosFallidos, Instant bloqueadoHasta) {
+    }
+
+    public Optional<EstadoJugador> bloquear(UUID partidaId, UUID inscripcionId) {
+        return leer(partidaId, inscripcionId, true);
+    }
+
+    public Optional<EstadoJugador> obtener(UUID partidaId, UUID inscripcionId) {
+        return leer(partidaId, inscripcionId, false);
+    }
+
+    private Optional<EstadoJugador> leer(UUID partidaId, UUID inscripcionId, boolean bloquear) {
+        String sql = "select estado, objetivo_id, mision_id, eliminaciones, secreto_codigo,"
+                + " intentos_fallidos, bloqueado_hasta from jugador_partida"
+                + " where partida_id = ? and inscripcion_id = ?"
+                + (bloquear ? " for update" : "");
+        return jdbc.query(sql, (fila, numero) -> new EstadoJugador(
+                        fila.getString("estado"),
+                        fila.getObject("objetivo_id", UUID.class),
+                        fila.getObject("mision_id", UUID.class),
+                        fila.getInt("eliminaciones"),
+                        fila.getBytes("secreto_codigo"),
+                        fila.getInt("intentos_fallidos"),
+                        fecha(fila.getObject("bloqueado_hasta", OffsetDateTime.class))),
+                partidaId, inscripcionId).stream().findFirst();
+    }
+
+    public void eliminar(UUID partidaId, UUID inscripcionId, Instant ahora) {
+        jdbc.update("update jugador_partida set estado = 'ELIMINADO', eliminado_en = ?,"
+                        + " objetivo_id = null, mision_id = null"
+                        + " where partida_id = ? and inscripcion_id = ?",
+                OffsetDateTime.ofInstant(ahora, ZoneOffset.UTC), partidaId, inscripcionId);
+    }
+
+    public void heredar(UUID partidaId, UUID inscripcionId, UUID objetivoId, UUID misionId) {
+        jdbc.update("update jugador_partida set objetivo_id = ?, mision_id = ?,"
+                        + " eliminaciones = eliminaciones + 1, intentos_fallidos = 0,"
+                        + " bloqueado_hasta = null"
+                        + " where partida_id = ? and inscripcion_id = ?",
+                objetivoId, misionId, partidaId, inscripcionId);
+    }
+
+    public int sumarFallo(UUID partidaId, UUID inscripcionId) {
+        return jdbc.queryForObject("update jugador_partida"
+                        + " set intentos_fallidos = least(intentos_fallidos + 1, 3)"
+                        + " where partida_id = ? and inscripcion_id = ?"
+                        + " returning intentos_fallidos",
+                Integer.class, partidaId, inscripcionId);
+    }
+
+    public void bloquearIntentos(UUID partidaId, UUID inscripcionId, Instant hasta) {
+        jdbc.update("update jugador_partida set intentos_fallidos = 0, bloqueado_hasta = ?"
+                        + " where partida_id = ? and inscripcion_id = ?",
+                OffsetDateTime.ofInstant(hasta, ZoneOffset.UTC), partidaId, inscripcionId);
+    }
+
+    private static Instant fecha(OffsetDateTime valor) {
+        return valor == null ? null : valor.toInstant();
     }
 
     private record Asignacion(UUID id, UUID objetivoId, UUID misionId) {

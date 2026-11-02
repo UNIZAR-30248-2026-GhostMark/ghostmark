@@ -70,7 +70,7 @@ class CartaTest {
             Response respuesta = carta(jugador, mesa.juego()).then().statusCode(200)
                     .body("aliasObjetivo", equalTo(aliasObjetivo)).body("mision", equalTo(mision))
                     .extract().response();
-            assertEquals(Set.of("aliasObjetivo", "mision"),
+            assertEquals(Set.of("estado", "aliasObjetivo", "mision", "eliminaciones"),
                     respuesta.jsonPath().getMap("").keySet());
             assertEquals(respuesta.asString(), carta(jugador, mesa.juego()).asString());
         }

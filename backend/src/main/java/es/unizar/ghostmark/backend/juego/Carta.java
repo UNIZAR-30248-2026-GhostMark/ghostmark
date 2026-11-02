@@ -1,4 +1,4 @@
 package es.unizar.ghostmark.backend.juego;
 
-public record Carta(String aliasObjetivo, String mision) {
+public record Carta(String estado, String aliasObjetivo, String mision, int eliminaciones) {
 }
