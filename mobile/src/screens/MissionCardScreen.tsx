@@ -41,7 +41,7 @@ export function MissionCardScreen({ navigation, route }: Props) {
 
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.content}>
-      <Tabs />
+      <Tabs gameId={gameId} navigation={navigation} />
       <Text style={styles.objectiveLabel}>Tu objetivo</Text>
       {error ? <View style={styles.errorState}>
         <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
@@ -69,11 +69,11 @@ export function MissionCardScreen({ navigation, route }: Props) {
   </View></Screen>;
 }
 
-function Tabs() {
+function Tabs({ gameId, navigation }: { gameId: string; navigation: Props["navigation"] }) {
   return <View style={styles.tabs}>
     <View style={styles.tabOn}><Text style={styles.tabOnText}>MISIÓN</Text></View>
     <View style={styles.tab}><Text style={styles.tabText}>Feed</Text></View>
-    <View style={styles.tab}><Text style={styles.tabText}>Partida</Text></View>
+    <Pressable accessibilityLabel="Ir a la pestaña Partida" accessibilityRole="button" onPress={() => navigation.navigate("GameTab", { gameId })} style={styles.tab}><Text style={styles.tabText}>Partida</Text></Pressable>
   </View>;
 }
 

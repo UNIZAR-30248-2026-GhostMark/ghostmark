@@ -1,4 +1,13 @@
 export type MissionType = "BIBLIOTECA" | "IA";
+export type GameResultType = "SUPERVIVIENTE" | "GANADOR" | "EMPATE";
+export type GameCloseReason = "ULTIMO_SUPERVIVIENTE" | "FECHA_FIN" | "MASTER";
+
+export type GameResult = {
+  tipo: GameResultType;
+  motivo: GameCloseReason;
+  aliasGanadores: (string | null)[];
+  eliminaciones: number;
+};
 
 export type GameConfiguration = {
   nombre: string;
@@ -17,6 +26,7 @@ export type Game = GameConfiguration & {
   enlace: string;
   numInscritos: number;
   creadaEn: string;
+  resultado: GameResult | null;
 };
 
 export type CancellationReason = "POCOS_JUGADORES" | "MASTER_SIN_CUENTA";
@@ -25,6 +35,7 @@ export type GameSummary = Pick<Game, "id" | "nombre" | "estado" | "inicioEn" | "
   soyMaster: boolean;
   soyJugador: boolean;
   motivoCancelacion: CancellationReason | null;
+  resultado: GameResult | null;
 };
 export type GameDraft = Pick<GameConfiguration, "nombre" | "inicioEn" | "finEn">;
 
