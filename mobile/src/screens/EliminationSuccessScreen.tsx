@@ -1,35 +1,68 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useMemo } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { G, Path, Rect } from "react-native-svg";
 
-import { Screen } from "../components/Screen";
 import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EliminationSuccess">;
 
+// Rayos y confeti de f-acierto, en el lienzo de 360 x 780 del prototipo.
+const RAYS = "M180 330L-40 40H60zM180 330L140 -20h80zM180 330L400 40H300zM180 330L420 330V230zM180 330L-60 330V230zM180 330L400 620V520zM180 330L-40 620V520z";
+const CONFETTI_COLORS = [colors.lime, colors.lime, colors.cream, colors.textMuted, colors.border, colors.ink];
+
+export function confettiPieces(count = 46) {
+  // Mismo generador fijo que el prototipo: el confeti sale siempre igual.
+  let seed = 11;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  return Array.from({ length: count }, (_, index) => ({
+    color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+    x: random() * 350,
+    y: 40 + random() * 330,
+    rotation: random() * 180,
+    opacity: 0.6 + random() * 0.4,
+  }));
+}
+
 export function EliminationSuccessScreen({ navigation, route }: Props) {
   const { gameId, result } = route.params;
-  const inheritedTarget = result.carta.aliasObjetivo ?? "NADIE";
+  const inherited = Boolean(result.carta.aliasObjetivo);
+  const confetti = useMemo(() => confettiPieces(), []);
 
-  return <Screen padded={false}><View style={styles.screen}><View style={styles.content}>
-    <Image accessibilityLabel="Fantasma celebrando el acierto" source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.ghost} />
-    <Text style={styles.title}>¡ACIERTO!</Text>
-    <Text style={styles.text}>Has eliminado a {result.aliasVictima ?? "cuenta eliminada"}.</Text>
-    {result.carta.aliasObjetivo ? <View style={styles.inherited}><Text style={styles.inheritedLabel}>TU NUEVO OBJETIVO</Text><Text adjustsFontSizeToFit minimumFontScale={0.5} numberOfLines={1} style={styles.target}>{inheritedTarget.toUpperCase()}</Text></View> : <Text style={styles.lastPlayer}>Ya no tienes objetivo. ¡Eres la última persona en juego!</Text>}
-  </View><View style={styles.footer}><Pressable accessibilityRole="button" onPress={() => navigation.popTo("MissionCard", { gameId })} style={styles.button}><Text style={styles.buttonText}>VER MI CARTA</Text></Pressable></View></View></Screen>;
+  return <View style={styles.screen}>
+    <Svg pointerEvents="none" preserveAspectRatio="xMidYMin slice" style={StyleSheet.absoluteFill} viewBox="0 0 360 780">
+      <Path d={RAYS} fill="rgba(20,7,31,0.08)" />
+      <G>{confetti.map((piece, index) => <Rect fill={piece.color} height={18} key={index} opacity={piece.opacity} origin={`${piece.x + 5}, ${piece.y + 9}`} rotation={piece.rotation} rx={3} stroke={colors.ink} strokeWidth={2} width={10} x={piece.x} y={piece.y} />)}</G>
+    </Svg>
+    <SafeAreaView edges={["top", "right", "bottom", "left"]} style={styles.safeArea}>
+      <View style={styles.content}>
+        <Image accessibilityLabel="Fantasma eliminado" source={require("../../assets/ghosts/fantasma-ko.png")} style={styles.ghost} />
+        <Text style={styles.title}>¡ELIMINADO!</Text>
+        <Text style={styles.victim}>{result.aliasVictima ?? "Cuenta eliminada"} queda fuera de la partida</Text>
+        <Text style={styles.inherit}>{inherited ? "Heredas su objetivo y su misión" : "Ya no tienes objetivo. ¡Eres la última persona en juego!"}</Text>
+      </View>
+      <View style={styles.footer}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.popTo("MissionCard", { gameId })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+          <Text style={styles.buttonText}>{inherited ? "VER MI NUEVA CARTA" : "VER MI CARTA"}</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  </View>;
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.background, flex: 1 },
-  content: { alignItems: "center", flex: 1, justifyContent: "center", paddingHorizontal: 28 },
-  ghost: { height: 205, resizeMode: "contain", width: 220 },
-  title: { color: colors.lime, ...bangers(52), letterSpacing: 1, marginTop: 12, textShadowColor: colors.ink, textShadowOffset: { height: 3, width: 1 }, textShadowRadius: 0 },
-  text: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, lineHeight: 23, marginTop: 16, textAlign: "center" },
-  inherited: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 17, borderWidth: 3, marginTop: 24, paddingHorizontal: 18, paddingVertical: 14, width: "100%" },
-  inheritedLabel: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 11, letterSpacing: 1 }, target: { alignSelf: "stretch", color: colors.text, ...bangers(32), marginTop: 6, textAlign: "center" },
-  lastPlayer: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 14, lineHeight: 21, marginTop: 22, textAlign: "center" },
+  screen: { backgroundColor: colors.coral, flex: 1, overflow: "hidden" },
+  safeArea: { flex: 1 },
+  content: { alignItems: "center", flex: 1, paddingHorizontal: 24 },
+  ghost: { height: 222, marginTop: 60, resizeMode: "contain", transform: [{ rotate: "-8deg" }], width: 236 },
+  title: { alignSelf: "stretch", color: colors.cream, ...bangers(76), lineHeight: 84, marginTop: 100, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 4, width: 0 }, textShadowRadius: 0 },
+  victim: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 19, lineHeight: 25, marginTop: 10, textAlign: "center" },
+  inherit: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 16, lineHeight: 22, marginTop: 6, textAlign: "center" },
   footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 },
-  button: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, minHeight: 52, justifyContent: "center" },
-  buttonText: { alignSelf: "stretch", color: colors.ink, ...bangers(22), textAlign: "center" },
+  button: { alignItems: "center", backgroundColor: colors.cream, borderColor: colors.ink, borderRadius: 12, borderWidth: 3, boxShadow: `4px 4px 0px ${colors.ink}`, height: 58, justifyContent: "center" },
+  buttonText: { alignSelf: "stretch", color: colors.ink, ...bangers(24), letterSpacing: 0.8, textAlign: "center" },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
 });

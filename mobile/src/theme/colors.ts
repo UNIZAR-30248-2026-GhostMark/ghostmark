@@ -9,6 +9,8 @@ export const colors = {
   lime: "#B8F24A",
   limePale: "#E4F8BF",
   danger: "#FF5A5F",
+  coral: "#FF5A5F",
+  cream: "#F7F2FF",
   white: "#FFF8EC",
   signInArtwork: "#A98CE8",
   signInDecoration: "#C7B3F5",
