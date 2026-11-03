@@ -24,6 +24,7 @@ tags:
       A la hora de inicio la partida arranca sola si tiene 3 o más jugadores, o se cancela si tiene menos
       (`motivoCancelacion` `POCOS_JUGADORES`); no hay ruta para eso: el servidor lo revisa cada minuto
       y antes de atender cada petición.
+      Código de vida, eliminación, herencia y feed (PBI 7a, #7), y códigos rechazados y bloqueo (PBI 7b, #189).
 security:
   - bearerAuth: []
 paths:
@@ -401,7 +402,8 @@ paths:
       summary: Mi objetivo y mi misión
       description: |
         Solo los del jugador que llama. Nadie obtiene los de otro, tampoco el máster:
-        si no juega no tiene carta y recibe 404.
+        si no juega no tiene carta y recibe 404. Tras una eliminación devuelve el objetivo y la misión
+        heredados; si el jugador está eliminado, `estado = ELIMINADO` sin objetivo ni misión.
       responses:
         '200':
           description: Mi carta
@@ -412,6 +414,101 @@ paths:
         '404': { $ref: '#/components/responses/NoEncontrada' }
         '409':
           description: La partida todavía no está en juego (`PARTIDA_NO_EN_JUEGO`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/yo/codigo:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [juego]
+      operationId: obtenerMiCodigo
+      summary: Mi código de vida
+      description: |
+        Código de 6 dígitos del paso de 60 s actual (TOTP con el secreto del jugador) y el instante en que
+        caduca. La app lo vuelve a pedir al llegar a `caducaEn`. Solo para el propio jugador y vivo:
+        nadie obtiene el código de otro.
+      responses:
+        '200':
+          description: Mi código actual
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CodigoVida' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida no está en juego (`PARTIDA_NO_EN_JUEGO`) o el jugador está eliminado (`JUGADOR_ELIMINADO`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/eliminaciones:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    post:
+      tags: [juego]
+      operationId: eliminar
+      summary: Eliminar a mi objetivo con su código de vida
+      description: |
+        La víctima es siempre el objetivo actual de quien llama. Se acepta el código del paso actual y,
+        durante los 15 primeros segundos de cada paso, el del anterior. Si coincide, la víctima queda
+        eliminada y quien llama hereda su objetivo y su misión y suma una eliminación. Tres códigos
+        incorrectos seguidos bloquean los intentos hasta que rota el código; un código sin 6 dígitos responde 400
+        y no cuenta como fallo. Las eliminaciones de una
+        partida se aplican de una en una: si dos coinciden en la cadena, vale la primera.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuevaEliminacion' }
+      responses:
+        '200':
+          description: Eliminación registrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Eliminacion' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: |
+            La partida no está en juego (`PARTIDA_NO_EN_JUEGO`), quien llama ya está eliminado
+            (`JUGADOR_ELIMINADO`, también cuando otra eliminación de la cadena llegó antes) o tiene los
+            intentos bloqueados (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { type: about:blank, title: Conflict, status: 409, codigo: INTENTOS_BLOQUEADOS, bloqueadoHasta: '2026-11-05T17:31:00Z' }
+        '422':
+          description: |
+            El código no es el de su objetivo: `CODIGO_CADUCADO` si es uno suyo de los últimos 10 minutos,
+            `CODIGO_INCORRECTO` en cualquier otro caso (también si es el de otro jugador). Lleva
+            `intentosRestantes`; el tercer fallo seguido responde 409 `INTENTOS_BLOQUEADOS`.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { type: about:blank, title: Unprocessable Entity, status: 422, codigo: CODIGO_INCORRECTO, intentosRestantes: 2 }
+  /api/v1/partidas/{partidaId}/feed:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [juego]
+      operationId: obtenerFeed
+      summary: Feed de la partida
+      description: |
+        Las eliminaciones, de la más reciente a la más antigua, sin decir quién eliminó a quién.
+        Lo ven el máster, juegue o no, y todos los jugadores, vivos o eliminados.
+      responses:
+        '200':
+          description: Entradas del feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/EntradaFeed' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida no está en juego ni cerrada (`PARTIDA_NO_EN_JUEGO`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -458,10 +555,36 @@ components:
   schemas:
     Carta:
       type: object
-      required: [aliasObjetivo, mision]
+      required: [estado, aliasObjetivo, mision, eliminaciones]
       properties:
-        aliasObjetivo: { type: [string, 'null'], description: Nulo si el objetivo borró su cuenta («cuenta eliminada») }
-        mision: { type: string, example: Que te diga la palabra «compilador» }
+        estado: { type: string, enum: [VIVO, ELIMINADO] }
+        aliasObjetivo: { type: [string, 'null'], description: 'Nulo si el objetivo borró su cuenta («cuenta eliminada»), si el jugador está eliminado o si es el único vivo' }
+        mision: { type: [string, 'null'], example: Que te diga la palabra «compilador», description: Nula si el jugador está eliminado o es el único vivo }
+        eliminaciones: { type: integer, minimum: 0 }
+    CodigoVida:
+      type: object
+      required: [codigo, caducaEn]
+      properties:
+        codigo: { type: string, pattern: '^[0-9]{6}$', example: '482913' }
+        caducaEn: { type: string, format: date-time, description: Final del paso de 60 s actual }
+    NuevaEliminacion:
+      type: object
+      required: [codigo]
+      properties:
+        codigo: { type: string, pattern: '^[0-9]{6}$', example: '482913' }
+    Eliminacion:
+      type: object
+      required: [aliasVictima, carta]
+      properties:
+        aliasVictima: { type: [string, 'null'], description: Nulo si la víctima borró su cuenta }
+        carta: { $ref: '#/components/schemas/Carta' }
+    EntradaFeed:
+      type: object
+      required: [tipo, alias, ocurridoEn]
+      properties:
+        tipo: { type: string, enum: [ELIMINACION], description: 'Las anulaciones, abandonos y expulsiones llegan con sus PBI' }
+        alias: { type: [string, 'null'], description: Alias del eliminado; nulo si borró su cuenta («cuenta eliminada») }
+        ocurridoEn: { type: string, format: date-time }
     NuevaInscripcion:
       type: object
       required: [codigo, aceptaNormas]
@@ -634,7 +757,9 @@ components:
         detail: { type: string }
         codigo:
           type: string
-          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO]
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS]
+        intentosRestantes: { type: integer, minimum: 0, maximum: 2, description: Solo en `CODIGO_INCORRECTO` y `CODIGO_CADUCADO` }
+        bloqueadoHasta: { type: string, format: date-time, description: Solo en `INTENTOS_BLOQUEADOS` }
         errores:
           type: array
           items:
