@@ -136,7 +136,7 @@ stateDiagram-v2
 | `EN_INSCRIPCION` | Inscribirse, revisar el horario propio, editar la configuración (máster), expulsar y arrancar (máster) | 2, 3, 4 |
 | `EN_JUEGO` | Jugar; configuración y horarios congelados | 4 en adelante |
 | `CANCELADA` | Nada: los inscritos la ven cancelada al abrir la app | 4 |
-| `CERRADA` | Ver el Wrapped; los datos individuales y secretos se han borrado | 8, 14 |
+| `CERRADA` | Ver el resultado y el feed. Con la PBI 14, el Wrapped, y los datos individuales y secretos se borran | 8, 14 |
 
 El detalle del arranque, del ciclo de objetivos y de los eventos que se guardan está en «Arranque, ciclo y eventos».
 
@@ -243,7 +243,7 @@ Lista de lo que pasa en cada partida (la crea la tarea 1.1). El estado de la par
 | `datos` | `jsonb` | no nulo; contenido según el tipo |
 | `ocurrido_en` | `timestamptz` | no nulo |
 
-Los eventos no se modifican ni se borran, salvo al cerrar la partida, cuando se borran todos y queda solo el resumen (PBI 8 y 14). Identifican a los jugadores por `inscripcionId`, nunca por la cuenta.
+Los eventos no se modifican ni se borran. Con la PBI 14, al cerrar la partida se borrarán todos y quedará solo el resumen; hasta entonces se conservan. Identifican a los jugadores por `inscripcionId`, nunca por la cuenta.
 
 **Guardar un evento.** Todo evento se guarda en la misma transacción que el cambio que registra, con la fila de su `partida` bloqueada (`select … for update`) y `secuencia = max(secuencia) + 1` de esa partida, calculado dentro de esa transacción. Sin el bloqueo, dos inscripciones a la vez calcularían la misma `secuencia` y la restricción de unicidad rechazaría la segunda con un 500. Cuando una operación guarda eventos en varias partidas (al borrar una cuenta, `INSCRIPCION_RETIRADA` o `PARTIDA_CANCELADA` en cada una), bloquea sus filas en orden de `id` ascendente, para que dos borrados a la vez no se queden esperándose el uno al otro.
 
@@ -258,6 +258,7 @@ Los eventos no se modifican ni se borran, salvo al cerrar la partida, cuando se 
 | `PARTIDA_CANCELADA` | Llega `inicio_en` con menos de 3, o el máster borra su cuenta antes del arranque | `motivo` (`POCOS_JUGADORES`, `MASTER_SIN_CUENTA`), `numJugadores` | 4.4, 2.2 |
 | `MISIONES_REPARTIDAS` | Justo después de `CICLO_FORMADO` | `asignaciones`: lista de `{inscripcionId, misionId}` | 5.2 |
 | `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo) | 7a.3 |
+| `PARTIDA_CERRADA` | Queda un único vivo, llega `fin_en` o el máster pulsa «Cerrar partida» | `motivo` (`ULTIMO_SUPERVIVIENTE`, `FECHA_FIN`, `MASTER`), `resultado` (`SUPERVIVIENTE`, `GANADOR`, `EMPATE`), `ganadores` (lista de `inscripcionId`), `eliminaciones` (las del ganador o de los empatados) | 8.2 |
 
 **Reconstruir el estado** (test de la tarea 4.6): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a) y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (disputa, abandono…) a esta tabla.
 
@@ -336,3 +337,42 @@ Un test por rol comprueba que lo demás se rechaza.
 | Eliminar | Sí, a su objetivo | No (`JUGADOR_ELIMINADO`) | Como jugador | No (404) | No (404) |
 | Feed | Sí | Sí | Sí | Sí | No (404) |
 | Mi carta | Sí | Sí, con `estado = ELIMINADO` | Como jugador | No (404) | No (404) |
+
+## Cierre de la partida (PBI 8, #8)
+
+La partida pasa de `EN_JUEGO` a `CERRADA` por tres vías, y las tres calculan el resultado con la misma regla (R11-15). El borrado de los datos al cerrar y el Wrapped llegan con la PBI 14; hasta entonces todo se conserva.
+
+### Las tres vías
+
+- **Único superviviente:** cuando una eliminación deja al cazador sin objetivo (era el último rival), la partida se cierra en la misma transacción que `JUGADOR_ELIMINADO`, con `motivo = ULTIMO_SUPERVIVIENTE`.
+- **Fecha de fin:** igual que el arranque. Una tarea programada revisa cada minuto las partidas `EN_JUEGO` con `fin_en` ya pasado, y antes de atender cualquier petición sobre una partida `EN_JUEGO` con `fin_en` pasado se le aplica el cierre pendiente con el mismo método (`motivo = FECHA_FIN`). Así una eliminación que llega después de `fin_en` encuentra la partida cerrada y se rechaza con `PARTIDA_NO_EN_JUEGO`.
+- **El máster:** `POST /partidas/{id}/cierre`, solo con la partida `EN_JUEGO` (R11-15), juegue o no (`motivo = MASTER`).
+
+### Resultado
+
+Se calcula con las filas `VIVO` de `jugador_partida`:
+
+| Vivos | Resultado | `ganadores` | Pantalla de fin (R11-6) |
+|--|--|--|--|
+| Uno | `SUPERVIVIENTE` | Ese jugador | «X, último superviviente» |
+| Varios, uno con más eliminaciones que los demás | `GANADOR` | Ese jugador | «Gana X con N eliminaciones» |
+| Varios empatados en cabeza | `EMPATE` | Todos los empatados | «Empate entre X e Y» |
+
+Las eliminaciones de los jugadores ya eliminados no cuentan para ganar. Si el ganador o un empatado ha borrado su cuenta, su alias sale como «cuenta eliminada».
+
+### Cerrar
+
+En una transacción, con la fila de la partida bloqueada: se calcula el resultado, se guarda `PARTIDA_CERRADA` y `estado` pasa a `CERRADA`. Si dos vías coinciden (el máster pulsa «Cerrar partida» mientras la tarea programada cierra por la fecha de fin), la segunda ve que la partida ya no está `EN_JUEGO`: la tarea programada no hace nada y el máster recibe `PARTIDA_NO_EN_JUEGO`.
+
+### Después de cerrar
+
+- `PartidaResumen` y `Partida` llevan `resultado` (nulo mientras la partida no está cerrada), con el tipo, los alias de los ganadores y sus eliminaciones. Con él, la app enseña la pantalla de fin a todos y la partida sale como terminada en Inicio.
+- La carta y el código de vida responden `PARTIDA_NO_EN_JUEGO`, y no se puede eliminar. El feed se sigue viendo.
+
+### Quién puede hacer qué
+
+| Operación | Jugador (vivo o eliminado) | Máster que juega | Máster que no juega | Otra cuenta |
+|--|--|--|--|--|
+| Cerrar partida | No (`NO_ES_MASTER`) | Sí | Sí | No (404) |
+| Ver el resultado | Sí | Sí | Sí | No (404) |
+
