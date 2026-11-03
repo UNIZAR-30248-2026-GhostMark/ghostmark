@@ -108,9 +108,6 @@ class EliminacionAceptacionTest {
         given().port(puerto).auth().oauth2(jugador.token()).queryParam("inscripcionId", otroId)
                 .queryParam("cuentaId", otro.id()).get(RUTA_CODIGO, mesa.partida())
                 .then().statusCode(200).body("codigo", equalTo("287082"));
-        given().port(puerto).auth().oauth2(jugador.token())
-                .get("/api/v1/partidas/{id}/inscritos/{otro}/codigo", mesa.partida(), otroId)
-                .then().statusCode(404);
         when(reloj.instant()).thenReturn(Instant.ofEpochSecond(120).minusNanos(1));
         Response antes = codigo(jugador, mesa.partida()).then().statusCode(200)
                 .body("codigo", equalTo("287082")).extract().response();

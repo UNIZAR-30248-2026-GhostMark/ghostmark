@@ -6,17 +6,17 @@ de app 7a.4 (#195) y 7a.5 (#196).
 
 ## Trazabilidad de los criterios
 
-| Criterio de satisfacción | Tests del servidor | Tests de la app y cobertura pendiente |
-|---|---|---|
-| 1. Cada vivo ve su código de seis dígitos, cambia cada 60 s y solo él puede obtenerlo | [`EliminacionAceptacionTest`](../../backend/src/test/java/es/unizar/ghostmark/backend/juego/EliminacionAceptacionTest.java), `criterio1CadaVivoObtieneSoloSuCodigoYEsteRotaCada60Segundos` (máster que juega y máster que no juega) | #195: [`life-code-screens.test.cjs`](../../mobile/tests/life-code-screens.test.cjs), «Mi código muestra los seis dígitos y la cuenta atrás recibidos» y «al acabar la cuenta atrás Mi código pide el código nuevo sin repetir la petición cada segundo». [`life-code.test.cjs`](../../mobile/tests/life-code.test.cjs) comprueba las rutas privadas y la cuenta atrás |
-| 2. El código del objetivo elimina a la víctima, suma una eliminación al cazador y el feed no revela quién la hizo | [`EliminacionAceptacionTest`](../../backend/src/test/java/es/unizar/ghostmark/backend/juego/EliminacionAceptacionTest.java), `criterio2ElCodigoDelObjetivoEliminaSumaYPublicaUnFeedSinCazador` | #195: [`life-code-screens.test.cjs`](../../mobile/tests/life-code-screens.test.cjs), «Eliminar envía seis dígitos y abre la pantalla de acierto» y «el acierto dice a quién has eliminado y vuelve a la misma carta, ya recargada». **Pendiente #196:** enlazar los tests de «Te han cazado» y del texto «X fue eliminado» sin cazador en el feed |
-| 3. El cazador hereda objetivo y misión, el ciclo sigue siendo único y cerrado y con dos vivos cada uno es objetivo del otro | [`EliminacionAceptacionTest`](../../backend/src/test/java/es/unizar/ghostmark/backend/juego/EliminacionAceptacionTest.java), `criterio3HeredaObjetivoYMisionYConservaUnSoloCicloHastaDosVivos` | #195: [`life-code-screens.test.cjs`](../../mobile/tests/life-code-screens.test.cjs), «el acierto dice a quién has eliminado y vuelve a la misma carta, ya recargada», comprueba el aviso de herencia y la navegación de vuelta. **Pendiente #196:** enlazar la prueba que compruebe el objetivo y la misión heredados en la carta |
-
-Los enlaces de la #195 apuntan a los archivos de su tarea y estarán disponibles
-en la rama común cuando se integre. La #196 aún no está implementada: no se
-consideran verificadas sus pantallas ni se da por cerrada la aceptación completa
-de la PBI. Cuando se entregue, deben sustituirse los pendientes por enlaces a
-sus tests reales y comprobar su ejecución.
+| Criterio o caso | Prueba automática |
+|---|---|
+| 1. Cada vivo obtiene solo su código de seis dígitos, que cambia cada 60 s, con máster que juega y máster que no juega | `EliminacionAceptacionTest.criterio1CadaVivoObtieneSoloSuCodigoYEsteRotaCada60Segundos` |
+| 1. «Mi código» muestra el código y la cuenta atrás, y pide el nuevo al acabar | `life-code-screens.test.cjs`: «Mi código muestra los seis dígitos y la cuenta atrás recibidos» y «al acabar la cuenta atrás Mi código pide el código nuevo sin repetir la petición cada segundo» |
+| 1. La app usa la ruta privada de su código y la cuenta atrás no baja de cero | `life-code.test.cjs` |
+| 2. El código del objetivo elimina a la víctima, suma una eliminación al cazador y el feed no dice quién la hizo | `criterio2ElCodigoDelObjetivoEliminaSumaYPublicaUnFeedSinCazador` |
+| 2. «Eliminar» envía los seis dígitos y el acierto dice a quién has eliminado | `life-code-screens.test.cjs`: «Eliminar envía seis dígitos y abre la pantalla de acierto» y «el acierto dice a quién has eliminado y vuelve a la misma carta, ya recargada» |
+| 2. «Te han cazado» y «X fue eliminado» en el feed, sin el cazador | Pendiente de la 7a.5 (#196) |
+| 3. El cazador hereda objetivo y misión, el ciclo sigue siendo único y cerrado y con dos vivos cada uno es objetivo del otro | `criterio3HeredaObjetivoYMisionYConservaUnSoloCicloHastaDosVivos` |
+| 3. El acierto avisa de la herencia y vuelve a la carta | `life-code-screens.test.cjs`: «el acierto dice a quién has eliminado y vuelve a la misma carta, ya recargada» |
+| 3. La carta muestra el objetivo y la misión heredados | Pendiente de la 7a.5 (#196) |
 
 ## Cómo se comprueba el servidor
 
@@ -55,12 +55,9 @@ Para ejecutar únicamente esta clase durante el desarrollo:
 .\mvnw.cmd -Dtest=EliminacionAceptacionTest test
 ```
 
-El flujo `ci-backend` ya ejecuta `verify`; no necesita cambios. En la rama que
-contenga la #195, sus pruebas de app pueden ejecutarse desde `mobile` tras `npm ci`:
+El flujo `ci-backend` ya ejecuta `verify`; no necesita cambios. Las pruebas de la
+app de la #195 se ejecutan desde `mobile` tras `npm ci`:
 
 ```powershell
 node --test tests/life-code.test.cjs tests/life-code-screens.test.cjs
 ```
-
-Esta tabla describe la cobertura y sus pendientes; no certifica una ejecución
-ni sustituye la revisión ni la prueba de las pantallas en Android.
