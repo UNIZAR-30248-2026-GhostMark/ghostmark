@@ -72,6 +72,23 @@ test('Inicio y los controles en fila reservan ancho para Bangers', () => {
   assert.match(createGame, /timeWide:\s*\{[^}]*flex:\s*1[^}]*textAlign:\s*"center"/);
 });
 
+test('los títulos Bangers de varias líneas tienen altura suficiente en Android', () => {
+  const sourceRoot = path.join(__dirname, '../src');
+  const started = fs.readFileSync(path.join(sourceRoot, 'screens/GameStartedScreen.tsx'), 'utf8');
+  const cancelled = fs.readFileSync(path.join(sourceRoot, 'screens/GameCancelledScreen.tsx'), 'utf8');
+
+  const startedTitle = started.match(/title:\s*\{([^}]*)\}/);
+  assert.ok(startedTitle, 'GameStartedScreen debe declarar el estilo title');
+  assert.match(startedTitle[1], /alignSelf:\s*"stretch"/);
+  assert.match(startedTitle[1], /\.\.\.bangers\(42\)/);
+  assert.match(startedTitle[1], /lineHeight:\s*(4[3-9]|[5-9]\d)/);
+
+  const cancelledTitle = cancelled.match(/title:\s*\{([^}]*)\}/);
+  assert.ok(cancelledTitle, 'GameCancelledScreen debe declarar el estilo title');
+  assert.match(cancelledTitle[1], /\.\.\.bangers\(38\)/);
+  assert.match(cancelledTitle[1], /lineHeight:\s*(3[8-9]|[4-9]\d)/);
+});
+
 test('Sala de espera reserva ancho para el título entre los controles', () => {
   const waitingRoom = fs.readFileSync(path.join(__dirname, '../src/screens/WaitingRoomScreen.tsx'), 'utf8');
   assert.match(waitingRoom, /title:\s*\{[^}]*flex:\s*1/);
