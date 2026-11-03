@@ -9,7 +9,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
-import type { MissionType } from "../types/game";
+import type { Game, MissionType } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateGameMissions">;
@@ -21,13 +21,15 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
   const [otherContext, setOtherContext] = useState("");
   const [error, setError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  // La partida se crea una sola vez: si falla la tanda, reintentar o pasar a Biblioteca usa la misma.
+  const [createdGame, setCreatedGame] = useState<Game>();
   const contextValue = context === "Otro…" ? otherContext.trim() : context;
 
   async function createLibraryGame() {
     setError(undefined); setIsSaving(true);
     try {
-      const game = await createGame({ ...route.params.configuration, tipoMisiones: "BIBLIOTECA" });
-      openShare(game);
+      // Si ya se creó como IA sin misiones aprobadas, al arrancar se completa con la biblioteca.
+      openShare(await ensureGame("BIBLIOTECA"));
     } catch (requestError) {
       setError(messageFor(requestError, "No hemos podido crear la partida. Comprueba la conexión e inténtalo de nuevo."));
     } finally { setIsSaving(false); }
@@ -37,7 +39,7 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
     if (contextValue.length < 3) { setError("Escribe un contexto de al menos 3 caracteres."); return; }
     setError(undefined); setIsSaving(true);
     try {
-      const game = await createGame({ ...route.params.configuration, tipoMisiones: "IA" });
+      const game = await ensureGame("IA");
       const batch = await requestAiMissionBatch(game.id, contextValue);
       navigation.reset({ index: 1, routes: [homeRoute(game), { name: "ReviewAiMissions", params: { batch, contexto: contextValue, game } }] });
     } catch (requestError) {
@@ -45,12 +47,25 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
     } finally { setIsSaving(false); }
   }
 
-  function openShare(game: Parameters<typeof homeRoute>[0]) {
+  async function ensureGame(tipoMisiones: MissionType) {
+    if (createdGame) return createdGame;
+    const game = await createGame({ ...route.params.configuration, tipoMisiones });
+    setCreatedGame(game);
+    return game;
+  }
+
+  function goBack() {
+    // Con la partida ya creada, volver a Reglas permitiría crearla otra vez: se vuelve a Inicio.
+    if (createdGame) navigation.reset({ index: 0, routes: [homeRoute(createdGame)] });
+    else navigation.goBack();
+  }
+
+  function openShare(game: Game) {
     navigation.reset({ index: 1, routes: [homeRoute(game), { name: "ShareGame", params: { game } }] });
   }
 
   return <Screen><View style={styles.screen}>
-    <GameWizardHeader label="Misiones" onBack={() => navigation.goBack()} step={3} />
+    <GameWizardHeader label="Misiones" onBack={goBack} step={3} />
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.heading}>MISIONES</Text>
       <View style={styles.typeSwitch}>
@@ -73,7 +88,7 @@ function TypeButton({ active, label, onPress }: { active: boolean; label: string
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.typeButton, active && styles.typeButtonOn, pressed && styles.pressed]}><Text style={[styles.typeText, active && styles.typeTextOn]}>{label}</Text></Pressable>;
 }
 
-function homeRoute(game: { id: string; nombre: string; inicioEn: string; finEn: string; estado: "EN_INSCRIPCION" | "EN_JUEGO" | "CANCELADA" | "CERRADA"; numInscritos: number; masterJuega: boolean }) {
+function homeRoute(game: Game) {
   return { name: "Home" as const, params: { createdGame: { finEn: game.finEn, id: game.id, inicioEn: game.inicioEn, nombre: game.nombre, estado: game.estado, motivoCancelacion: null, numInscritos: game.numInscritos, soyJugador: game.masterJuega, soyMaster: true } } };
 }
 
