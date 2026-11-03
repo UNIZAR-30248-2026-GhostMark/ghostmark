@@ -73,7 +73,7 @@ async function mount(component, props) {
   await act(async () => { tree = create(React.createElement(component, props)); });
 }
 
-for (const position of ['destacada', 'otra']) {
+for (const position of ['única partida', 'otra partida']) {
   test(`criterio 3: al abrir Inicio el inscrito ve la partida cancelada (${position})`, async () => {
     const cancelled = { ...game, estado: 'CANCELADA', motivoCancelacion: 'POCOS_JUGADORES' };
     const calls = [];
@@ -81,7 +81,7 @@ for (const position of ['destacada', 'otra']) {
     mock.method(global, 'fetch', async (url, options) => {
       calls.push([options.method ?? 'GET', new URL(url).pathname]);
       assert.equal(options.headers.get('Authorization'), 'Bearer token-del-inscrito');
-      return Response.json(position === 'destacada' ? [cancelled]
+      return Response.json(position === 'única partida' ? [cancelled]
         : [{ ...game, id: 'otra-partida', nombre: 'Otra partida' }, cancelled]);
     });
     let destination;

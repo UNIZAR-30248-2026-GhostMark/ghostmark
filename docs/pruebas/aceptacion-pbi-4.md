@@ -9,7 +9,7 @@ Tarea 4.6 (#65), PBI #5. Requiere la 4.3, la 4.4 y la 4.5 (#62, #63 y #64).
 | 1. El inscrito ve la partida iniciada en la sala | `start-acceptance.test.cjs`: criterio 1 |
 | 2. Un único ciclo cerrado, objetivo y perseguidor únicos, sin perseguirse a sí mismo | `criterio2CadaJugadorTieneUnObjetivoYUnPerseguidorEnUnSoloCiclo`: 3, 4 y 10 jugadores |
 | 3. Cancelación sin arrancar, visible para los inscritos | `criterio3ConMenosDeTresSeCancelaYLosInscritosLaVenAlConsultar`: 0, 1 y 2 jugadores |
-| 3. Cancelación visible al abrir la app, también fuera de la tarjeta destacada | `start-acceptance.test.cjs`: criterio 3, dos casos |
+| 3. Cancelación visible al abrir la app en «Tus partidas», tanto si es la única partida como si hay otra en juego | `start-acceptance.test.cjs`: criterio 3, dos casos |
 | Estado e inscripciones reconstruidos aplicando los eventos por secuencia | `elEstadoSeReconstruyeDesdeLosEventosEnOrden`: inscripción con retirada, en juego y cancelada |
 | Borrado en juego sin perder la inscripción ni alterar el historial | `BorradoCuentaTest.borrarCuentaEnJuegoConservaLosEventosYDejaLaInscripcionSinAlias` |
 | Representación de alias nulo como «Cuenta eliminada» | Test existente de `inscription.test.cjs`: «la sala muestra los inscritos reales y “Cuenta eliminada” si borró la cuenta» |
