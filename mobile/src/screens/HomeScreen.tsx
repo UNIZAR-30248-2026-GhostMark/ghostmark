@@ -21,12 +21,20 @@ const stateLabels: Record<GameSummary["estado"], string> = {
   CERRADA: "Cerrada",
 };
 
+export function selectHomeGames(games: GameSummary[]) {
+  const featuredGame = games.find((game) => game.estado === "EN_JUEGO")
+    ?? games.find((game) => game.estado !== "CANCELADA");
+  return {
+    featuredGame,
+    otherGames: games.filter((game) => game.id !== featuredGame?.id),
+  };
+}
+
 export function HomeScreen({ navigation, route }: Props) {
   const [games, setGames] = useState<GameSummary[]>(route.params?.createdGame ? [route.params.createdGame] : []);
   const [gamesState, setGamesState] = useState<"loading" | "error" | "loaded">(route.params?.createdGame ? "loaded" : "loading");
   const [attempt, setAttempt] = useState(0);
-  const featuredGame = games[0];
-  const otherGames = games.slice(1);
+  const { featuredGame, otherGames } = selectHomeGames(games);
   const showServerWakeupNotice = useServerWakeupNotice(gamesState === "loading", attempt);
 
   useEffect(() => {
@@ -47,7 +55,9 @@ export function HomeScreen({ navigation, route }: Props) {
     setAttempt((value) => value + 1);
   }
 
-  return <Screen padded={false}><View style={styles.screen}><View style={styles.content}><ScrollView contentContainerStyle={styles.gamesContent} showsVerticalScrollIndicator={false}><Header />{gamesState === "loading" ? <LoadingGames showServerWakeupNotice={showServerWakeupNotice} /> : gamesState === "error" ? <GamesLoadError onRetry={retryGames} /> : featuredGame ? <><FeaturedGame game={featuredGame} navigation={navigation} /><Text style={styles.otherTitle}>TUS OTRAS PARTIDAS</Text>{otherGames.length ? otherGames.map((game) => <OtherGame game={game} key={game.id} navigation={navigation} />) : <Text style={styles.otherEmpty}>Todavía no tienes otras partidas.</Text>}</> : <EmptyGames />}</ScrollView><View style={styles.actions}><Pressable accessibilityRole="button" onPress={() => navigation.navigate("CreateGameData")} style={({ pressed }) => [styles.createButton, pressed && styles.pressed]}><Text style={[styles.createText, bangersLayout.buttonText]}>CREAR PARTIDA</Text></Pressable><Pressable accessibilityRole="button" onPress={() => navigation.navigate("ScanInvitation")} style={({ pressed }) => [styles.joinButton, pressed && styles.pressed]}><Text style={[styles.joinText, bangersLayout.buttonText]}>UNIRSE</Text></Pressable></View></View><BottomBar navigation={navigation} /></View></Screen>;
+  const hasGames = Boolean(featuredGame) || otherGames.length > 0;
+
+  return <Screen padded={false}><View style={styles.screen}><View style={styles.content}><ScrollView contentContainerStyle={styles.gamesContent} showsVerticalScrollIndicator={false}><Header />{gamesState === "loading" ? <LoadingGames showServerWakeupNotice={showServerWakeupNotice} /> : gamesState === "error" ? <GamesLoadError onRetry={retryGames} /> : hasGames ? <>{featuredGame ? <FeaturedGame game={featuredGame} navigation={navigation} /> : null}<Text style={styles.otherTitle}>{featuredGame ? "TUS OTRAS PARTIDAS" : "TUS PARTIDAS"}</Text>{otherGames.map((game) => <OtherGame game={game} key={game.id} navigation={navigation} />)}{featuredGame && otherGames.length === 0 ? <Text style={styles.otherEmpty}>Todavía no tienes otras partidas.</Text> : null}</> : <EmptyGames />}</ScrollView><View style={styles.actions}><Pressable accessibilityRole="button" onPress={() => navigation.navigate("CreateGameData")} style={({ pressed }) => [styles.createButton, pressed && styles.pressed]}><Text style={[styles.createText, bangersLayout.buttonText]}>CREAR PARTIDA</Text></Pressable><Pressable accessibilityRole="button" onPress={() => navigation.navigate("ScanInvitation")} style={({ pressed }) => [styles.joinButton, pressed && styles.pressed]}><Text style={[styles.joinText, bangersLayout.buttonText]}>UNIRSE</Text></Pressable></View></View><BottomBar navigation={navigation} /></View></Screen>;
 }
 
 function Header() { return <View style={styles.header}><View style={[styles.brand, bangersLayout.brand]}><Image accessibilityLabel="GhostMark" source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.brandGhost} /><Text style={[styles.brandText, bangersLayout.brandText]}>GHOSTMARK</Text></View><View style={styles.notification}><Ionicons color={colors.text} name="notifications-outline" size={22} /></View></View>; }
