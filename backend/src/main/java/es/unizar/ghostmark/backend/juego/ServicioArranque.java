@@ -29,10 +29,12 @@ public class ServicioArranque {
     private final ServicioPartida servicioPartida;
     private final GeneradorCiclo ciclo;
     private final ServicioCarta cartas;
+    private final JugadorPartidaRepository jugadores;
 
     public ServicioArranque(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, ServicioEvento eventos,
-            ServicioPartida servicioPartida, GeneradorCiclo ciclo, ServicioCarta cartas) {
+            ServicioPartida servicioPartida, GeneradorCiclo ciclo, ServicioCarta cartas,
+            JugadorPartidaRepository jugadores) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
@@ -40,6 +42,7 @@ public class ServicioArranque {
         this.servicioPartida = servicioPartida;
         this.ciclo = ciclo;
         this.cartas = cartas;
+        this.jugadores = jugadores;
     }
 
     @Transactional
@@ -98,5 +101,6 @@ public class ServicioArranque {
                 ahora);
         // Comparte la transacción y el bloqueo del arranque: se guarda todo o nada.
         cartas.repartir(partida.getId(), orden, ahora);
+        this.jugadores.crearAlArrancar(partida.getId());
     }
 }
