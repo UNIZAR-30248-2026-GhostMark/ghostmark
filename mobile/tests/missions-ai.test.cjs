@@ -32,6 +32,7 @@ const common = {
     Image: 'Image', PanResponder: { create: (config) => { pan = config; return { panHandlers: {} }; } },
     Pressable: 'Pressable', ScrollView: 'ScrollView', StyleSheet: { create: (styles) => styles }, Text: 'Text', TextInput: 'TextInput', View: 'View',
   },
+  '@expo/vector-icons': { Ionicons: 'Ionicons' },
   '../api/client': { ApiError: class ApiError extends Error { constructor(message) { super(message); this.fieldErrors = []; } } },
   '../components/GameWizardHeader': { GameWizardHeader: 'GameWizardHeader' },
   '../components/PrimaryButton': { PrimaryButton: 'PrimaryButton' },
@@ -86,6 +87,32 @@ test('«Otro…» pide un contexto de al menos 3 caracteres antes de crear nada'
   assert.equal(created, 0);
 });
 
+test('«Otro…» manda el contexto escrito sin los espacios de los lados', async () => {
+  const asked = [];
+  const { CreateGameMissionsScreen, navigation } = missionsStep({ createGame: async () => game, requestAiMissionBatch: async (...args) => { asked.push(args); return batch([mission('m1', 'Una misión')]); } });
+  await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration } } })); });
+  await press(pressable('Otro…'));
+  await act(async () => tree.root.findByType('TextInput').props.onChangeText('  Erasmus  '));
+  await press(tree.root.findByType('PrimaryButton'));
+  assert.deepEqual(asked, [['p1', 'Erasmus']]);
+  assert.equal(navigation.resets[0].routes[1].params.contexto, 'Erasmus');
+});
+
+test('Inicio recibe la partida creada debajo de la pantalla siguiente, también si el máster no juega', async () => {
+  const solo = { ...configuration, masterJuega: false };
+  for (const [tipo, nextScreen] of [['IA', 'ReviewAiMissions'], ['BIBLIOTECA', 'ShareGame']]) {
+    const created = { ...game, ...solo, tipoMisiones: tipo };
+    const { CreateGameMissionsScreen, navigation } = missionsStep({ createGame: async () => created, requestAiMissionBatch: async () => batch([mission('m1', 'Una misión')]) });
+    await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration: solo } } })); });
+    if (tipo === 'BIBLIOTECA') await press(pressable('BIBLIOTECA'));
+    await press(tree.root.findByType('PrimaryButton'));
+    assert.equal(navigation.resets[0].index, 1);
+    assert.equal(navigation.resets[0].routes[1].name, nextScreen);
+    assert.deepEqual(navigation.resets[0].routes[0], { name: 'Home', params: { createdGame: { finEn: created.finEn, id: 'p1', inicioEn: created.inicioEn, nombre: created.nombre, estado: 'EN_INSCRIPCION', motivoCancelacion: null, numInscritos: 1, soyJugador: false, soyMaster: true } } });
+    await act(async () => tree.unmount()); tree = undefined;
+  }
+});
+
 test('si falla la tanda, reintentar no crea otra partida y pasar a Biblioteca cambia la misma (R11-19)', async () => {
   const { ApiError } = common['../api/client'];
   let created = 0;
@@ -124,10 +151,10 @@ test('Biblioteca crea la partida con las misiones de la biblioteca y abre Compar
   assert.equal(navigation.resets[0].routes[1].name, 'ShareGame');
 });
 
-function reviewScreen(initial, api) {
+function reviewScreen(initial, api, contexto = 'Campus') {
   const navigation = { destinations: [], goBack() {}, navigate(...args) { this.destinations.push(args); } };
   const { ReviewAiMissionsScreen } = load('screens/ReviewAiMissionsScreen.tsx', { ...common, '../api/game': api });
-  return { navigation, element: React.createElement(ReviewAiMissionsScreen, { navigation, route: { params: { batch: initial, contexto: 'Campus', game } } }) };
+  return { navigation, element: React.createElement(ReviewAiMissionsScreen, { navigation, route: { params: { batch: initial, contexto, game } } }) };
 }
 
 test('la pila aprueba con ✓ o deslizando a la derecha y rechaza con ✗ o deslizando a la izquierda', async () => {
@@ -146,7 +173,60 @@ test('la pila aprueba con ✓ o deslizando a la derecha y rechaza con ✗ o desl
   await act(async () => pan.onPanResponderRelease({}, { dx: -120 }));
   assert.deepEqual(decisions, [['p1', 'm1', 'APROBADA'], ['p1', 'm2', 'RECHAZADA'], ['p1', 'm3', 'APROBADA'], ['p1', 'm4', 'RECHAZADA']]);
   assert.match(shown(), /TANDA REVISADA/);
-  assert.match(shown(), /"Has aprobado ","2"," misión","es"/);
+  assert.match(shown(), /Has aprobado 2 misiones\./);
+  assert.doesNotMatch(shown(), /" de "/, 'al acabar la tanda no queda el contador');
+});
+
+test('con una sola aprobada dice «misión» en singular', async () => {
+  const { element } = reviewScreen(batch([mission('m1', 'Primera misión')]), { reviewAiMission: async () => ({}), requestAiMissionBatch: async () => assert.fail('no pide tanda') });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Aprobar misión'));
+  assert.match(shown(), /Has aprobado 1 misión\./);
+});
+
+test('si el servidor rechaza la decisión, la carta se queda y sale el error (R11-18)', async () => {
+  const { ApiError } = common['../api/client'];
+  const decisions = [];
+  let fail = true;
+  const { element } = reviewScreen(batch([mission('m1', 'Primera misión'), mission('m2', 'Segunda misión')]), {
+    reviewAiMission: async (...args) => { decisions.push(args); if (fail) { fail = false; throw new ApiError('Esta misión ya está decidida'); } return {}; },
+    requestAiMissionBatch: async () => assert.fail('no pide tanda'),
+  });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Aprobar misión'));
+  assert.match(shown(), /Esta misión ya está decidida/);
+  assert.match(shown(), /Primera misión/);
+  assert.match(shown(), /"1"," de ","2"/);
+  await press(pressable('Aprobar misión'));
+  assert.match(shown(), /Segunda misión/);
+  assert.doesNotMatch(shown(), /Esta misión ya está decidida/);
+  assert.deepEqual(decisions, [['p1', 'm1', 'APROBADA'], ['p1', 'm1', 'APROBADA']]);
+});
+
+test('pulsar dos veces mientras se guarda manda una sola decisión', async () => {
+  const decisions = [];
+  let resolve;
+  const { element } = reviewScreen(batch([mission('m1', 'Primera misión'), mission('m2', 'Segunda misión')]), {
+    reviewAiMission: (...args) => { decisions.push(args); return new Promise((done) => { resolve = done; }); },
+    requestAiMissionBatch: async () => assert.fail('no pide tanda'),
+  });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Aprobar misión'));
+  await press(pressable('Rechazar misión'));
+  await act(async () => pan.onPanResponderRelease({}, { dx: 120 }));
+  assert.equal(decisions.length, 1);
+  await act(async () => resolve({}));
+  assert.match(shown(), /Segunda misión/);
+});
+
+test('una tanda vacía avisa de que no hay misiones válidas y deja pedir otra o continuar (R11-22)', async () => {
+  const { element } = reviewScreen(batch([], 3), { reviewAiMission: async () => assert.fail('no hay nada que decidir'), requestAiMissionBatch: async () => batch([]) });
+  await act(async () => { tree = create(element); });
+  assert.match(shown(), /La IA no ha propuesto ninguna misión válida\./);
+  assert.doesNotMatch(shown(), /TANDA REVISADA/);
+  assert.doesNotMatch(shown(), /" de "/);
+  assert.ok(pressable('PEDIR OTRA TANDA (3)'), 'debería poder pedir otra tanda');
+  assert.ok(pressable('CONTINUAR'), 'debería poder continuar');
 });
 
 test('al acabar la tanda se puede pedir otra mientras queden y continuar a Compartir', async () => {
@@ -154,11 +234,11 @@ test('al acabar la tanda se puede pedir otra mientras queden y continuar a Compa
   const { element, navigation } = reviewScreen(batch([mission('m1', 'Primera misión')], 1), {
     reviewAiMission: async () => ({}),
     requestAiMissionBatch: async (...args) => { asked.push(args); return { ...batch([mission('m2', 'Misión de la tanda 2')], 0), tanda: 2 }; },
-  });
+  }, 'Erasmus');
   await act(async () => { tree = create(element); });
   await press(pressable('Rechazar misión'));
   await press(pressable('PEDIR OTRA TANDA (1)'));
-  assert.deepEqual(asked, [['p1', 'Campus']]);
+  assert.deepEqual(asked, [['p1', 'Erasmus']], 'la segunda tanda usa el mismo contexto');
   assert.match(shown(), /Misión de la tanda 2/);
   await press(pressable('Aprobar misión'));
   assert.ok(pressable('PEDIR OTRA TANDA') === undefined, 'no debería aparecer PEDIR OTRA TANDA');

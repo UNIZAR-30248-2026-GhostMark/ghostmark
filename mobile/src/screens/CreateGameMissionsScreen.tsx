@@ -76,7 +76,7 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
       </View>
       {type === "IA" ? <>
         <Text style={styles.contextHeading}>CONTEXTO</Text>
-        <ScrollView contentContainerStyle={styles.contexts} horizontal showsHorizontalScrollIndicator={false}>{contexts.map((item) => <Pressable accessibilityRole="button" key={item} onPress={() => setContext(item)} style={({ pressed }) => [styles.contextChip, context === item && styles.contextChipOn, pressed && styles.pressed]}><Text style={[styles.contextText, context === item && styles.contextTextOn]}>{item}</Text></Pressable>)}</ScrollView>
+        <ScrollView contentContainerStyle={styles.contexts} horizontal style={styles.contextScroll} showsHorizontalScrollIndicator={false}>{contexts.map((item) => <Pressable accessibilityRole="button" key={item} onPress={() => setContext(item)} style={({ pressed }) => [styles.contextChip, context === item && styles.contextChipOn, pressed && styles.pressed]}><Text style={[styles.contextText, context === item && styles.contextTextOn]}>{item}</Text></Pressable>)}</ScrollView>
         {context === "Otro…" ? <TextInput accessibilityLabel="Otro contexto para las misiones" maxLength={40} onChangeText={setOtherContext} placeholder="Describe el contexto" placeholderTextColor={colors.textMuted} style={styles.contextInput} value={otherContext} /> : null}
         <View style={styles.note}><Image source={require("../../assets/ghosts/fantasma-escudo.png")} style={styles.noteGhost} /><Text style={styles.noteText}>Siempre sin contacto físico. Tú apruebas cada misión antes de que entre en juego.</Text></View>
       </> : <View style={styles.libraryNote}><Text style={styles.libraryTitle}>MISIONES DE BIBLIOTECA</Text><Text style={styles.libraryText}>Usaremos las misiones revisadas de GhostMark, seguras y listas para repartir al arrancar.</Text></View>}
@@ -108,6 +108,8 @@ const styles = StyleSheet.create({
   typeText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, textAlign: "center" },
   typeTextOn: { color: colors.ink, ...bangers(19) },
   contextHeading: { color: colors.white, ...bangers(28), marginTop: 28 },
+  // Sin esto, el ScrollView horizontal crece en alto y separa los chips del título.
+  contextScroll: { flexGrow: 0 },
   contexts: { alignItems: "center", gap: 10, marginHorizontal: -24, marginTop: 12, paddingHorizontal: 24, paddingVertical: 3 },
   contextChip: { alignSelf: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 13, borderWidth: 3, minHeight: 43, paddingHorizontal: 14, paddingVertical: 8 },
   contextChipOn: { backgroundColor: colors.lime, borderColor: colors.ink, boxShadow: `0px 3px 0px ${colors.ink}` },
