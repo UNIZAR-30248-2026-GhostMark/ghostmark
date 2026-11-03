@@ -157,7 +157,7 @@ test('al acabar la tanda se puede pedir otra mientras queden y continuar a Compa
   assert.deepEqual(asked, [['p1', 'Campus']]);
   assert.match(shown(), /Misión de la tanda 2/);
   await press(pressable('Aprobar misión'));
-  assert.equal(pressable('PEDIR OTRA TANDA'), undefined);
+  assert.ok(pressable('PEDIR OTRA TANDA') === undefined, 'no debería aparecer PEDIR OTRA TANDA');
   await press(pressable('CONTINUAR'));
   assert.deepEqual(navigation.destinations, [['ShareGame', { game }]]);
 });
