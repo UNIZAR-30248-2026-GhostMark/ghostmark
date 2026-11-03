@@ -2,10 +2,10 @@ import { request } from "./client";
 import type { Game, GameConfiguration, GameSummary, PublicGame } from "../types/game";
 
 export type MissionCard = {
-  estado?: "VIVO" | "ELIMINADO";
+  estado: "VIVO" | "ELIMINADO";
   aliasObjetivo: string | null;
   mision: string | null;
-  eliminaciones?: number;
+  eliminaciones: number;
 };
 
 export type LifeCode = {

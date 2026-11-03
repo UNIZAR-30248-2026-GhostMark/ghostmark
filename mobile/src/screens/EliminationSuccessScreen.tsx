@@ -12,6 +12,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "EliminationSuccess">;
 
 // Rayos y confeti de f-acierto, en el lienzo de 360 x 780 del prototipo.
 const RAYS = "M180 330L-40 40H60zM180 330L140 -20h80zM180 330L400 40H300zM180 330L420 330V230zM180 330L-60 330V230zM180 330L400 620V520zM180 330L-40 620V520z";
+const OUTLINE = [[-5, 0], [5, 0], [0, -5], [0, 5], [-4, -4], [4, -4], [-4, 4], [4, 4], [0, 9]] as const;
 const CONFETTI_COLORS = [colors.lime, colors.lime, colors.cream, colors.textMuted, colors.border, colors.ink];
 
 export function confettiPieces(count = 46) {
@@ -40,7 +41,11 @@ export function EliminationSuccessScreen({ navigation, route }: Props) {
     <SafeAreaView edges={["top", "right", "bottom", "left"]} style={styles.safeArea}>
       <View style={styles.content}>
         <Image accessibilityLabel="Fantasma eliminado" source={require("../../assets/ghosts/fantasma-ko.png")} style={styles.ghost} />
-        <Text style={styles.title}>¡ELIMINADO!</Text>
+        <View style={styles.titleWrap}>
+          {/* Contorno de tinta del rótulo, como en f-acierto: copias desplazadas detrás del texto. */}
+          {OUTLINE.map(([x, y]) => <Text accessibilityElementsHidden aria-hidden importantForAccessibility="no-hide-descendants" key={`${x},${y}`} style={[styles.title, styles.titleOutline, { transform: [{ translateX: x }, { translateY: y }] }]}>¡ELIMINADO!</Text>)}
+          <Text style={styles.title}>¡ELIMINADO!</Text>
+        </View>
         <Text style={styles.victim}>{result.aliasVictima ?? "Cuenta eliminada"} queda fuera de la partida</Text>
         <Text style={styles.inherit}>{inherited ? "Heredas su objetivo y su misión" : "Ya no tienes objetivo. ¡Eres la última persona en juego!"}</Text>
       </View>
@@ -58,7 +63,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { alignItems: "center", flex: 1, paddingHorizontal: 24 },
   ghost: { height: 222, marginTop: 60, resizeMode: "contain", transform: [{ rotate: "-8deg" }], width: 236 },
-  title: { alignSelf: "stretch", color: colors.cream, ...bangers(76), lineHeight: 84, marginTop: 100, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 4, width: 0 }, textShadowRadius: 0 },
+  titleWrap: { alignSelf: "stretch", marginTop: 100 },
+  title: { alignSelf: "stretch", color: colors.cream, ...bangers(76), lineHeight: 84, textAlign: "center" },
+  titleOutline: { color: colors.ink, left: 0, position: "absolute", right: 0, top: 0 },
   victim: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 19, lineHeight: 25, marginTop: 10, textAlign: "center" },
   inherit: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 16, lineHeight: 22, marginTop: 6, textAlign: "center" },
   footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 },

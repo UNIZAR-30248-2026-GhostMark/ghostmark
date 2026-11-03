@@ -32,6 +32,7 @@ const common = {
   '../theme/bangers': { bangers: () => ({}) },
   '../theme/colors': { colors: { background: '', border: '', coral: '', cream: '', danger: '', ink: '', lime: '', surfaceRaised: '', text: '', textMuted: '', white: '' } },
   'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+  '@expo/vector-icons': { Ionicons: 'Ionicons' },
   '../api/client': { ApiError: class ApiError extends Error {} },
   '../utils/lifeCode': lifeCode,
   'react-native-svg': {
@@ -54,10 +55,17 @@ test('Mi código muestra los seis dígitos y la cuenta atrás recibidos', async 
   let tree;
   try {
     await act(async () => { tree = create(React.createElement(LifeCodeScreen, { navigation: { goBack() {} }, route: { params: { gameId: 'p1' } } })); });
-    const shown = JSON.stringify(tree.toJSON());
-    assert.match(shown, /482/);
-    assert.match(shown, /913/);
-    assert.match(shown, /Tu código/);
+    // Solo el texto visible: la etiqueta de accesibilidad también lleva el código.
+    const texts = [];
+    const visit = (node) => {
+      if (!node || typeof node === 'string') return;
+      if (Array.isArray(node)) { node.forEach(visit); return; }
+      if (node.type === 'Text') texts.push((node.children ?? []).filter((child) => typeof child === 'string').join(''));
+      visit(node.children);
+    };
+    visit(tree.toJSON());
+    assert.ok(texts.includes('482 913'), 'Se ve el código en dos grupos de tres');
+    assert.ok(texts.includes('Tu código'));
   } finally {
     await act(async () => tree.unmount());
   }

@@ -75,7 +75,7 @@ export function LifeCodeScreen({ navigation, route }: Props) {
 }
 
 function Checkerboard() {
-  return <Svg pointerEvents="none" style={styles.checkerboard}>
+  return <Svg height="100%" pointerEvents="none" style={styles.checkerboard} width="100%">
     <Defs><Pattern height="32" id="life-code-checkerboard" patternUnits="userSpaceOnUse" width="32"><Rect fill="#59218A" height="32" width="32" /><Rect fill="#B75BE5" height="16" width="16" x="16" /><Rect fill="#B75BE5" height="16" width="16" y="16" /></Pattern></Defs>
     <Rect fill="url(#life-code-checkerboard)" height="100%" width="100%" />
   </Svg>;
