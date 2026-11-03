@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { AiMission, AiMissionStatus, Game, GameConfiguration, GameSummary, MissionBatch, PublicGame } from "../types/game";
+import type { AiMission, AiMissionStatus, Game, GameConfiguration, GameSummary, MissionBatch, MissionType, PublicGame } from "../types/game";
 
 export type MissionCard = {
   estado: "VIVO" | "ELIMINADO";
@@ -20,6 +20,10 @@ export type EliminationResult = {
 
 export function createGame(configuration: GameConfiguration) {
   return request<Game>("/api/v1/partidas", { body: configuration, method: "POST" });
+}
+
+export function changeMissionType(gameId: string, tipoMisiones: MissionType) {
+  return request<Game>(`/api/v1/partidas/${encodeURIComponent(gameId)}`, { body: { tipoMisiones }, method: "PATCH" });
 }
 
 export function getMyGames() {

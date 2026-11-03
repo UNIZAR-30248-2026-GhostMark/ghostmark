@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { createGame, requestAiMissionBatch } from "../api/game";
+import { changeMissionType, createGame, requestAiMissionBatch } from "../api/game";
 import { GameWizardHeader } from "../components/GameWizardHeader";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
@@ -28,8 +28,10 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
   async function createLibraryGame() {
     setError(undefined); setIsSaving(true);
     try {
-      // Si ya se creó como IA sin misiones aprobadas, al arrancar se completa con la biblioteca.
-      openShare(await ensureGame("BIBLIOTECA"));
+      // Si ya se creó como IA (por ejemplo, porque la IA no respondió), se cambia a Biblioteca sin crear otra (R11-19).
+      const game = await ensureGame("BIBLIOTECA");
+      if (game.tipoMisiones === "BIBLIOTECA") openShare(game);
+      else { const changed = await changeMissionType(game.id, "BIBLIOTECA"); setCreatedGame(changed); openShare(changed); }
     } catch (requestError) {
       setError(messageFor(requestError, "No hemos podido crear la partida. Comprueba la conexión e inténtalo de nuevo."));
     } finally { setIsSaving(false); }

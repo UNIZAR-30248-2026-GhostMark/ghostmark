@@ -86,12 +86,14 @@ test('«Otro…» pide un contexto de al menos 3 caracteres antes de crear nada'
   assert.equal(created, 0);
 });
 
-test('si falla la tanda, reintentar o pasar a Biblioteca no crea otra partida', async () => {
+test('si falla la tanda, reintentar no crea otra partida y pasar a Biblioteca cambia la misma (R11-19)', async () => {
   const { ApiError } = common['../api/client'];
   let created = 0;
   let attempts = 0;
+  const changes = [];
   const { CreateGameMissionsScreen, navigation } = missionsStep({
     createGame: async () => { created += 1; return game; },
+    changeMissionType: async (...args) => { changes.push(args); return { ...game, tipoMisiones: 'BIBLIOTECA' }; },
     requestAiMissionBatch: async () => { attempts += 1; throw new ApiError('La IA no responde'); },
   });
   await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration } } })); });
@@ -102,8 +104,10 @@ test('si falla la tanda, reintentar o pasar a Biblioteca no crea otra partida', 
   await press(pressable('BIBLIOTECA'));
   await press(tree.root.findByType('PrimaryButton'));
   assert.equal(created, 1);
+  assert.deepEqual(changes, [['p1', 'BIBLIOTECA']]);
   assert.equal(navigation.resets.at(-1).routes[1].name, 'ShareGame');
   assert.equal(navigation.resets.at(-1).routes[1].params.game.id, 'p1');
+  assert.equal(navigation.resets.at(-1).routes[1].params.game.tipoMisiones, 'BIBLIOTECA');
   // Volver atrás con la partida creada lleva a Inicio, no a Reglas.
   tree.root.findByType('GameWizardHeader').props.onBack();
   assert.equal(navigation.goBacks, 0);
@@ -112,7 +116,7 @@ test('si falla la tanda, reintentar o pasar a Biblioteca no crea otra partida', 
 
 test('Biblioteca crea la partida con las misiones de la biblioteca y abre Compartir', async () => {
   const created = [];
-  const { CreateGameMissionsScreen, navigation } = missionsStep({ createGame: async (value) => { created.push(value); return { ...game, tipoMisiones: 'BIBLIOTECA' }; }, requestAiMissionBatch: async () => assert.fail('no pide tanda') });
+  const { CreateGameMissionsScreen, navigation } = missionsStep({ createGame: async (value) => { created.push(value); return { ...game, tipoMisiones: 'BIBLIOTECA' }; }, changeMissionType: async () => assert.fail('no cambia el tipo'), requestAiMissionBatch: async () => assert.fail('no pide tanda') });
   await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration } } })); });
   await press(pressable('BIBLIOTECA'));
   await press(tree.root.findByType('PrimaryButton'));
@@ -162,13 +166,15 @@ test('al acabar la tanda se puede pedir otra mientras queden y continuar a Compa
   assert.deepEqual(navigation.destinations, [['ShareGame', { game }]]);
 });
 
-test('el cliente usa las rutas de misiones de la IA del contrato', async () => {
+test('el cliente usa las rutas de misiones de la IA y del cambio de tipo del contrato', async () => {
   const calls = [];
-  const { requestAiMissionBatch, reviewAiMission } = load('api/game.ts', { './client': { request: async (...args) => { calls.push(args); return {}; } } });
+  const { changeMissionType, requestAiMissionBatch, reviewAiMission } = load('api/game.ts', { './client': { request: async (...args) => { calls.push(args); return {}; } } });
   await requestAiMissionBatch('p 1', 'Campus');
   await reviewAiMission('p 1', 'm 1', 'APROBADA');
+  await changeMissionType('p 1', 'BIBLIOTECA');
   assert.deepEqual(calls, [
     ['/api/v1/partidas/p%201/misiones-ia/tandas', { body: { contexto: 'Campus' }, method: 'POST' }],
     ['/api/v1/partidas/p%201/misiones-ia/m%201', { body: { estado: 'APROBADA' }, method: 'PATCH' }],
+    ['/api/v1/partidas/p%201', { body: { tipoMisiones: 'BIBLIOTECA' }, method: 'PATCH' }],
   ]);
 });
