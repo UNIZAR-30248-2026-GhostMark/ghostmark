@@ -77,7 +77,7 @@ export function GameTabScreen({ navigation, route }: Props) {
 function Tabs({ game, navigation }: { game?: GameSummary; navigation: Props["navigation"] }) {
   return <View style={styles.tabs}>
     {game?.soyJugador ? <Pressable accessibilityLabel="Ir a mi misión" accessibilityRole="button" onPress={() => navigation.navigate("MissionCard", { gameId: game.id })} style={styles.tab}><Text style={styles.tabText}>Misión</Text></Pressable> : <View style={styles.tab}><Text style={styles.tabText}>Misión</Text></View>}
-    <View style={styles.tab}><Text style={styles.tabText}>Feed</Text></View>
+    {game ? <Pressable accessibilityLabel="Ir al feed" accessibilityRole="button" onPress={() => navigation.navigate("Feed", { gameId: game.id, isPlayer: game.soyJugador })} style={styles.tab}><Text style={styles.tabText}>Feed</Text></Pressable> : <View style={styles.tab}><Text style={styles.tabText}>Feed</Text></View>}
     <View style={styles.tabOn}><Text style={styles.tabOnText}>PARTIDA</Text></View>
   </View>;
 }
