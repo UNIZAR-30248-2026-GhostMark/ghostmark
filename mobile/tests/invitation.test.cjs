@@ -23,6 +23,7 @@ function load(file, imports = {}) {
 const invitation = load('utils/invitation.ts');
 const accountValidation = load('utils/accountValidation.ts');
 const gameDate = load('utils/gameDate.ts');
+const gameResult = load('utils/gameResult.ts');
 const serverWakeup = load('utils/serverWakeup.ts');
 const client = load('api/client.ts');
 const api = load('api/game.ts', { './client': client });
@@ -39,6 +40,7 @@ const common = {
   '../theme/typography': { typography: {} },
   '../utils/invitation': invitation,
   '../utils/gameDate': gameDate,
+  '../utils/gameResult': gameResult,
   '../utils/serverWakeup': serverWakeup,
   '../api/client': client,
 };

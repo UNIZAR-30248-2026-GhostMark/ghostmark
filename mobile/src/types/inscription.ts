@@ -11,7 +11,6 @@ export type Player = {
   id: string;
   alias: string | null;
   esMaster: boolean;
-  // El servidor de eliminación añadirá este dato; mientras tanto, un inscrito en
-  // una partida en juego se representa como vivo.
-  estado?: "VIVO" | "ELIMINADO" | "ABANDONO" | "EXPULSADO";
+  // Con la partida en juego o cerrada; nulo (o sin llegar) en inscripción. Lo manda la 8.2.
+  estado?: "VIVO" | "ELIMINADO" | null;
 };

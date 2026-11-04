@@ -11,6 +11,7 @@ import { bangers } from "../theme/bangers";
 import type { GameSummary } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
 import { formatGameDate } from "../utils/gameDate";
+import { resultSentence } from "../utils/gameResult";
 import { serverWakeupMessage, useServerWakeupNotice } from "../utils/serverWakeup";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
@@ -22,8 +23,11 @@ const stateLabels: Record<GameSummary["estado"], string> = {
 };
 
 export function selectHomeGames(games: GameSummary[]) {
+  // En grande, la activa: en juego y, si no hay, en inscripción. Una cerrada solo si no hay
+  // ninguna activa (R11-23); una cancelada nunca (R10-37).
   const featuredGame = games.find((game) => game.estado === "EN_JUEGO")
-    ?? games.find((game) => game.estado !== "CANCELADA");
+    ?? games.find((game) => game.estado === "EN_INSCRIPCION")
+    ?? games.find((game) => game.estado === "CERRADA");
   return {
     featuredGame,
     otherGames: games.filter((game) => game.id !== featuredGame?.id),
@@ -71,7 +75,7 @@ function openGame(navigation: Props["navigation"], game: GameSummary) {
 }
 function FeaturedGame({ game, navigation }: { game: GameSummary; navigation: Props["navigation"] }) { return <Pressable accessibilityRole="button" onPress={() => openGame(navigation, game)} style={({ pressed }) => [styles.featured, pressed && styles.pressed]}><View style={styles.state}><Text style={styles.stateText}>{stateLabels[game.estado]}</Text></View><Image accessibilityLabel="Fantasma de la partida" source={require("../../assets/ghosts/fantasma-picaro.png")} style={styles.featuredGhost} /><Text style={styles.featuredTitle}>{game.nombre.toUpperCase()}</Text><Text style={styles.ends}>Hasta el {formatGameDate(game.finEn)}</Text>{game.estado === "EN_JUEGO" && game.soyJugador ? <View style={styles.missionButton}><Text style={[styles.missionText, bangersLayout.buttonText]}>VER MISIÓN</Text></View> : null}</Pressable>; }
 function OtherGame({ game, navigation }: { game: GameSummary; navigation: Props["navigation"] }) { return <Pressable accessibilityRole="button" onPress={() => openGame(navigation, game)} style={({ pressed }) => [styles.otherCard, game.estado === "CERRADA" && styles.closedCard, pressed && styles.pressed]}><View><Text style={styles.otherName}>{game.nombre}</Text><Text style={styles.otherInfo}>{game.estado === "EN_INSCRIPCION" ? `Inscripción · empieza ${formatGameDate(game.inicioEn)}` : game.estado === "CERRADA" ? `Cerrada · ${resultLabel(game)}` : stateLabels[game.estado]}</Text></View><Ionicons color={colors.ink} name="chevron-forward" size={24} /></Pressable>; }
-function resultLabel(game: GameSummary) { const names = (game.resultado?.aliasGanadores ?? []).map((alias) => alias ?? "Cuenta eliminada"); return game.resultado?.tipo === "EMPATE" ? `Empate entre ${names.join(" y ")}` : names[0] ? `Gana ${names[0]}` : "Resultado disponible"; }
+function resultLabel(game: GameSummary) { return game.resultado ? resultSentence(game.resultado) : "Resultado disponible"; }
 function EmptyGames() { return <View style={styles.emptyCard}><Image accessibilityLabel="Fantasma esperando partidas" source={require("../../assets/ghosts/fantasma-pensativo.png")} style={styles.emptyGhost} /><Text style={styles.emptyTitle}>TODAVÍA NO HAY PARTIDAS</Text><Text style={styles.emptyText}>Cuando crees una partida o te unas a una, aparecerá aquí.</Text></View>; }
 function LoadingGames({ showServerWakeupNotice }: { showServerWakeupNotice: boolean }) { return <View style={styles.loadingCard}><ActivityIndicator accessibilityLabel="Cargando partidas" color={colors.lime} size="large" /><Text style={styles.loadingText}>CARGANDO TUS PARTIDAS…</Text>{showServerWakeupNotice ? <Text accessibilityLiveRegion="polite" style={styles.loadingHint}>{serverWakeupMessage}</Text> : null}</View>; }
 function GamesLoadError({ onRetry }: { onRetry: () => void }) { return <View style={styles.loadingCard}><Text accessibilityLiveRegion="polite" style={styles.errorText}>No hemos podido cargar tus partidas. Comprueba tu conexión.</Text><PrimaryButton onPress={onRetry}>REINTENTAR</PrimaryButton></View>; }

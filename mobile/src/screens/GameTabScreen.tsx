@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
 import { getCurrentAccount } from "../api/auth";
@@ -42,6 +42,14 @@ export function GameTabScreen({ navigation, route }: Props) {
     return () => { active = false; };
   }, [attempt, navigation, route.params.gameId]);
 
+  function confirmFinish() {
+    // Cerrar no se puede deshacer y termina la partida para todos (R11-24).
+    Alert.alert("¿Cerrar la partida?", "Termina para todos y no se puede deshacer.", [
+      { style: "cancel", text: "Cancelar" },
+      { style: "destructive", text: "Cerrar", onPress: () => void finishGame() },
+    ]);
+  }
+
   async function finishGame() {
     setError(undefined);
     setIsClosing(true);
@@ -60,9 +68,9 @@ export function GameTabScreen({ navigation, route }: Props) {
       <Tabs game={game} navigation={navigation} />
       {error ? <View style={styles.errorState}><Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text><PrimaryButton onPress={() => setAttempt((value) => value + 1)}>REINTENTAR</PrimaryButton></View>
         : !game || !players ? <View style={styles.loading}><ActivityIndicator color={colors.lime} size="large" /><Text style={styles.loadingText}>CARGANDO PARTIDA…</Text></View>
-          : <>{game.soyMaster ? <MasterTasks /> : null}<View style={styles.playersHeading}><Text style={styles.sectionTitle}>JUGADORES</Text><Text style={styles.count}>{players.filter((player) => (player.estado ?? "VIVO") === "VIVO").length} vivos de {players.length}</Text></View><View style={styles.players}>{players.map((player) => <PlayerRow currentAlias={getCurrentAccount()?.alias} key={player.id} player={player} />)}</View></>}
+          : <>{game.soyMaster ? <MasterTasks /> : null}<View style={styles.playersHeading}><Text style={styles.sectionTitle}>JUGADORES</Text>{players.every((player) => player.estado) ? <Text style={styles.count}>{players.filter((player) => player.estado === "VIVO").length} vivos de {players.length}</Text> : null}</View><View style={styles.players}>{players.map((player) => <PlayerRow currentAlias={getCurrentAccount()?.alias} key={player.id} player={player} />)}</View></>}
     </ScrollView>
-    {game ? <Actions isClosing={isClosing} isMaster={game?.soyMaster ?? false} onClose={() => void finishGame()} /> : null}
+    {game ? <Actions isClosing={isClosing} isMaster={game?.soyMaster ?? false} onClose={confirmFinish} /> : null}
   </View></Screen>;
 }
 
@@ -85,11 +93,11 @@ function TaskCard({ color, label }: { color: "white" | "lavender" | "purple"; la
 }
 
 function PlayerRow({ currentAlias, player }: { currentAlias?: string; player: Player }) {
-  const state = player.estado ?? "VIVO";
-  const inactive = state !== "VIVO";
-  const stateLabel = { VIVO: "VIVO", ELIMINADO: "ELIMINADO", ABANDONO: "ABANDONÓ", EXPULSADO: "EXPULSADO" }[state];
+  // Sin estado (el servidor aún no lo manda) no se pinta: no se sabe si está vivo.
+  const state = player.estado;
+  const inactive = state === "ELIMINADO";
   const isCurrentPlayer = player.alias !== null && player.alias === currentAlias;
-  return <View style={[styles.playerRow, inactive && styles.playerInactive]}><Image source={require("../../assets/ghosts/fantasma-saluda.png")} style={[styles.playerGhost, inactive && styles.playerGhostInactive]} /><Text numberOfLines={1} style={styles.playerName}>{player.alias ?? "Cuenta eliminada"}{isCurrentPlayer ? " (tú)" : ""}{player.esMaster ? " (máster)" : ""}</Text><Text style={[styles.playerState, state === "VIVO" ? styles.playerAlive : state === "ELIMINADO" ? styles.playerEliminated : styles.playerGone]}>{stateLabel}</Text></View>;
+  return <View style={[styles.playerRow, inactive && styles.playerInactive]}><Image source={require("../../assets/ghosts/fantasma-saluda.png")} style={[styles.playerGhost, inactive && styles.playerGhostInactive]} /><Text numberOfLines={1} style={styles.playerName}>{player.alias ?? "Cuenta eliminada"}{isCurrentPlayer ? " (tú)" : ""}{player.esMaster ? " (máster)" : ""}</Text>{state ? <Text style={[styles.playerState, state === "VIVO" ? styles.playerAlive : styles.playerEliminated]}>{state}</Text> : null}</View>;
 }
 
 function Actions({ isClosing, isMaster, onClose }: { isClosing: boolean; isMaster: boolean; onClose: () => void }) {
@@ -100,6 +108,6 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background, flex: 1 }, content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18 },
   tabs: { backgroundColor: colors.ink, borderRadius: 15, flexDirection: "row", height: 49, padding: 4 }, tab: { alignItems: "center", flex: 1, justifyContent: "center" }, tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: "#CFC2DD", borderRadius: 11, borderWidth: 2, flex: 1, justifyContent: "center" }, tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13 }, tabOnText: { color: colors.ink, ...bangers(18) },
   sectionTitle: { color: colors.text, ...bangers(28), marginTop: 22 }, taskRow: { flexDirection: "row", gap: 9, marginTop: 9 }, taskCard: { borderColor: colors.ink, borderRadius: 12, borderWidth: 3, flex: 1, minHeight: 70, paddingHorizontal: 10, paddingVertical: 7 }, taskWhite: { backgroundColor: colors.white }, taskLavender: { backgroundColor: "#D7C6FF" }, taskPurple: { backgroundColor: colors.surfaceRaised, borderColor: colors.border }, taskNumber: { color: colors.ink, ...bangers(29), lineHeight: 30 }, taskLabel: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11, marginTop: 1 }, taskTextLight: { color: colors.white },
-  playersHeading: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, count: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 8, borderWidth: 2, color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11, marginTop: 22, paddingHorizontal: 9, paddingVertical: 4 }, players: { gap: 7, marginTop: 10, paddingBottom: 22 }, playerRow: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 11, borderWidth: 3, flexDirection: "row", minHeight: 54, paddingHorizontal: 8 }, playerInactive: { backgroundColor: "#38284B", borderColor: "#635173" }, playerGhost: { height: 39, resizeMode: "contain", width: 42 }, playerGhostInactive: { opacity: 0.38, tintColor: "#D4CBDC" }, playerName: { color: colors.text, flex: 1, fontFamily: "ZenMaruBold", fontSize: 14, marginLeft: 5 }, playerState: { borderColor: colors.ink, borderRadius: 7, borderWidth: 1, color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 9, paddingHorizontal: 7, paddingVertical: 4 }, playerAlive: { backgroundColor: colors.lime }, playerEliminated: { backgroundColor: colors.danger }, playerGone: { backgroundColor: "#C7B8D6" },
+  playersHeading: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, count: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 8, borderWidth: 2, color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11, marginTop: 22, paddingHorizontal: 9, paddingVertical: 4 }, players: { gap: 7, marginTop: 10, paddingBottom: 22 }, playerRow: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 11, borderWidth: 3, flexDirection: "row", minHeight: 54, paddingHorizontal: 8 }, playerInactive: { backgroundColor: "#38284B", borderColor: "#635173" }, playerGhost: { height: 39, resizeMode: "contain", width: 42 }, playerGhostInactive: { opacity: 0.38, tintColor: "#D4CBDC" }, playerName: { color: colors.text, flex: 1, fontFamily: "ZenMaruBold", fontSize: 14, marginLeft: 5 }, playerState: { borderColor: colors.ink, borderRadius: 7, borderWidth: 1, color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 9, paddingHorizontal: 7, paddingVertical: 4 }, playerAlive: { backgroundColor: colors.lime }, playerEliminated: { backgroundColor: colors.danger },
   footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 }, actionRow: { flexDirection: "row", gap: 7 }, reportButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 12, borderWidth: 3, flex: 1, justifyContent: "center", minHeight: 50, paddingHorizontal: 5 }, abandonButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 12, borderWidth: 3, flex: 1.1, justifyContent: "center", minHeight: 50, paddingHorizontal: 5 }, closeButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 12, borderWidth: 3, flex: 1.45, justifyContent: "center", minHeight: 50, paddingHorizontal: 6 }, reportText: { color: colors.white, ...bangers(15), textAlign: "center" }, abandonText: { color: colors.ink, ...bangers(15), textAlign: "center" }, closeText: { alignSelf: "stretch", color: colors.ink, ...bangers(15), textAlign: "center" }, loading: { alignItems: "center", gap: 13, marginTop: 80 }, loadingText: { color: colors.text, ...bangers(24) }, errorState: { alignItems: "center", gap: 16, marginTop: 70 }, error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 20, textAlign: "center" }, pressed: { opacity: 0.78, transform: [{ scale: 0.97 }] },
 });
