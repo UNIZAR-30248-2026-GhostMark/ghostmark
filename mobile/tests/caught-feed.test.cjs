@@ -209,7 +209,7 @@ test('el espectador también llega al feed desde su carta', async () => {
 
 const flipValue = () => tree.root.findAllByType('AnimatedView')[1].props.style[1].opacity.value;
 
-test('tras el acierto, la carta recargada gira sola una vez y vuelve boca abajo (UI11)', async () => {
+test('tras el acierto, la carta recargada enseña lo heredado, gira sola una vez y vuelve boca abajo (UI11)', async () => {
   mock.timers.enable({ apis: ['setTimeout'] });
   try {
     let current = { estado: 'VIVO', aliasObjetivo: 'Marta', mision: 'Saluda', eliminaciones: 1 };
@@ -218,6 +218,8 @@ test('tras el acierto, la carta recargada gira sola una vez y vuelve boca abajo 
     await mount(MissionCardScreen, { navigation, route: { params: { gameId: 'p1', revealOnce: true } } });
     assert.deepEqual(navigation.params, [{ revealOnce: false }], 'el giro no se repite al volver a la carta');
     assert.equal(flipValue(), 1);
+    const shown = JSON.stringify(tree.toJSON());
+    assert.equal(shown.includes('MARTA') && shown.includes('SALUDA'), true, 'la carta enseña el objetivo y la misión heredados');
     await act(async () => mock.timers.tick(1599));
     assert.equal(flipValue(), 1);
     await act(async () => mock.timers.tick(1));
