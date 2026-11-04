@@ -15,6 +15,9 @@ export type RootStackParamList = {
   GameStarted: { game: Pick<import("./game").GameSummary, "nombre" | "inicioEn" | "numInscritos" | "soyJugador"> & Partial<Pick<import("./game").GameSummary, "id">> };
   GameCancelled: { game: Pick<import("./game").GameSummary, "nombre" | "numInscritos"> & Partial<Pick<import("./game").GameSummary, "motivoCancelacion">> };
   MissionCard: { gameId: string };
+  LifeCode: { gameId: string };
+  Eliminate: { gameId: string; targetAlias?: string | null };
+  EliminationSuccess: { gameId: string; result: import("../api/game").EliminationResult };
   ScanInvitation: undefined;
   ApiStatus: undefined;
 };
