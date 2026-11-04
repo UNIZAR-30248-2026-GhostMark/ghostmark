@@ -63,6 +63,13 @@ public class InscripcionRepository {
                 .stream().findFirst();
     }
 
+    public String aliasDeInscripcion(UUID inscripcionId) {
+        List<String> alias = jdbc.queryForList("select c.alias from inscripcion i"
+                + " left join cuenta c on c.id = i.cuenta_id where i.id = ?",
+                String.class, inscripcionId);
+        return alias.isEmpty() ? null : alias.get(0);
+    }
+
     public void reemplazarHorario(UUID id, Horario horario) {
         borrarHorario(id);
         for (Horario.Franja franja : horario.franjas()) {
