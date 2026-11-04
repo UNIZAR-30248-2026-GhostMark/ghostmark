@@ -28,6 +28,20 @@ La posición del jugador nunca sale del móvil. Cuando se introduce un código d
   - El permiso de ubicación y el aviso de disponibilidad guardan el instante de la primera aceptación; aceptarlos otra vez no cambia nada.
   - Borrar la cuenta es un borrado físico: la fila de `cuenta` y, en cascada, su horario y sus tokens.
   - En la app, el alta tiene cuatro pasos (alias y acceso, horario lectivo, permiso de ubicación y aviso de disponibilidad) y el token de refresco se guarda en el almacenamiento seguro del móvil (SecureStore).
+- **Lista de eventos.** El módulo `evento` guarda cada evento en la misma transacción que el cambio que registra, con la fila de la partida bloqueada (`select … for update`) y la secuencia siguiente de esa partida. Los eventos identifican al jugador por su inscripción y no se modifican. Tipos y datos de cada uno en «`evento`» de [`modelo-datos.md`](modelo-datos.md).
+- **Crear y configurar una partida (PBI 2).** El módulo `partida` crea la partida con un código de invitación de 8 caracteres (sin 0, O, 1, I ni L), guarda `PARTIDA_CREADA` y deja editarla al máster solo mientras está en inscripción, con `CONFIGURACION_CAMBIADA` por cada cambio. La columna `estado` es una copia del estado que dan los eventos, para listar partidas sin reproducirlos.
+  - Si el máster borra su cuenta, sus partidas en inscripción se cancelan en la misma transacción.
+  - En la app, el asistente tiene tres pasos (datos, reglas y compartir); los de misiones y zonas seguras llegan con las PBI 6 y 10. «Compartir» enseña el QR (`react-native-qrcode-svg`) y el enlace `ghostmark://unirse/<código>`, que la app abre por su esquema `ghostmark`.
+- **Inscribirse (PBI 3).** El módulo `inscripcion` inscribe al jugador con las normas aceptadas y le copia el horario de su cuenta en un horario propio de esa partida, que puede cambiar hasta el arranque sin tocar el de la cuenta ni el de sus otras partidas. Si el máster juega, tiene su inscripción como cualquier otro.
+  - Al borrar la cuenta, la inscripción se borra si la partida no ha arrancado; si está en juego se queda sin cuenta, porque la cadena y los eventos la siguen usando.
+  - En la app, el escáner usa la cámara (`expo-camera`) y solo acepta enlaces de invitación válidos; un enlace recibido sin sesión espera al inicio de sesión y a los permisos. Después vienen las normas y la sala de espera con los inscritos.
+- **Arrancar la partida y formar la cadena (PBI 4).** El módulo `juego` arranca la partida de tres maneras con el mismo método:
+  - una tarea programada cada minuto (`TareaArranque`) revisa las partidas en inscripción con la hora de inicio pasada;
+  - como el servidor de Render se duerme y entonces la tarea no corre, un interceptor (`InterceptorArranquePendiente`) aplica el arranque o la cancelación pendiente antes de atender cualquier petición sobre la partida;
+  - el máster puede adelantarlo con «Arrancar ya» desde 3 jugadores.
+  - Con 3 o más jugadores, en una sola transacción se guardan `PARTIDA_ARRANCADA`, `CICLO_FORMADO` y `MISIONES_REPARTIDAS`, y los horarios quedan congelados; con menos, `PARTIDA_CANCELADA`. Si dos arranques coinciden, el segundo ve que la partida ya no está en inscripción y no hace nada.
+  - El ciclo de objetivos baraja las inscripciones con Fisher-Yates y `SecureRandom` (`GeneradorCiclo`): cada jugador persigue al siguiente y el último al primero. El orden solo se guarda en el evento; la API da a cada jugador su objetivo.
+- **Carta de misión (PBI 5).** La biblioteca de misiones se carga con una migración, ya revisada (sin contacto físico ni objetos que simulen armas). Al arrancar, cada jugador recibe una misión activa al azar, sin repetir mientras queden. La API solo devuelve la carta propia; en la app la carta sale boca abajo y se ve mientras se mantiene pulsada.
 
 ## Decisiones técnicas abiertas
 
