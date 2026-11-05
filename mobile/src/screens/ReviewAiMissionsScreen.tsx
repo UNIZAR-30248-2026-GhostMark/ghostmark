@@ -20,6 +20,7 @@ export function ReviewAiMissionsScreen({ navigation, route }: Props) {
   const [total, setTotal] = useState(route.params.batch.misiones.length);
   const [approved, setApproved] = useState(0);
   const [error, setError] = useState<string>();
+  const [libraryFallback, setLibraryFallback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [translateX] = useState(() => new Animated.Value(0));
   const [cardScale] = useState(() => new Animated.Value(1));
@@ -87,9 +88,14 @@ export function ReviewAiMissionsScreen({ navigation, route }: Props) {
       translateX.setValue(0);
       cardScale.setValue(1);
       setFeedback(undefined);
+      setLibraryFallback(false);
       setBatch(next); setMissions(next.misiones); setTotal(next.misiones.length); setReviewed(0); setApproved(0);
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError.message : "No hemos podido pedir otra tanda. Inténtalo de nuevo.");
+      if (requestError instanceof ApiError && requestError.status === 503 && requestError.code === "IA_NO_DISPONIBLE") {
+        setLibraryFallback(true);
+      } else {
+        setError(requestError instanceof ApiError ? requestError.message : "No hemos podido pedir otra tanda. Inténtalo de nuevo.");
+      }
     } finally { setIsSaving(false); }
   }
 
@@ -109,6 +115,7 @@ export function ReviewAiMissionsScreen({ navigation, route }: Props) {
       <Text style={styles.hint}>Desliza a la derecha para aprobar, a la izquierda para rechazar</Text>
     </> : <Animated.View style={[styles.finished, { opacity: finishedOpacity }]}>{total === 0 ? <Text style={styles.finishedText}>La IA no ha propuesto ninguna misión válida.</Text> : <><Text style={styles.finishedTitle}>TANDA REVISADA</Text><Text style={styles.finishedText}>{`Has aprobado ${approved} ${approved === 1 ? "misión" : "misiones"}. Puedes pedir otra tanda o continuar con la partida.`}</Text></>}{batch.tandasRestantes > 0 ? <CompactButton disabled={isSaving} label={isSaving ? "PIDIENDO…" : `PEDIR OTRA TANDA (${batch.tandasRestantes})`} onPress={anotherBatch} /> : null}<CompactButton label="CONTINUAR" onPress={finish} /></Animated.View>}
     {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
+    {libraryFallback ? <Text accessibilityLiveRegion="polite" style={styles.finishedText}>La IA no responde: se usarán misiones de la biblioteca</Text> : null}
   </View></Screen>;
 }
 
