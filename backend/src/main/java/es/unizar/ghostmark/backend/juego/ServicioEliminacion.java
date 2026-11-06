@@ -115,6 +115,11 @@ public class ServicioEliminacion {
                     "Los intentos están bloqueados hasta que rote el código",
                     Map.of("bloqueadoHasta", siguientePaso));
         }
+        if (!"VIVO".equals(victima.estado())) {
+            return new ErrorJuego(HttpStatus.UNPROCESSABLE_ENTITY, "CODIGO_INCORRECTO",
+                    "El código no es el de tu objetivo",
+                    Map.of("intentosRestantes", INTENTOS - fallos));
+        }
         if (esCaducado(victima.secreto(), codigo, ahora)) {
             return new ErrorJuego(HttpStatus.UNPROCESSABLE_ENTITY, "CODIGO_CADUCADO",
                     "El código ha caducado", Map.of("intentosRestantes", INTENTOS - fallos));
