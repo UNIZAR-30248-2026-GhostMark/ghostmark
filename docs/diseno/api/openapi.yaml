@@ -402,8 +402,10 @@ paths:
       summary: Pedir una tanda de misiones a la IA
       description: |
         Pide 12 misiones al generador con el contexto y entrega hasta 8 que pasen la validación de formato y el
-        filtro de categorías prohibidas, en estado `PROPUESTA`. Como mucho 5 tandas por partida; una tanda que
-        falla porque la IA no está disponible no cuenta.
+        filtro de categorías prohibidas, en estado `PROPUESTA`. Como mucho 5 tandas por partida, contadas con los
+        eventos `MISIONES_GENERADAS` y no con las misiones guardadas: una tanda en la que se descartan las 12 cuenta
+        igual. Una tanda que falla porque la IA no está disponible (503) no registra el evento y no cuenta;
+        `tandasRestantes` es 5 menos las tandas contadas.
       requestBody:
         required: true
         content:

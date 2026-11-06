@@ -394,6 +394,8 @@ Las misiones de la IA van en la misma tabla que las de la biblioteca, para que `
 | `revisada_en` | `timestamptz` | nulo mientras está `PROPUESTA` | La decisión es definitiva (R11-18) |
 
 - `check ((partida_id is null) = (estado is null))`: una misión es de la biblioteca o de una partida, nunca las dos.
+- `check (partida_id is not null or (tanda is null and revisada_en is null))`: las misiones de la biblioteca no tienen tanda ni decisión.
+- `check ((revisada_en is null) = (estado = 'PROPUESTA'))`: una misión de la partida tiene `revisada_en` si y solo si ya no está `PROPUESTA` (en la biblioteca `estado` es nulo y manda el check anterior).
 - La unicidad de `texto` pasa a ser solo de la biblioteca: la migración quita la restricción `mision_texto_key` y crea un índice único parcial sobre `texto` `where partida_id is null`; en cada partida, índice único sobre `(partida_id, lower(texto))`. La columna `activa` solo cuenta en la biblioteca.
 - **El reparto desde la biblioteca filtra `partida_id is null`** (hoy `misionesActivas` solo mira `activa`): si no, una partida podría recibir las misiones de la IA de otra.
 - Al borrar una cuenta no hay nada que borrar aquí: las misiones no guardan quién las generó, solo la partida.
@@ -416,7 +418,7 @@ Cada misión que devuelve el generador pasa dos barreras antes de llegar al más
 ### Tandas (R11-9 y R11-17)
 
 - Cada tanda pide **12** misiones al generador y entrega al máster **hasta 8** de las que pasan las dos barreras. Si quedan menos de 8, entrega las que haya.
-- Como mucho **5 tandas por partida** (40 misiones). Una tanda que falla porque la IA no está disponible no cuenta.
+- Como mucho **5 tandas por partida** (40 misiones). El número de tandas pedidas es el de eventos `MISIONES_GENERADAS` de la partida, no el de filas de `mision`: una tanda en la que se descartan las 12 no deja misiones guardadas y cuenta igual (R11-17 y R11-22). La tanda que responde 503 `IA_NO_DISPONIBLE` no registra el evento y no cuenta. `tandasRestantes` es 5 menos ese número.
 - El contexto es uno de los chips del prototipo («Campus», «Fiesta de bienvenida», «Semana de exámenes») o un texto libre de 3 a 40 caracteres («Otro…»).
 
 ### Cuándo
