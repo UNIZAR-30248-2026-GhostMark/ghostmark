@@ -81,13 +81,17 @@ public class InscripcionRepository {
 
     public List<Map<String, Object>> listar(UUID partidaId) {
         return jdbc.query("select i.id, c.alias, coalesce(i.cuenta_id = p.master_id, false)"
-                        + " as es_master from inscripcion i join partida p on p.id = i.partida_id"
-                        + " left join cuenta c on c.id = i.cuenta_id where i.partida_id = ?"
+                        + " as es_master, coalesce(jp.estado, 'VIVO') as estado"
+                        + " from inscripcion i join partida p on p.id = i.partida_id"
+                        + " left join cuenta c on c.id = i.cuenta_id"
+                        + " left join jugador_partida jp on jp.inscripcion_id = i.id"
+                        + " where i.partida_id = ?"
                         + " order by i.inscrita_en, i.id", (fila, numero) -> {
                             Map<String, Object> vista = new LinkedHashMap<>();
                             vista.put("id", fila.getObject("id", UUID.class).toString());
                             vista.put("alias", fila.getString("alias"));
                             vista.put("esMaster", fila.getBoolean("es_master"));
+                            vista.put("estado", fila.getString("estado"));
                             return vista;
                         }, partidaId);
     }

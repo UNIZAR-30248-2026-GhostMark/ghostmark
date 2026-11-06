@@ -158,4 +158,9 @@ public class Partida {
         this.estado = "EN_JUEGO";
         this.actualizadaEn = ahora;
     }
+
+    public void cerrar(Instant ahora) {
+        this.estado = "CERRADA";
+        this.actualizadaEn = ahora;
+    }
 }

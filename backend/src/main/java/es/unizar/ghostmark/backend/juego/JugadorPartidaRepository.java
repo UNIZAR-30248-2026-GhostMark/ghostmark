@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -65,6 +66,20 @@ public class JugadorPartidaRepository {
 
     record EstadoJugador(String estado, UUID objetivoId, UUID misionId, int eliminaciones,
             byte[] secreto, int intentosFallidos, Instant bloqueadoHasta) {
+    }
+
+    record Ganador(UUID inscripcionId, int eliminaciones) {
+    }
+
+    public List<Ganador> vivos(UUID partidaId) {
+        return jdbc.query("select jp.inscripcion_id, jp.eliminaciones from jugador_partida jp"
+                        + " join inscripcion i on i.id = jp.inscripcion_id"
+                        + " where jp.partida_id = ? and jp.estado = 'VIVO'"
+                        + " order by jp.eliminaciones desc, i.inscrita_en, i.id",
+                (fila, numero) -> new Ganador(
+                        fila.getObject("inscripcion_id", UUID.class),
+                        fila.getInt("eliminaciones")),
+                partidaId);
     }
 
     public Optional<EstadoJugador> bloquear(UUID partidaId, UUID inscripcionId) {

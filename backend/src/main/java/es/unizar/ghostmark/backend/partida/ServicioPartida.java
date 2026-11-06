@@ -286,6 +286,7 @@ public class ServicioPartida {
         vista.put("soyJugador", inscripciones.existe(partida.getId(), cuentaId));
         vista.put("numInscritos", inscripciones.contar(partida.getId()));
         vista.put("motivoCancelacion", motivoCancelacion(partida));
+        vista.put("resultado", resultado(partida));
         return vista;
     }
 
@@ -313,6 +314,35 @@ public class ServicioPartida {
         vista.put("enlace", "ghostmark://unirse/" + partida.getCodigoInvitacion());
         vista.put("numInscritos", inscripciones.contar(partida.getId()));
         vista.put("creadaEn", partida.getCreadaEn().toString());
+        vista.put("resultado", resultado(partida));
         return vista;
+    }
+
+    private Map<String, Object> resultado(Partida partida) {
+        if (!"CERRADA".equals(partida.getEstado())) {
+            return null;
+        }
+        List<Map<String, Object>> datos = jdbc.queryForList("select datos->>'resultado' as tipo,"
+                + " datos->>'motivo' as motivo, (datos->>'eliminaciones')::int as eliminaciones"
+                + " from evento where partida_id = ? and tipo = 'PARTIDA_CERRADA'"
+                + " order by secuencia desc limit 1", partida.getId());
+        if (datos.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> dato = datos.get(0);
+        List<String> alias = jdbc.queryForList("select c.alias from (select datos from evento"
+                + " where partida_id = ? and tipo = 'PARTIDA_CERRADA'"
+                + " order by secuencia desc limit 1) e"
+                + " cross join lateral jsonb_array_elements_text(e.datos->'ganadores')"
+                + " with ordinality as g(id, pos)"
+                + " left join inscripcion i on i.id = g.id::uuid"
+                + " left join cuenta c on c.id = i.cuenta_id"
+                + " order by g.pos", String.class, partida.getId());
+        Map<String, Object> resultado = new LinkedHashMap<>();
+        resultado.put("tipo", dato.get("tipo"));
+        resultado.put("motivo", dato.get("motivo"));
+        resultado.put("aliasGanadores", alias);
+        resultado.put("eliminaciones", ((Number) dato.get("eliminaciones")).intValue());
+        return resultado;
     }
 }

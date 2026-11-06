@@ -30,6 +30,10 @@ public interface PartidaRepository extends JpaRepository<Partida, UUID> {
             + " and p.inicioEn <= :ahora order by p.id")
     List<UUID> pendientesDeArrancar(Instant ahora);
 
+    @Query("select p.id from Partida p where p.estado = 'EN_JUEGO'"
+            + " and p.finEn <= :ahora order by p.id")
+    List<UUID> pendientesDeCerrar(Instant ahora);
+
     /** Bloquea las filas en orden de id, para guardar eventos sin chocar con otros. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Partida> findByMasterIdAndEstadoOrderByIdAsc(UUID masterId, String estado);
