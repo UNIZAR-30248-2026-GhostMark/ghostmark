@@ -34,6 +34,6 @@ La posición del jugador nunca sale del móvil. Cuando se introduce un código d
 | Decisión | Cuándo se toma | Opciones | Decidido |
 |--|--|--|--|
 | PaaS del despliegue | Sprint 1 | Render, Railway, Fly.io (PostGIS, coste, continuidad) | Render (servidor, tarea 1.4, #37) y Neon (base de datos, tarea #218): servicio web con la imagen Docker del servidor, descrito en `render.yaml`, y PostgreSQL gratuito con PostGIS (activado por migración). HTTPS automático en el servicio y secretos en sus variables de entorno. El servicio se duerme tras un rato sin peticiones; la base de datos no caduca (Ri19 cerrado). |
-| Proveedor de IA | Sprint 1 | Según coste y condiciones de uso | |
+| Proveedor de IA | Planificación del sprint 2 (R11-8) | Según coste y condiciones de uso | Gemini (modelo Flash) con la clave gratuita de Google AI Studio, sin coste, con salida JSON estructurada. Va detrás de la interfaz `GeneradorMisiones` del servidor, para poder cambiar de proveedor sin tocar el resto: `GeneradorGemini` en producción y `GeneradorSimulado` en los tests y la integración continua, sin llamadas reales. La clave (`GEMINI_CLAVE`) y el modelo (`GEMINI_MODELO`) van en variables de entorno de Render, nunca en el repositorio. Si la IA falla, tarda más de 15 s o no queda cuota, la partida sigue con la biblioteca (PBI 6b). Detalle en «Misiones generadas con IA» de [`modelo-datos.md`](modelo-datos.md). |
 | Biblioteca del mapa | Primera PBI con mapa | OpenLayers, Leaflet | |
 | Migración a la nube | Ensayo en el sprint 3 | Azure, AWS | |
