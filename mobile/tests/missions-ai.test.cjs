@@ -194,12 +194,39 @@ test('si falla otra tanda, avisa y deja continuar con las misiones ya aprobadas'
   await act(async () => { tree = create(element); });
   await press(pressable('Aprobar misión'));
   await press(pressable('PEDIR OTRA TANDA (2)'));
-  assert.match(shown(), /La IA no responde: se usarán misiones de la biblioteca/);
+  assert.match(shown(), /La IA no responde: el resto de misiones saldrán de la biblioteca/);
   assert.match(shown(), /Has aprobado 1 misión\./);
   assert.equal(pressable('PEDIR OTRA TANDA (2)').props.disabled, false);
   await press(pressable('CONTINUAR'));
   assert.deepEqual(decisions, [['p1', 'm1', 'APROBADA']]);
   assert.deepEqual(navigation.destinations, [['ShareGame', { game }]]);
+});
+
+const unavailable = async () => { throw new (common['../api/client'].ApiError)('Servicio no disponible', 503, [], 'IA_NO_DISPONIBLE'); };
+
+test('si falla otra tanda sin ninguna aprobada, avisa con el texto del criterio 2 de la 6b (R11-30)', async () => {
+  const { element } = reviewScreen(batch([mission('m1', 'Primera misión')], 2), { reviewAiMission: async () => ({}), requestAiMissionBatch: unavailable });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Rechazar misión'));
+  await press(pressable('PEDIR OTRA TANDA (2)'));
+  assert.match(shown(), /La IA no responde: se usarán misiones de la biblioteca/);
+  assert.equal(/el resto de misiones/.test(shown()), false);
+});
+
+test('las aprobadas de una tanda anterior cuentan para el aviso aunque en la última no se apruebe ninguna (R11-30)', async () => {
+  let calls = 0;
+  const second = { ...batch([mission('m2', 'Misión de la tanda 2')], 1), tanda: 2 };
+  const { element } = reviewScreen(batch([mission('m1', 'Primera misión')], 2), {
+    reviewAiMission: async () => ({}),
+    requestAiMissionBatch: async () => { calls += 1; if (calls === 1) return second; return unavailable(); },
+  });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Aprobar misión'));
+  await press(pressable('PEDIR OTRA TANDA (2)'));
+  await press(pressable('Rechazar misión'));
+  assert.match(shown(), /Has aprobado 0 misiones\./);
+  await press(pressable('PEDIR OTRA TANDA (1)'));
+  assert.match(shown(), /La IA no responde: el resto de misiones saldrán de la biblioteca/);
 });
 
 test('la pila aprueba con ✓ o deslizando a la derecha y rechaza con ✗ o deslizando a la izquierda', async () => {
