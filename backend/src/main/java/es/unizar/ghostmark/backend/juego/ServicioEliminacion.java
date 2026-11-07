@@ -99,7 +99,7 @@ public class ServicioEliminacion {
                 datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada),
                 ahora);
         cierre.cerrarSiUltimoVivo(partidaId, ahora);
-        Carta carta = cartas.obtener(partidaId, cazadorId)
+        Carta carta = cartas.obtener(partidaId, cazadorId, ahora)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
         return new Eliminacion(inscripciones.aliasDeInscripcion(victimaId), carta);
     }
@@ -114,11 +114,6 @@ public class ServicioEliminacion {
             return new ErrorJuego(HttpStatus.CONFLICT, "INTENTOS_BLOQUEADOS",
                     "Los intentos están bloqueados hasta que rote el código",
                     Map.of("bloqueadoHasta", siguientePaso));
-        }
-        if (!"VIVO".equals(victima.estado())) {
-            return new ErrorJuego(HttpStatus.UNPROCESSABLE_ENTITY, "CODIGO_INCORRECTO",
-                    "El código no es el de tu objetivo",
-                    Map.of("intentosRestantes", INTENTOS - fallos));
         }
         if (esCaducado(victima.secreto(), codigo, ahora)) {
             return new ErrorJuego(HttpStatus.UNPROCESSABLE_ENTITY, "CODIGO_CADUCADO",

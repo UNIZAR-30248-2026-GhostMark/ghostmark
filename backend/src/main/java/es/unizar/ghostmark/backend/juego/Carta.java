@@ -1,4 +1,7 @@
 package es.unizar.ghostmark.backend.juego;
 
-public record Carta(String estado, String aliasObjetivo, String mision, int eliminaciones) {
+import java.time.Instant;
+
+public record Carta(String estado, String aliasObjetivo, String mision, int eliminaciones,
+        Integer intentosRestantes, Instant bloqueadoHasta) {
 }

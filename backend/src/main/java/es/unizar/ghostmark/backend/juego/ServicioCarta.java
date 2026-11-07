@@ -8,6 +8,7 @@ import es.unizar.ghostmark.backend.partida.Partida;
 import es.unizar.ghostmark.backend.partida.PartidaNoEncontradaException;
 import es.unizar.ghostmark.backend.partida.PartidaRepository;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,15 +28,18 @@ public class ServicioCarta {
     private final InscripcionRepository inscripciones;
     private final CartaRepository cartas;
     private final ServicioEvento eventos;
+    private final Clock reloj;
     private final SecureRandom aleatorio = new SecureRandom();
 
     public ServicioCarta(CuentaRepository cuentas, PartidaRepository partidas,
-            InscripcionRepository inscripciones, CartaRepository cartas, ServicioEvento eventos) {
+            InscripcionRepository inscripciones, CartaRepository cartas, ServicioEvento eventos,
+            Clock reloj) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
         this.cartas = cartas;
         this.eventos = eventos;
+        this.reloj = reloj;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -72,7 +76,7 @@ public class ServicioCarta {
             throw new ErrorInscripcion(HttpStatus.CONFLICT, "PARTIDA_NO_EN_JUEGO",
                     "La partida no está en juego");
         }
-        return cartas.obtener(partidaId, inscripcionId)
+        return cartas.obtener(partidaId, inscripcionId, Instant.now(reloj))
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
     }
 }

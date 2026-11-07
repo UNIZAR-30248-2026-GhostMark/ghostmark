@@ -98,8 +98,8 @@ class CartaAceptacionTest {
             Map<String, Object> respuesta = carta(jugador, mesa).then().statusCode(200)
                     .body("aliasObjetivo", equalTo(alias)).body("mision", equalTo(mision))
                     .extract().jsonPath().getMap("");
-            assertEquals(Set.of("estado", "aliasObjetivo", "mision", "eliminaciones"),
-                    respuesta.keySet());
+            assertEquals(Set.of("estado", "aliasObjetivo", "mision", "eliminaciones",
+                    "intentosRestantes", "bloqueadoHasta"), respuesta.keySet());
         }
     }
 
