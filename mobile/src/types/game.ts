@@ -1,5 +1,21 @@
 export type MissionType = "BIBLIOTECA" | "IA";
 
+export type AiMissionStatus = "PROPUESTA" | "APROBADA" | "RECHAZADA";
+
+export type AiMission = {
+  id: string;
+  texto: string;
+  estado: AiMissionStatus;
+  tanda: number;
+};
+
+export type MissionBatch = {
+  tanda: number;
+  misiones: AiMission[];
+  descartadas: number;
+  tandasRestantes: number;
+};
+
 export type GameConfiguration = {
   nombre: string;
   inicioEn: string;
