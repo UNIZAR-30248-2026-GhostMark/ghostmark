@@ -751,11 +751,15 @@ components:
         horario: { $ref: '#/components/schemas/Horario' }
     Inscrito:
       type: object
-      required: [id, alias, esMaster]
+      required: [id, alias, esMaster, estado]
       properties:
         id: { type: string, format: uuid, description: 'Id de la inscripción: clave de la lista y de expulsar (PBI 4)' }
         alias: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
         esMaster: { type: boolean }
+        estado:
+          type: string
+          enum: [VIVO, ELIMINADO]
+          description: 'Estado del jugador en la partida; VIVO mientras la partida no ha arrancado'
     CodigoInvitacion:
       type: string
       pattern: '^[2-9A-HJKMNP-Z]{8}$'

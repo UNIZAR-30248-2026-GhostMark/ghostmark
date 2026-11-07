@@ -263,7 +263,7 @@ class InscripcionTest {
         alta(dos, juego).then().statusCode(201);
         lista(master, juego).then().statusCode(200)
                 .body("alias", equalTo(List.of(uno.alias(), dos.alias())))
-                .body("[0].size()", equalTo(3)).body("[0].email", nullValue());
+                .body("[0].size()", equalTo(4)).body("[0].email", nullValue());
     }
 
     @Test

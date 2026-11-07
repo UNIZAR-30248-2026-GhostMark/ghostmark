@@ -29,18 +29,20 @@ public class ServicioEliminacion {
     private final JugadorPartidaRepository jugadores;
     private final CartaRepository cartas;
     private final ServicioEvento eventos;
+    private final ServicioCierre cierre;
     private final Clock reloj;
     private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     public ServicioEliminacion(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, JugadorPartidaRepository jugadores,
-            CartaRepository cartas, ServicioEvento eventos, Clock reloj) {
+            CartaRepository cartas, ServicioEvento eventos, ServicioCierre cierre, Clock reloj) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
         this.jugadores = jugadores;
         this.cartas = cartas;
         this.eventos = eventos;
+        this.cierre = cierre;
         this.reloj = reloj;
     }
 
@@ -96,6 +98,7 @@ public class ServicioEliminacion {
         eventos.guardar(partidaId, "JUGADOR_ELIMINADO",
                 datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada),
                 ahora);
+        cierre.cerrarSiUltimoVivo(partidaId, ahora);
         Carta carta = cartas.obtener(partidaId, cazadorId)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
         return new Eliminacion(inscripciones.aliasDeInscripcion(victimaId), carta);
