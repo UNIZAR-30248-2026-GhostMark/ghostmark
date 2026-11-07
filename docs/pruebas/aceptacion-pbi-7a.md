@@ -13,10 +13,10 @@ de app 7a.4 (#195) y 7a.5 (#196).
 | 1. La app usa la ruta privada de su código y la cuenta atrás no baja de cero | `life-code.test.cjs` |
 | 2. El código del objetivo elimina a la víctima, suma una eliminación al cazador y el feed no dice quién la hizo | `criterio2ElCodigoDelObjetivoEliminaSumaYPublicaUnFeedSinCazador` |
 | 2. «Eliminar» envía los seis dígitos y el acierto dice a quién has eliminado | `life-code-screens.test.cjs`: «Eliminar envía seis dígitos y abre la pantalla de acierto» y «el acierto dice a quién has eliminado y vuelve a la misma carta, ya recargada» |
-| 2. «Te han cazado» y «X fue eliminado» en el feed, sin el cazador | Pendiente de la 7a.5 (#196) |
+| 2. «Te han cazado» y «X fue eliminado» en el feed, sin el cazador | `caught-feed.test.cjs`: «el eliminado que no lo ha visto va a «Te han cazado» y debajo queda la carta de espectador», «el feed enseña cada eliminación con su hora y nunca quién la hizo» y «el texto del feed nombra solo al eliminado y cubre la cuenta borrada (R11-28)» |
 | 3. El cazador hereda objetivo y misión, el ciclo sigue siendo único y cerrado y con dos vivos cada uno es objetivo del otro | `criterio3HeredaObjetivoYMisionYConservaUnSoloCicloHastaDosVivos` |
 | 3. El acierto avisa de la herencia y vuelve a la carta | `life-code-screens.test.cjs`: «el acierto dice a quién has eliminado y vuelve a la misma carta, ya recargada» |
-| 3. La carta muestra el objetivo y la misión heredados | Pendiente de la 7a.5 (#196) |
+| 3. La carta muestra el objetivo y la misión heredados | `caught-feed.test.cjs`: «tras el acierto, la carta recargada enseña lo heredado, gira sola una vez y vuelve boca abajo (UI11)» |
 
 ## Cómo se comprueba el servidor
 
