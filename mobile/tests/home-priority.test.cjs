@@ -18,6 +18,7 @@ function loadHome() {
     if (id === '../theme/colors') return { colors: {} };
     if (id === '../theme/bangers') return { bangers: () => ({}) };
     if (id === '../utils/gameDate') return { formatGameDate: () => '' };
+    if (id === '../utils/gameResult') return { resultSentence: () => '' };
     if (id === '../utils/serverWakeup') return { serverWakeupMessage: '', useServerWakeupNotice: () => false };
     return require(id);
   }, module, module.exports);
@@ -46,4 +47,14 @@ test('Inicio no muestra una cancelada como tarjeta grande si existe otra partida
 
   assert.equal(selected.featuredGame, waiting);
   assert.deepEqual(selected.otherGames, [cancelled]);
+});
+
+test('Inicio pone en grande la partida en inscripción antes que una cerrada (R11-23)', () => {
+  const closed = game('cerrada', 'CERRADA');
+  const waiting = game('inscripcion', 'EN_INSCRIPCION');
+  const cancelled = game('cancelada', 'CANCELADA');
+
+  assert.equal(selectHomeGames([closed, cancelled, waiting]).featuredGame, waiting);
+  assert.equal(selectHomeGames([cancelled, closed]).featuredGame, closed, 'sin activas, la cerrada');
+  assert.equal(selectHomeGames([cancelled]).featuredGame, undefined, 'una cancelada nunca');
 });

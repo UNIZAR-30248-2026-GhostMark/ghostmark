@@ -23,6 +23,7 @@ function load(file, imports = {}) {
 const invitation = load('utils/invitation.ts');
 const accountValidation = load('utils/accountValidation.ts');
 const gameDate = load('utils/gameDate.ts');
+const gameResult = load('utils/gameResult.ts');
 const serverWakeup = load('utils/serverWakeup.ts');
 const client = load('api/client.ts');
 const api = load('api/game.ts', { './client': client });
@@ -39,6 +40,7 @@ const common = {
   '../theme/typography': { typography: {} },
   '../utils/invitation': invitation,
   '../utils/gameDate': gameDate,
+  '../utils/gameResult': gameResult,
   '../utils/serverWakeup': serverWakeup,
   '../api/client': client,
 };
@@ -257,7 +259,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'CreateGameMissions', 'ReviewAiMissions', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'CreateGameMissions', 'ReviewAiMissions', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome', 'GameTab', 'GameEnded']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);
@@ -436,8 +438,8 @@ test('Inicio solo ofrece «VER MISIÓN» en una partida en juego si la cuenta ju
   }
 });
 
-test('Inicio abre la carta de una partida en juego si la cuenta juega y el aviso si no', async () => {
-  for (const [soyJugador, expected] of [[true, ['MissionCard', { gameId: 'private-id' }]], [false, 'GameStarted']]) {
+test('Inicio abre la carta del jugador o la pestaña Partida del máster', async () => {
+  for (const [soyJugador, expected] of [[true, ['MissionCard', { gameId: 'private-id' }]], [false, 'GameTab']]) {
     const destinations = [];
     const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
       '@expo/vector-icons': { Ionicons: 'Ionicons' },

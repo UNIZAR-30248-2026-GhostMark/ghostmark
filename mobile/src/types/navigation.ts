@@ -15,6 +15,8 @@ export type RootStackParamList = {
   GameNorms: { code: string; game: import("./game").PublicGame };
   WaitingRoom: { gameId: string; game: Pick<import("./game").Game, "inicioEn"> };
   GameStarted: { game: Pick<import("./game").GameSummary, "nombre" | "inicioEn" | "numInscritos" | "soyJugador"> & Partial<Pick<import("./game").GameSummary, "id">> };
+  GameTab: { gameId: string };
+  GameEnded: { game: import("./game").GameSummary };
   GameCancelled: { game: Pick<import("./game").GameSummary, "nombre" | "numInscritos"> & Partial<Pick<import("./game").GameSummary, "motivoCancelacion">> };
   MissionCard: { gameId: string };
   LifeCode: { gameId: string };

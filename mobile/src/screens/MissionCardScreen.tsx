@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { getMyMissionCard, type MissionCard } from "../api/game";
+import { getMyGames, getMyMissionCard, type MissionCard } from "../api/game";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
@@ -24,12 +24,18 @@ export function MissionCardScreen({ navigation, route }: Props) {
     let active = true;
     getMyMissionCard(gameId).then((result) => {
       if (active) setCard(result);
-    }).catch((requestError: unknown) => {
+    }).catch(async (requestError: unknown) => {
       if (!active) return;
+      // Si la partida se ha cerrado mientras tanto, se lleva al jugador a la pantalla de fin.
+      if (requestError instanceof ApiError && requestError.code === "PARTIDA_NO_EN_JUEGO") {
+        const closed = await getMyGames().then((games) => games.find((game) => game.id === gameId && game.estado === "CERRADA")).catch(() => undefined);
+        if (!active) return;
+        if (closed) { navigation.replace("GameEnded", { game: closed }); return; }
+      }
       setError(requestError instanceof ApiError ? requestError.message : "No hemos podido cargar tu carta. Comprueba la conexión e inténtalo de nuevo.");
     });
     return () => { active = false; };
-  }, [gameId]);
+  }, [gameId, navigation]);
 
   // Se recarga al volver a la carta, por ejemplo tras eliminar a tu objetivo.
   useFocusEffect(loadCard);
@@ -41,7 +47,7 @@ export function MissionCardScreen({ navigation, route }: Props) {
 
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.content}>
-      <Tabs />
+      <Tabs gameId={gameId} navigation={navigation} />
       <Text style={styles.objectiveLabel}>Tu objetivo</Text>
       {error ? <View style={styles.errorState}>
         <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
@@ -69,11 +75,11 @@ export function MissionCardScreen({ navigation, route }: Props) {
   </View></Screen>;
 }
 
-function Tabs() {
+function Tabs({ gameId, navigation }: { gameId: string; navigation: Props["navigation"] }) {
   return <View style={styles.tabs}>
     <View style={styles.tabOn}><Text style={styles.tabOnText}>MISIÓN</Text></View>
     <View style={styles.tab}><Text style={styles.tabText}>Feed</Text></View>
-    <View style={styles.tab}><Text style={styles.tabText}>Partida</Text></View>
+    <Pressable accessibilityLabel="Ir a la pestaña Partida" accessibilityRole="button" onPress={() => navigation.navigate("GameTab", { gameId })} style={styles.tab}><Text style={styles.tabText}>Partida</Text></Pressable>
   </View>;
 }
 

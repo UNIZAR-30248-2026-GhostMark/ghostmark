@@ -34,6 +34,7 @@ const client = load('api/client.ts');
 const gameApi = load('api/game.ts', { './client': client });
 const inscriptionApi = load('api/inscription.ts', { './client': client });
 const gameDate = load('utils/gameDate.ts');
+const gameResult = load('utils/gameResult.ts');
 const serverWakeup = load('utils/serverWakeup.ts');
 const common = {
   'react-native': {
@@ -52,6 +53,7 @@ const common = {
   '../api/inscription': inscriptionApi,
   '../api/client': client,
   '../utils/gameDate': gameDate,
+  '../utils/gameResult': gameResult,
   '../utils/serverWakeup': serverWakeup,
 };
 const game = {
