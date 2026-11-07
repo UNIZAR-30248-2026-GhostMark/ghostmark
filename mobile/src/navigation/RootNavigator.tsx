@@ -8,6 +8,8 @@ import { ApiStatusScreen } from "../screens/ApiStatusScreen";
 import { AvailabilityConsentScreen } from "../screens/AvailabilityConsentScreen";
 import { CreateGameDataScreen } from "../screens/CreateGameDataScreen";
 import { CreateGameRulesScreen } from "../screens/CreateGameRulesScreen";
+import { CreateGameMissionsScreen } from "../screens/CreateGameMissionsScreen";
+import { ReviewAiMissionsScreen } from "../screens/ReviewAiMissionsScreen";
 import { GameInvitationScreen } from "../screens/GameInvitationScreen";
 import { GameCancelledScreen } from "../screens/GameCancelledScreen";
 import { GameNormsScreen } from "../screens/GameNormsScreen";
@@ -120,6 +122,8 @@ export function RootNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="CreateGameData" component={CreateGameDataScreen} />
         <Stack.Screen name="CreateGameRules" component={CreateGameRulesScreen} />
+        <Stack.Screen name="CreateGameMissions" component={CreateGameMissionsScreen} />
+        <Stack.Screen name="ReviewAiMissions" component={ReviewAiMissionsScreen} />
         <Stack.Screen name="ShareGame" component={ShareGameScreen} />
         <Stack.Screen name="GameInvitation" component={GameInvitationScreen} />
         <Stack.Screen name="GameNorms" component={GameNormsScreen} />

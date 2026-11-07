@@ -8,6 +8,8 @@ export type RootStackParamList = {
   Home: { createdGame?: import("./game").GameSummary } | undefined;
   CreateGameData: undefined;
   CreateGameRules: { game: import("./game").GameDraft; startLabel: string; endLabel: string };
+  CreateGameMissions: { configuration: Omit<import("./game").GameConfiguration, "tipoMisiones"> };
+  ReviewAiMissions: { game: import("./game").Game; batch: import("./game").MissionBatch; contexto: string };
   ShareGame: { game: import("./game").Game };
   GameInvitation: { code: string };
   GameNorms: { code: string; game: import("./game").PublicGame };

@@ -34,7 +34,7 @@ export function ShareGameScreen({ navigation, route }: Props) {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <GameWizardHeader label="Compartir" onBack={() => navigation.popToTop()} step={3} />
+        <GameWizardHeader label="Compartir" onBack={() => navigation.popToTop()} step={4} />
         <Text style={styles.heading}>¡PARTIDA CREADA!</Text>
         <View style={styles.card}>
           <View accessible accessibilityLabel={`QR de invitación a ${game.nombre}. Enlace: ${link}`} accessibilityRole="image">
