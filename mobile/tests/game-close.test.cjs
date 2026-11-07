@@ -46,7 +46,7 @@ const common = {
   '../utils/serverWakeup': { serverWakeupMessage: '', useServerWakeupNotice: () => false },
 };
 
-const result = (tipo, aliasGanadores, eliminaciones, motivo = 'FECHA_FIN') => ({ tipo, motivo, aliasGanadores, eliminaciones });
+const result = (tipo, aliasGanadores, eliminaciones, motivo = 'FECHA_FIN', cerradaEn = '2026-11-10T21:00:00+01:00') => ({ tipo, motivo, aliasGanadores, eliminaciones, cerradaEn });
 const inPlay = { id: 'p1', nombre: 'Killer EINA', estado: 'EN_JUEGO', inicioEn: '2026-11-05T09:00:00+01:00', finEn: '2026-11-10T21:00:00+01:00', numInscritos: 7, soyMaster: true, soyJugador: false, motivoCancelacion: null, resultado: null };
 const closedGame = (resultado) => ({ ...inPlay, estado: 'CERRADA', soyMaster: false, soyJugador: true, resultado });
 
@@ -76,6 +76,18 @@ test('la pantalla de fin dice quién gana, la duración y vuelve a Inicio', asyn
   assert.match(texts(), /Killer EINA · 7 jugadores · 6 días/);
   await act(async () => tree.root.findByType('Pressable').props.onPress());
   assert.deepEqual(resets, [{ index: 0, routes: [{ name: 'Home' }] }]);
+});
+
+test('la pantalla de fin usa la hora real del cierre y no el fin previsto', async () => {
+  const { GameEndedScreen } = load('screens/GameEndedScreen.tsx', common);
+  const closedAt = '2026-11-07T18:00:00+01:00';
+  const game = {
+    ...closedGame(result('GANADOR', ['Marta'], 1, 'MASTER', closedAt)),
+    inicioEn: '2026-11-07T10:19:00+01:00',
+  };
+  await mount(GameEndedScreen, { navigation: { reset() {} }, route: { params: { game } } });
+  assert.match(texts(), new RegExp(gameDate.formatGameDate(closedAt)));
+  assert.match(texts(), /Killer EINA · 7 jugadores · 1 día/);
 });
 
 test('la pantalla de fin dice el empate y el último superviviente', async () => {
@@ -171,6 +183,18 @@ test('Inicio enseña el resultado de la cerrada y la abre en el fin', async () =
   const card = tree.root.findAllByType('Pressable').find((node) => node.findAllByType('Text').some((text) => text.props.children === 'Killer Teleco'));
   await act(async () => card.props.onPress());
   assert.deepEqual(destinations, [['GameEnded', { game: closed }]]);
+});
+
+test('la tarjeta grande de una partida cerrada dice cuándo se cerró realmente', async () => {
+  const closedAt = '2026-11-07T18:00:00+01:00';
+  const closed = {
+    ...closedGame(result('GANADOR', ['Marta'], 1, 'MASTER', closedAt)),
+    id: 'p3',
+    inicioEn: '2026-11-07T10:19:00+01:00',
+  };
+  const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common, '../api/game': { getMyGames: async () => [closed] } });
+  await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
+  assert.match(texts(), new RegExp(`Cerrada el ${gameDate.formatGameDate(closedAt)}`));
 });
 
 function missionCard(error, games) {

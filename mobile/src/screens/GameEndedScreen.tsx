@@ -13,9 +13,10 @@ type Props = NativeStackScreenProps<RootStackParamList, "GameEnded">;
 export function GameEndedScreen({ navigation, route }: Props) {
   const { game } = route.params;
   const result = game.resultado ? resultParts(game.resultado) : undefined;
+  const closedAt = game.resultado?.cerradaEn ?? game.finEn;
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.artwork}>{[-50, -25, 0, 25, 50].map((rotation) => <View key={rotation} style={[styles.ray, { transform: [{ rotate: `${rotation}deg` }] }]} />)}<Image accessibilityLabel="Fantasma celebrando el final" source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.ghost} /></View>
-    <View style={styles.content}><View style={styles.date}><Text style={styles.dateText}>{formatGameDate(game.finEn)}</Text></View><Text style={styles.title}>LA PARTIDA HA{"\n"}TERMINADO</Text><Text style={styles.details}>{game.nombre} · {game.numInscritos} jugadores · {durationText(game.inicioEn, game.finEn)}</Text>{result ? <View accessibilityLabel={`${result.title} ${result.detail}`} accessible style={styles.result}><Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={2} style={styles.resultTitle}>{result.title.toUpperCase()}</Text><Text style={styles.resultDetail}>{result.detail}</Text></View> : null}</View>
+    <View style={styles.content}><View style={styles.date}><Text style={styles.dateText}>{formatGameDate(closedAt)}</Text></View><Text style={styles.title}>LA PARTIDA HA{"\n"}TERMINADO</Text><Text style={styles.details}>{game.nombre} · {game.numInscritos} jugadores · {durationText(game.inicioEn, closedAt)}</Text>{result ? <View accessibilityLabel={`${result.title} ${result.detail}`} accessible style={styles.result}><Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={2} style={styles.resultTitle}>{result.title.toUpperCase()}</Text><Text style={styles.resultDetail}>{result.detail}</Text></View> : null}</View>
     <View style={styles.footer}><Pressable accessibilityRole="button" onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}><Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={styles.backButtonText}>VOLVER A MIS PARTIDAS</Text></Pressable></View>
   </View></Screen>;
 }

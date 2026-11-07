@@ -7,6 +7,7 @@ export type GameResult = {
   motivo: GameCloseReason;
   aliasGanadores: (string | null)[];
   eliminaciones: number;
+  cerradaEn: string;
 };
 
 export type GameConfiguration = {
