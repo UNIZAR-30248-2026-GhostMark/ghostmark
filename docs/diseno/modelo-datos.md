@@ -259,10 +259,10 @@ Los eventos no se modifican ni se borran. Con la PBI 14, al cerrar la partida se
 | `MISIONES_REPARTIDAS` | Justo después de `CICLO_FORMADO` | `asignaciones`: lista de `{inscripcionId, misionId}` | 5.2 |
 | `MISIONES_GENERADAS` | El máster pide una tanda a la IA | `tanda` (1-5), `contexto`, `misionIds` (las que llegan al máster), `descartadas` (cuántas quitaron la validación y el filtro) | 6a.2 |
 | `MISION_REVISADA` | El máster aprueba o rechaza una misión de la IA | `misionId`, `decision` (`APROBADA`, `RECHAZADA`) | 6a.2 |
-| `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo) | 7a.3 |
+| `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo); los tres jugadores, por su `inscripcionId` | 7a.3 |
 | `PARTIDA_CERRADA` | Queda un único vivo, llega `fin_en` o el máster pulsa «Cerrar partida» | `motivo` (`ULTIMO_SUPERVIVIENTE`, `FECHA_FIN`, `MASTER`), `resultado` (`SUPERVIVIENTE`, `GANADOR`, `EMPATE`), `ganadores` (lista de `inscripcionId`), `eliminaciones` (las del ganador o de los empatados) | 8.2 |
 
-**Reconstruir el estado** (test de la tarea 4.6): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a) y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (disputa, abandono…) a esta tabla.
+**Reconstruir el estado** (test de la tarea 4.6): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a), salvo `secreto_codigo`, `intentos_fallidos` y `bloqueado_hasta`, que no salen de eventos, y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (disputa, abandono…) a esta tabla.
 
 ## Código de vida y eliminación (PBI 7a, #7, y PBI 7b, #189)
 
@@ -322,11 +322,12 @@ erDiagram
 3. Se compara el código con el de su objetivo, con la tolerancia de arriba. Si no coincide, suma un fallo y responde `CODIGO_CADUCADO` si es un código de su objetivo de los últimos 10 minutos, o `CODIGO_INCORRECTO` si no (también si es el código de otro jugador), con `intentosRestantes`. Al tercer fallo seguido, `bloqueado_hasta` pasa a ser el inicio del paso siguiente, `intentos_fallidos` vuelve a 0 y responde `INTENTOS_BLOQUEADOS`. Un código que no tiene 6 dígitos responde 400 `DATOS_NO_VALIDOS` y no cuenta como fallo. El código de una víctima ya eliminada se rechaza como `CODIGO_INCORRECTO`, porque un eliminado no es objetivo de nadie.
 4. Si coincide: se guarda `JUGADOR_ELIMINADO`; la víctima pasa a `ELIMINADO`, con `eliminado_en` y sin objetivo ni misión; el cazador hereda su objetivo y su misión, suma una eliminación y vuelve a 0 fallos sin bloqueo. Si el objetivo heredado es él mismo, es el único vivo: se queda sin objetivo ni misión y la partida se cierra con la PBI 8.
 
-**Eliminaciones a la vez (PBI 7b):** el bloqueo de la fila de la partida hace que las eliminaciones de una misma partida se apliquen de una en una. Si A elimina a B a la vez que B elimina a C, la que llega segunda ve que su cazador ya está eliminado y se rechaza con `JUGADOR_ELIMINADO`.
+**Eliminaciones a la vez (PBI 7b):** el bloqueo de la fila de la partida hace que las eliminaciones de una misma partida se apliquen de una en una. Si A elimina a B a la vez que B elimina a C, cuenta el orden en que se aplican: si va primero la de A, la de B ve que su cazador ya está eliminado y se rechaza con `JUGADOR_ELIMINADO`; si va primero la de B, valen las dos (B hereda a su nuevo objetivo y después A elimina a B). En los dos casos el ciclo sigue siendo único y cerrado.
 
 ### Feed y jugador eliminado
 
 - **Feed:** `GET /partidas/{id}/feed`, con la partida `EN_JUEGO` o `CERRADA`, lista las eliminaciones, de la más reciente a la más antigua, con el alias de la víctima y la hora, sin el cazador. Sale de los eventos `JUGADOR_ELIMINADO`. Las anulaciones, abandonos y expulsiones llegan con sus PBI.
+- **Intentos en la carta:** la carta propia lleva `intentosRestantes` (3 menos `intentos_fallidos`: 3, 2 o 1) y `bloqueadoHasta` (`bloqueado_hasta` si aún no ha pasado; nulo si no), para que «Eliminar» enseñe los intentos que quedan y el bloqueo al abrirse, sin esperar a un fallo. Con el jugador eliminado o sin objetivo, los dos son nulos.
 - **Jugador eliminado:** su carta devuelve `estado = ELIMINADO`, sin objetivo ni misión. La app le enseña una vez «Te han cazado», sin decir quién (R11-14), y después la pestaña Misión en gris como espectador, con el feed. La disputa de los 10 minutos llega con la PBI 11.
 
 ### Quién puede hacer qué
