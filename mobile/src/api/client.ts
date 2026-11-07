@@ -14,6 +14,7 @@ export class ApiError extends Error {
     public readonly fieldErrors: string[] = [],
     public readonly code?: string,
     public readonly fieldErrorsByName: Readonly<Record<string, string>> = {},
+    public readonly details: Readonly<Record<string, unknown>> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -67,6 +68,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       fieldErrors,
       payload.codigo,
       namedFieldErrors,
+      payload as Record<string, unknown>,
     );
   }
   if (response.status === 204) return undefined as T;

@@ -192,3 +192,51 @@ test('Eliminar manda el código una sola vez aunque se pulse otra tecla mientras
   await act(async () => resolve({ aliasVictima: 'Pablo', carta: { aliasObjetivo: 'Marta', mision: 'Saluda' } }));
   tree.unmount();
 });
+
+function rejectedError(code, message, details) {
+  const error = new Error(message);
+  Object.setPrototypeOf(error, ApiError.prototype);
+  error.code = code;
+  error.details = details;
+  return error;
+}
+
+const ApiError = class ApiError extends Error {};
+
+test('Eliminar muestra el rechazo y los intentos que devuelve el servidor', async () => {
+  const { EliminateScreen } = load('screens/EliminateScreen.tsx', {
+    ...common,
+    '../api/client': { ApiError },
+    '../api/game': { eliminateTarget: async () => { throw rejectedError('CODIGO_INCORRECTO', 'El código no es el de tu objetivo', { intentosRestantes: 2 }); } },
+  });
+  let tree;
+  await act(async () => { tree = create(React.createElement(EliminateScreen, { navigation: { goBack() {}, replace() {} }, route: { params: { gameId: 'p1' } } })); });
+  for (const digit of '111111') {
+    const key = tree.root.findAllByType('Pressable').find((node) => node.props.accessibilityLabel === `Introducir ${digit}`);
+    await act(async () => key.props.onPress());
+  }
+  const shown = JSON.stringify(tree.toJSON());
+  assert.match(shown, /El código no es el de tu objetivo/);
+  assert.match(shown, /Te quedan 2 intentos/);
+  await act(async () => tree.unmount());
+});
+
+test('Eliminar bloquea el teclado hasta la fecha que devuelve el servidor', async () => {
+  const { EliminateScreen } = load('screens/EliminateScreen.tsx', {
+    ...common,
+    '../api/client': { ApiError },
+    '../api/game': { eliminateTarget: async () => { throw rejectedError('INTENTOS_BLOQUEADOS', 'Los intentos están bloqueados hasta que rote el código', { bloqueadoHasta: new Date(Date.now() + 60_000).toISOString() }); } },
+  });
+  let tree;
+  await act(async () => { tree = create(React.createElement(EliminateScreen, { navigation: { goBack() {}, replace() {} }, route: { params: { gameId: 'p1' } } })); });
+  for (const digit of '111111') {
+    const key = tree.root.findAllByType('Pressable').find((node) => node.props.accessibilityLabel === `Introducir ${digit}`);
+    await act(async () => key.props.onPress());
+  }
+  const shown = JSON.stringify(tree.toJSON());
+  assert.match(shown, /INTENTOS BLOQUEADOS/);
+  assert.match(shown, /Podrás volver a intentarlo en/);
+  const digit = tree.root.findAllByType('Pressable').find((node) => node.props.accessibilityLabel === 'Introducir 1');
+  assert.equal(digit.props.disabled, true);
+  await act(async () => tree.unmount());
+});
