@@ -8,6 +8,7 @@ import es.unizar.ghostmark.backend.inscripcion.InscripcionRepository;
 import es.unizar.ghostmark.backend.inscripcion.ServicioInscripcion;
 import es.unizar.ghostmark.backend.sesion.DatosNoValidosException;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -323,7 +324,8 @@ public class ServicioPartida {
             return null;
         }
         List<Map<String, Object>> datos = jdbc.queryForList("select datos->>'resultado' as tipo,"
-                + " datos->>'motivo' as motivo, (datos->>'eliminaciones')::int as eliminaciones"
+                + " datos->>'motivo' as motivo, (datos->>'eliminaciones')::int as eliminaciones,"
+                + " ocurrido_en as cerrada_en"
                 + " from evento where partida_id = ? and tipo = 'PARTIDA_CERRADA'"
                 + " order by secuencia desc limit 1", partida.getId());
         if (datos.isEmpty()) {
@@ -343,6 +345,7 @@ public class ServicioPartida {
         resultado.put("motivo", dato.get("motivo"));
         resultado.put("aliasGanadores", alias);
         resultado.put("eliminaciones", ((Number) dato.get("eliminaciones")).intValue());
+        resultado.put("cerradaEn", ((Timestamp) dato.get("cerrada_en")).toInstant().toString());
         return resultado;
     }
 }

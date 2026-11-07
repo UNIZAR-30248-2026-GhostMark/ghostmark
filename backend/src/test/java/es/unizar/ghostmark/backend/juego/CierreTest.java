@@ -80,7 +80,8 @@ class CierreTest {
                 .body("resultado.tipo", equalTo("GANADOR"))
                 .body("resultado.motivo", equalTo("MASTER"))
                 .body("resultado.aliasGanadores", contains(alias))
-                .body("resultado.eliminaciones", equalTo(2));
+                .body("resultado.eliminaciones", equalTo(2))
+                .body("resultado.cerradaEn", equalTo(reloj.instant().toString()));
 
         assertEquals("CERRADA", estado(mesa.juego()));
         assertEquals("GANADOR|MASTER|2", cierre(mesa.juego()));
@@ -121,7 +122,7 @@ class CierreTest {
         arrancar(mesa).then().statusCode(200);
         vencer(mesa.juego());
 
-        tarea.revisar(Instant.now());
+        tarea.revisar(reloj.instant());
 
         assertEquals("CERRADA", estado(mesa.juego()));
         assertEquals("EMPATE|FECHA_FIN|0", cierre(mesa.juego()));
@@ -130,7 +131,8 @@ class CierreTest {
                 .body("resultado.tipo", equalTo("EMPATE"))
                 .body("resultado.motivo", equalTo("FECHA_FIN"))
                 .body("resultado.aliasGanadores", hasSize(3))
-                .body("resultado.eliminaciones", equalTo(0));
+                .body("resultado.eliminaciones", equalTo(0))
+                .body("resultado.cerradaEn", equalTo(reloj.instant().toString()));
     }
 
     @Test
