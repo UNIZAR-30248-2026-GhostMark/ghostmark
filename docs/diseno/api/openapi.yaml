@@ -673,12 +673,23 @@ components:
   schemas:
     Carta:
       type: object
-      required: [estado, aliasObjetivo, mision, eliminaciones]
+      required: [estado, aliasObjetivo, mision, eliminaciones, intentosRestantes, bloqueadoHasta]
       properties:
         estado: { type: string, enum: [VIVO, ELIMINADO] }
         aliasObjetivo: { type: [string, 'null'], description: 'Nulo si el objetivo borró su cuenta («cuenta eliminada»), si el jugador está eliminado o si es el único vivo' }
         mision: { type: [string, 'null'], example: Que te diga la palabra «compilador», description: Nula si el jugador está eliminado o es el único vivo }
         eliminaciones: { type: integer, minimum: 0 }
+        intentosRestantes:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 3
+          description: >-
+            Códigos que puede probar antes del bloqueo (3, 2 o 1). Durante un bloqueo vale 3, los que tendrá cuando
+            rote el código. Nulo si el jugador está eliminado o es el único vivo
+        bloqueadoHasta:
+          type: [string, 'null']
+          format: date-time
+          description: Tras 3 fallos seguidos, hasta cuándo no puede eliminar (el inicio del paso siguiente del código); nulo si no está bloqueado
     MisionIa:
       type: object
       required: [id, texto, estado, tanda]
@@ -923,7 +934,7 @@ components:
         codigo:
           type: string
           enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS, MISIONES_DE_BIBLIOTECA, LIMITE_TANDAS, MISION_YA_REVISADA, IA_NO_DISPONIBLE]
-        intentosRestantes: { type: integer, minimum: 0, maximum: 2, description: Solo en `CODIGO_INCORRECTO` y `CODIGO_CADUCADO` }
+        intentosRestantes: { type: integer, minimum: 1, maximum: 2, description: 'Solo en `CODIGO_INCORRECTO` y `CODIGO_CADUCADO`; nunca vale 0, porque el tercer fallo responde `INTENTOS_BLOQUEADOS`' }
         bloqueadoHasta: { type: string, format: date-time, description: Solo en `INTENTOS_BLOQUEADOS` }
         errores:
           type: array
