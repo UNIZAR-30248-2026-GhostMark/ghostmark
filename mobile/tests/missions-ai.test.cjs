@@ -33,7 +33,7 @@ const common = {
     Pressable: 'Pressable', ScrollView: 'ScrollView', StyleSheet: { create: (styles) => styles }, Text: 'Text', TextInput: 'TextInput', View: 'View',
   },
   '@expo/vector-icons': { Ionicons: 'Ionicons' },
-  '../api/client': { ApiError: class ApiError extends Error { constructor(message) { super(message); this.fieldErrors = []; } } },
+  '../api/client': load('api/client.ts'),
   '../components/GameWizardHeader': { GameWizardHeader: 'GameWizardHeader' },
   '../components/PrimaryButton': { PrimaryButton: 'PrimaryButton' },
   '../components/Screen': { Screen: 'Screen' },
@@ -151,11 +151,83 @@ test('Biblioteca crea la partida con las misiones de la biblioteca y abre Compar
   assert.equal(navigation.resets[0].routes[1].name, 'ShareGame');
 });
 
+test('si la IA no está disponible, Misiones avisa y permite continuar con la biblioteca', async () => {
+  const { ApiError } = common['../api/client'];
+  const created = [];
+  const changes = [];
+  const libraryGame = { ...game, tipoMisiones: 'BIBLIOTECA' };
+  const { CreateGameMissionsScreen, navigation } = missionsStep({
+    createGame: async (value) => { created.push(value); return game; },
+    requestAiMissionBatch: async () => {
+      throw new ApiError('Servicio no disponible', 503, [], 'IA_NO_DISPONIBLE');
+    },
+    changeMissionType: async (...args) => { changes.push(args); return libraryGame; },
+  });
+  await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration } } })); });
+  await press(tree.root.findByType('PrimaryButton'));
+  assert.match(shown(), /La IA no responde: se usarán misiones de la biblioteca/);
+  assert.deepEqual(navigation.resets, []);
+  const continueButton = tree.root.findByType('PrimaryButton');
+  assert.equal(continueButton.props.children, 'CREAR PARTIDA');
+  assert.equal(continueButton.props.disabled, false);
+  await press(continueButton);
+  assert.deepEqual(created, [{ ...configuration, tipoMisiones: 'IA' }]);
+  assert.deepEqual(changes, [['p1', 'BIBLIOTECA']]);
+  assert.deepEqual(navigation.resets[0].routes[1], { name: 'ShareGame', params: { game: libraryGame } });
+});
+
 function reviewScreen(initial, api, contexto = 'Campus') {
   const navigation = { destinations: [], goBack() {}, navigate(...args) { this.destinations.push(args); } };
   const { ReviewAiMissionsScreen } = load('screens/ReviewAiMissionsScreen.tsx', { ...common, '../api/game': api });
   return { navigation, element: React.createElement(ReviewAiMissionsScreen, { navigation, route: { params: { batch: initial, contexto, game } } }) };
 }
+
+test('si falla otra tanda, avisa y deja continuar con las misiones ya aprobadas', async () => {
+  const { ApiError } = common['../api/client'];
+  const decisions = [];
+  const { element, navigation } = reviewScreen(batch([mission('m1', 'Primera misión')], 2), {
+    reviewAiMission: async (...args) => { decisions.push(args); return {}; },
+    requestAiMissionBatch: async () => {
+      throw new ApiError('Servicio no disponible', 503, [], 'IA_NO_DISPONIBLE');
+    },
+  });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Aprobar misión'));
+  await press(pressable('PEDIR OTRA TANDA (2)'));
+  assert.match(shown(), /La IA no responde: el resto de misiones saldrán de la biblioteca/);
+  assert.match(shown(), /Has aprobado 1 misión\./);
+  assert.equal(pressable('PEDIR OTRA TANDA (2)').props.disabled, false);
+  await press(pressable('CONTINUAR'));
+  assert.deepEqual(decisions, [['p1', 'm1', 'APROBADA']]);
+  assert.deepEqual(navigation.destinations, [['ShareGame', { game }]]);
+});
+
+const unavailable = async () => { throw new (common['../api/client'].ApiError)('Servicio no disponible', 503, [], 'IA_NO_DISPONIBLE'); };
+
+test('si falla otra tanda sin ninguna aprobada, avisa con el texto del criterio 2 de la 6b (R11-30)', async () => {
+  const { element } = reviewScreen(batch([mission('m1', 'Primera misión')], 2), { reviewAiMission: async () => ({}), requestAiMissionBatch: unavailable });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Rechazar misión'));
+  await press(pressable('PEDIR OTRA TANDA (2)'));
+  assert.match(shown(), /La IA no responde: se usarán misiones de la biblioteca/);
+  assert.equal(/el resto de misiones/.test(shown()), false);
+});
+
+test('las aprobadas de una tanda anterior cuentan para el aviso aunque en la última no se apruebe ninguna (R11-30)', async () => {
+  let calls = 0;
+  const second = { ...batch([mission('m2', 'Misión de la tanda 2')], 1), tanda: 2 };
+  const { element } = reviewScreen(batch([mission('m1', 'Primera misión')], 2), {
+    reviewAiMission: async () => ({}),
+    requestAiMissionBatch: async () => { calls += 1; if (calls === 1) return second; return unavailable(); },
+  });
+  await act(async () => { tree = create(element); });
+  await press(pressable('Aprobar misión'));
+  await press(pressable('PEDIR OTRA TANDA (2)'));
+  await press(pressable('Rechazar misión'));
+  assert.match(shown(), /Has aprobado 0 misiones\./);
+  await press(pressable('PEDIR OTRA TANDA (1)'));
+  assert.match(shown(), /La IA no responde: el resto de misiones saldrán de la biblioteca/);
+});
 
 test('la pila aprueba con ✓ o deslizando a la derecha y rechaza con ✗ o deslizando a la izquierda', async () => {
   const decisions = [];

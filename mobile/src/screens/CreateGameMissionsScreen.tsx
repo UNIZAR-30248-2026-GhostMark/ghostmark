@@ -20,6 +20,7 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
   const [context, setContext] = useState<(typeof contexts)[number]>("Campus");
   const [otherContext, setOtherContext] = useState("");
   const [error, setError] = useState<string>();
+  const [libraryFallback, setLibraryFallback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // La partida se crea una sola vez: si falla la tanda, reintentar o pasar a Biblioteca usa la misma.
   const [createdGame, setCreatedGame] = useState<Game>();
@@ -45,7 +46,12 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
       const batch = await requestAiMissionBatch(game.id, contextValue);
       navigation.reset({ index: 1, routes: [homeRoute(game), { name: "ReviewAiMissions", params: { batch, contexto: contextValue, game } }] });
     } catch (requestError) {
-      setError(messageFor(requestError, "No hemos podido generar las misiones. Comprueba la conexión e inténtalo de nuevo."));
+      if (requestError instanceof ApiError && requestError.status === 503 && requestError.code === "IA_NO_DISPONIBLE") {
+        setLibraryFallback(true);
+        setType("BIBLIOTECA");
+      } else {
+        setError(messageFor(requestError, "No hemos podido generar las misiones. Comprueba la conexión e inténtalo de nuevo."));
+      }
     } finally { setIsSaving(false); }
   }
 
@@ -72,14 +78,14 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
       <Text style={styles.heading}>MISIONES</Text>
       <View style={styles.typeSwitch}>
         <TypeButton active={type === "BIBLIOTECA"} label="BIBLIOTECA" onPress={() => setType("BIBLIOTECA")} />
-        <TypeButton active={type === "IA"} label="GENERAR CON IA" onPress={() => setType("IA")} />
+        <TypeButton active={type === "IA"} label="GENERAR CON IA" onPress={() => { setLibraryFallback(false); setType("IA"); }} />
       </View>
       {type === "IA" ? <>
         <Text style={styles.contextHeading}>CONTEXTO</Text>
         <ScrollView contentContainerStyle={styles.contexts} horizontal style={styles.contextScroll} showsHorizontalScrollIndicator={false}>{contexts.map((item) => <Pressable accessibilityRole="button" key={item} onPress={() => setContext(item)} style={({ pressed }) => [styles.contextChip, context === item && styles.contextChipOn, pressed && styles.pressed]}><Text style={[styles.contextText, context === item && styles.contextTextOn]}>{item}</Text></Pressable>)}</ScrollView>
         {context === "Otro…" ? <TextInput accessibilityLabel="Otro contexto para las misiones" maxLength={40} onChangeText={setOtherContext} placeholder="Describe el contexto" placeholderTextColor={colors.textMuted} style={styles.contextInput} value={otherContext} /> : null}
         <View style={styles.note}><Image source={require("../../assets/ghosts/fantasma-escudo.png")} style={styles.noteGhost} /><Text style={styles.noteText}>Siempre sin contacto físico. Tú apruebas cada misión antes de que entre en juego.</Text></View>
-      </> : <View style={styles.libraryNote}><Text style={styles.libraryTitle}>MISIONES DE BIBLIOTECA</Text><Text style={styles.libraryText}>Usaremos las misiones revisadas de GhostMark, seguras y listas para repartir al arrancar.</Text></View>}
+      </> : <View style={styles.libraryNote}><Text style={styles.libraryTitle}>MISIONES DE BIBLIOTECA</Text><Text accessibilityLiveRegion="polite" style={styles.libraryText}>{libraryFallback ? "La IA no responde: se usarán misiones de la biblioteca" : "Usaremos las misiones revisadas de GhostMark, seguras y listas para repartir al arrancar."}</Text></View>}
       {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
     </ScrollView>
     <View style={styles.bottomAction}><PrimaryButton disabled={isSaving} onPress={type === "IA" ? generateMissions : createLibraryGame}>{isSaving ? (type === "IA" ? "GENERANDO…" : "CREANDO…") : type === "IA" ? "GENERAR MISIONES" : "CREAR PARTIDA"}</PrimaryButton></View>
