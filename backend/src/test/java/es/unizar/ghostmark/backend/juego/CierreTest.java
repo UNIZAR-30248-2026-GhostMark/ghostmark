@@ -249,6 +249,30 @@ class CierreTest {
     }
 
     @Test
+    void borrarLaCuentaDeUnVivoConLaPartidaCerradaConservaSuInscripcion() {
+        // Con la partida cerrada, su cazador aún lo tiene como objetivo (R11-33).
+        Mesa mesa = conJugadores(3, false);
+        arrancar(mesa).then().statusCode(200);
+        cerrar(mesa.master(), mesa.juego()).then().statusCode(200)
+                .body("resultado.tipo", equalTo("EMPATE"));
+        Persona vivo = mesa.jugadores().get(0);
+        UUID vivoId = inscripcion(vivo, mesa.juego());
+
+        given().port(puerto).auth().oauth2(vivo.token()).delete("/api/v1/cuentas/yo")
+                .then().statusCode(204);
+
+        assertEquals(1, jdbc.queryForObject("select count(*) from inscripcion"
+                + " where id = ? and cuenta_id is null", Integer.class, vivoId));
+        assertEquals(0, jdbc.queryForObject("select count(*) from evento where partida_id = ?"
+                + " and tipo = 'INSCRIPCION_RETIRADA'", Integer.class, mesa.juego().id()));
+        given().port(puerto).auth().oauth2(mesa.master().token())
+                .get(RUTA_PARTIDA, mesa.juego().id()).then().statusCode(200)
+                .body("resultado.tipo", equalTo("EMPATE"))
+                .body("resultado.aliasGanadores", hasSize(3))
+                .body("resultado.aliasGanadores.findAll { it == null }", hasSize(1));
+    }
+
+    @Test
     void elAliasDelGanadorBorradoSaleNulo() {
         Mesa mesa = conJugadores(3, false);
         arrancar(mesa).then().statusCode(200);
