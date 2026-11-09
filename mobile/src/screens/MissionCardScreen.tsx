@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
@@ -10,11 +10,12 @@ import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import { bangers } from "../theme/bangers";
 import type { RootStackParamList } from "../types/navigation";
+import { hasSeenCaught } from "../utils/caughtSeen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MissionCard">;
 
 export function MissionCardScreen({ navigation, route }: Props) {
-  const { gameId } = route.params;
+  const { gameId, revealOnce } = route.params;
   const [card, setCard] = useState<MissionCard>();
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
@@ -22,7 +23,11 @@ export function MissionCardScreen({ navigation, route }: Props) {
 
   const loadCard = useCallback(() => {
     let active = true;
-    getMyMissionCard(gameId).then((result) => {
+    getMyMissionCard(gameId).then(async (result) => {
+      // El eliminado ve «Te han cazado» la primera vez que abre la carta (R11-25).
+      if (result.estado === "ELIMINADO" && !(await hasSeenCaught(gameId))) {
+        if (active) navigation.navigate("Caught", { gameId });
+      }
       if (active) setCard(result);
     }).catch(async (requestError: unknown) => {
       if (!active) return;
@@ -45,14 +50,35 @@ export function MissionCardScreen({ navigation, route }: Props) {
     Animated.timing(flip, { duration: 170, toValue: value, useNativeDriver: true }).start();
   }
 
+  // Tras un acierto con herencia, la carta nueva gira sola una vez (UI11). Se espera a la carta
+  // recargada al volver: la que había en pantalla es la del objetivo anterior.
+  const pendingReveal = useRef(false);
+  const flipBack = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    if (!revealOnce) return;
+    pendingReveal.current = true;
+    navigation.setParams({ revealOnce: false });
+  }, [navigation, revealOnce]);
+  useEffect(() => {
+    if (!pendingReveal.current || !card) return;
+    pendingReveal.current = false;
+    if (card.estado !== "VIVO" || isLastAlive(card)) return;
+    reveal(1);
+    flipBack.current = setTimeout(() => reveal(0), 1600);
+  }, [card]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => clearTimeout(flipBack.current), []);
+
+  const spectator = card?.estado === "ELIMINADO";
+  const lastAlive = card ? isLastAlive(card) : false;
+
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.content}>
-      <Tabs gameId={gameId} navigation={navigation} />
-      <Text style={styles.objectiveLabel}>Tu objetivo</Text>
+      <Tabs gameId={gameId} navigation={navigation} spectator={spectator} />
+      {spectator ? null : <Text style={styles.objectiveLabel}>Tu objetivo</Text>}
       {error ? <View style={styles.errorState}>
         <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
         <PrimaryButton onPress={() => { setError(undefined); setAttempt((value) => value + 1); }}>REINTENTAR</PrimaryButton>
-      </View> : card ? <Pressable
+      </View> : card && spectator ? <SpectatorCard /> : card && lastAlive ? <LastAliveCard /> : card ? <Pressable
         accessibilityHint="Mantén pulsada la carta para ver el objetivo y la misión"
         accessibilityLabel="Carta de misión"
         accessibilityRole="button"
@@ -68,18 +94,46 @@ export function MissionCardScreen({ navigation, route }: Props) {
         </Animated.View>
       </Pressable> : <View style={styles.loadingCard}><Text style={styles.loading}>CARGANDO TU CARTA…</Text></View>}
     </View>
-    <View style={styles.footer}>
+    {/* El espectador ya no tiene código ni objetivo; el último vivo, nadie a quien eliminar (R11-26). */}
+    {spectator ? null : <View style={styles.footer}>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate("LifeCode", { gameId })} style={styles.codeButton}><Text style={styles.codeText}>MI CÓDIGO</Text></Pressable>
-      <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo })} style={styles.removeButton}><Text style={styles.removeText}>ELIMINAR</Text></Pressable>
-    </View>
+      {lastAlive ? null : <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo })} style={styles.removeButton}><Text style={styles.removeText}>ELIMINAR</Text></Pressable>}
+    </View>}
   </View></Screen>;
 }
 
-function Tabs({ gameId, navigation }: { gameId: string; navigation: Props["navigation"] }) {
+// Sin objetivo ni misión y aún vivo: no queda nadie más en juego.
+function isLastAlive(card: MissionCard) {
+  return card.estado === "VIVO" && card.aliasObjetivo === null && card.mision === null;
+}
+
+function Tabs({ gameId, navigation, spectator }: { gameId: string; navigation: Props["navigation"]; spectator: boolean }) {
   return <View style={styles.tabs}>
-    <View style={styles.tabOn}><Text style={styles.tabOnText}>MISIÓN</Text></View>
-    <View style={styles.tab}><Text style={styles.tabText}>Feed</Text></View>
+    <View style={[styles.tabOn, spectator && styles.tabOnSpectator]}><Text style={styles.tabOnText}>MISIÓN</Text></View>
+    <Pressable accessibilityLabel="Ir al feed" accessibilityRole="button" onPress={() => navigation.navigate("Feed", { gameId, isPlayer: true })} style={styles.tab}><Text style={styles.tabText}>Feed</Text></Pressable>
     <Pressable accessibilityLabel="Ir a la pestaña Partida" accessibilityRole="button" onPress={() => navigation.navigate("GameTab", { gameId })} style={styles.tab}><Text style={styles.tabText}>Partida</Text></Pressable>
+  </View>;
+}
+
+const OUTLINE = [[-3, 0], [3, 0], [0, -3], [0, 3], [-2, -2], [2, -2], [-2, 2], [2, 2], [0, 5]] as const;
+
+function SpectatorCard() {
+  return <>
+    <View accessibilityLabel="Eres espectador" style={[styles.card, styles.spectatorCard]}>
+      <Image source={require("../../assets/ghosts/fantasma-ko-gris.png")} style={styles.spectatorGhost} />
+      <View style={styles.spectatorTitleWrap}>
+        {OUTLINE.map(([x, y]) => <Text accessibilityElementsHidden aria-hidden importantForAccessibility="no-hide-descendants" key={`${x},${y}`} style={[styles.spectatorTitle, styles.spectatorOutline, { transform: [{ translateX: x }, { translateY: y }] }]}>ERES ESPECTADOR</Text>)}
+        <Text style={styles.spectatorTitle}>ERES ESPECTADOR</Text>
+      </View>
+    </View>
+    <Text style={styles.spectatorHint}>Sigue la partida en Feed y en Partida hasta el final.</Text>
+  </>;
+}
+
+function LastAliveCard() {
+  return <View style={[styles.card, styles.cardFace, styles.cardFront, styles.lastAliveCard]}>
+    <View style={styles.objectiveTag}><Text style={styles.objectiveTagText}>Objetivo</Text></View>
+    <Text style={styles.lastAliveText}>Ya no tienes objetivo: eres la última persona en juego</Text>
   </View>;
 }
 
@@ -111,10 +165,19 @@ const styles = StyleSheet.create({
   tab: { alignItems: "center", flex: 1, justifyContent: "center" },
   tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 11, borderWidth: 2, boxShadow: `0px 3px 0px ${colors.border}`, flex: 1, justifyContent: "center" },
   tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 14 },
+  tabOnSpectator: { backgroundColor: "#8E80AE" },
   tabOnText: { alignSelf: "stretch", color: colors.ink, ...bangers(19), letterSpacing: 0.5, textAlign: "center" },
   objectiveLabel: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 22 },
   card: { height: 392, marginTop: 12, position: "relative", transform: [{ rotate: "2deg" }], width: 286 },
   cardFace: { ...StyleSheet.absoluteFill, backfaceVisibility: "hidden", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, boxShadow: `0px 8px 0px ${colors.ink}`, overflow: "hidden" },
+  spectatorCard: { backgroundColor: "#4A3A66", borderColor: colors.ink, borderRadius: 26, borderWidth: 3, boxShadow: "0px 8px 16px -6px rgba(8, 2, 16, 0.75)", marginTop: 34, overflow: "hidden", transform: [{ rotate: "1deg" }] },
+  spectatorGhost: { height: 200, left: 24, opacity: 0.55, position: "absolute", resizeMode: "contain", top: 40, width: 204 },
+  spectatorTitleWrap: { bottom: 32, left: 0, position: "absolute", right: 0 },
+  spectatorTitle: { color: "#C9BEE3", ...bangers(36), textAlign: "center" },
+  spectatorOutline: { color: colors.ink, left: 0, position: "absolute", right: 0, top: 0 },
+  spectatorHint: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 16, lineHeight: 22, marginTop: 28, paddingHorizontal: 12, textAlign: "center" },
+  lastAliveCard: { position: "relative" },
+  lastAliveText: { color: colors.ink, ...bangers(34), letterSpacing: 0.4, lineHeight: 38, marginTop: 24 },
   loadingCard: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 28, borderWidth: 3, height: 392, justifyContent: "center", marginTop: 12, width: 286 },
   loading: { color: colors.lime, ...bangers(25) },
   errorState: { flex: 1, gap: 20, justifyContent: "center", width: "100%" },

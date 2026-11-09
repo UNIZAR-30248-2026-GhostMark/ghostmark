@@ -50,7 +50,7 @@ export function EliminationSuccessScreen({ navigation, route }: Props) {
         <Text style={styles.inherit}>{inherited ? "Heredas su objetivo y su misión" : "Ya no tienes objetivo. ¡Eres la última persona en juego!"}</Text>
       </View>
       <View style={styles.footer}>
-        <Pressable accessibilityRole="button" onPress={() => navigation.popTo("MissionCard", { gameId })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.popTo("MissionCard", { gameId, revealOnce: inherited })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
           <Text style={styles.buttonText}>{inherited ? "VER MI NUEVA CARTA" : "VER MI CARTA"}</Text>
         </Pressable>
       </View>

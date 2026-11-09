@@ -155,17 +155,21 @@ test('el acierto dice a quién has eliminado y vuelve a la misma carta, ya recar
   assert.match(JSON.stringify(button.findAllByType('Text').map((text) => text.props.children)), /VER MI NUEVA CARTA/);
   button.props.onPress();
   // popTo vuelve a la carta que ya estaba abierta: atrás no queda una carta antigua.
-  assert.deepEqual(destinations, [['MissionCard', { gameId: 'p1' }]]);
+  // Con herencia, la carta nueva gira sola una vez al volver (UI11).
+  assert.deepEqual(destinations, [['MissionCard', { gameId: 'p1', revealOnce: true }]]);
   await act(async () => tree.unmount());
 });
 
 test('el acierto del último vivo no promete un objetivo heredado', async () => {
-  const { tree } = await successScreen({ aliasVictima: null, carta: { aliasObjetivo: null, mision: null, estado: 'VIVO', eliminaciones: 2 } });
+  const { destinations, tree } = await successScreen({ aliasVictima: null, carta: { aliasObjetivo: null, mision: null, estado: 'VIVO', eliminaciones: 2 } });
   const shown = JSON.stringify(tree.toJSON());
   assert.match(shown, /Cuenta eliminada/);
   assert.match(shown, /Ya no tienes objetivo/);
   assert.doesNotMatch(shown, /Heredas/);
   assert.match(shown, /VER MI CARTA/);
+  tree.root.findAllByType('Pressable')[0].props.onPress();
+  // Sin objetivo heredado no hay carta nueva que girar.
+  assert.deepEqual(destinations, [['MissionCard', { gameId: 'p1', revealOnce: false }]]);
   await act(async () => tree.unmount());
 });
 

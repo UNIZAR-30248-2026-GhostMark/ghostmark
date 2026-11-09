@@ -38,6 +38,7 @@ const common = {
   '@react-navigation/native': { useFocusEffect: (effect) => React.useEffect(effect, [effect]) },
   '../api/client': { ApiError },
   '../components/PrimaryButton': { PrimaryButton: 'PrimaryButton' },
+  '../utils/caughtSeen': { hasSeenCaught: async () => true },
   '../components/Screen': { Screen: 'Screen' },
   '../theme/bangers': { bangers: () => ({}) },
   '../theme/colors': { colors: {} },
@@ -223,4 +224,15 @@ test('la pestaña Partida de la carta abre la de esa partida', async () => {
   await mount(MissionCardScreen, { navigation, route: { params: { gameId: 'p7' } } });
   await act(async () => byLabel('Ir a la pestaña Partida').props.onPress());
   assert.deepEqual(navigation.destinations, [['GameTab', { gameId: 'p7' }]]);
+});
+
+test('la pestaña Feed de Partida abre el feed y dice si quien mira juega', async () => {
+  for (const soyJugador of [false, true]) {
+    const { GameTabScreen, navigation } = gameTab({ games: [{ ...inPlay, soyJugador }] });
+    await mount(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } });
+    await act(async () => byLabel('Ir al feed').props.onPress());
+    assert.deepEqual(navigation.destinations, [['Feed', { gameId: 'p1', isPlayer: soyJugador }]]);
+    await act(async () => tree.unmount());
+    tree = undefined;
+  }
 });

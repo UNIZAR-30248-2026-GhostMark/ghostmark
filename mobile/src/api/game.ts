@@ -13,6 +13,12 @@ export type LifeCode = {
   caducaEn: string;
 };
 
+export type FeedEntry = {
+  tipo: "ELIMINACION";
+  alias: string | null;
+  ocurridoEn: string;
+};
+
 export type EliminationResult = {
   aliasVictima: string | null;
   carta: MissionCard;
@@ -63,4 +69,8 @@ export function requestAiMissionBatch(gameId: string, contexto: string) {
 
 export function reviewAiMission(gameId: string, missionId: string, estado: Extract<AiMissionStatus, "APROBADA" | "RECHAZADA">) {
   return request<AiMission>(`/api/v1/partidas/${encodeURIComponent(gameId)}/misiones-ia/${encodeURIComponent(missionId)}`, { body: { estado }, method: "PATCH" });
+}
+
+export function getFeed(gameId: string) {
+  return request<FeedEntry[]>(`/api/v1/partidas/${encodeURIComponent(gameId)}/feed`);
 }
