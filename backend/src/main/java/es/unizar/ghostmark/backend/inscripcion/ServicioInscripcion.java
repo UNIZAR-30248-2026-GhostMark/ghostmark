@@ -102,7 +102,8 @@ public class ServicioInscripcion {
     public void borrarPorCuenta(UUID cuentaId, Instant ahora) {
         for (InscripcionRepository.Retirada retirada : inscripciones.deCuenta(cuentaId)) {
             inscripciones.borrarHorario(retirada.id());
-            if ("EN_JUEGO".equals(retirada.estado())) {
+            // En juego o cerrada, la cadena y el resultado siguen usando la inscripción (R11-33).
+            if ("EN_JUEGO".equals(retirada.estado()) || "CERRADA".equals(retirada.estado())) {
                 inscripciones.desvincular(retirada.id());
             } else {
                 eventos.guardar(retirada.partidaId(), "INSCRIPCION_RETIRADA",

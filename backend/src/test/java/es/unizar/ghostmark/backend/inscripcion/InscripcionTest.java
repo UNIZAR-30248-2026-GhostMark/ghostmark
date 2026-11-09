@@ -285,7 +285,7 @@ class InscripcionTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"EN_INSCRIPCION", "CANCELADA", "CERRADA"})
+    @ValueSource(strings = {"EN_INSCRIPCION", "CANCELADA"})
     void borrarCuentaRetiraInscripcionYHorarioSinReescribirEventos(String estado) {
         Persona jugador = registrar();
         horario(jugador);
@@ -304,14 +304,16 @@ class InscripcionTest {
                 String.class, juego.id()));
     }
 
-    @Test
-    void borrarCuentaEnJuegoConservaInscripcionSinCuentaNiHorarioNiEventosNuevos() {
+    @ParameterizedTest
+    @ValueSource(strings = {"EN_JUEGO", "CERRADA"})
+    void borrarCuentaEnJuegoOCerradaConservaInscripcionSinCuentaNiHorarioNiEventosNuevos(
+            String estado) {
         Persona master = registrar();
         Persona jugador = registrar();
         horario(jugador);
         Juego juego = crear(master, false);
         UUID id = UUID.fromString(alta(jugador, juego).then().statusCode(201).extract().path("id"));
-        jdbc.update("update partida set estado = 'EN_JUEGO' where id = ?", juego.id());
+        jdbc.update("update partida set estado = ? where id = ?", estado, juego.id());
         List<Map<String, Object>> antes = eventos(juego);
         borrar(jugador);
         assertEquals(1, contar("inscripcion", "id", id));
