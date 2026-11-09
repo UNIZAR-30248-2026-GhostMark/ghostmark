@@ -99,7 +99,7 @@ public class ServicioEliminacion {
                 datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada),
                 ahora);
         cierre.cerrarSiUltimoVivo(partidaId, ahora);
-        Carta carta = cartas.obtener(partidaId, cazadorId)
+        Carta carta = cartas.obtener(partidaId, cazadorId, ahora)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
         return new Eliminacion(inscripciones.aliasDeInscripcion(victimaId), carta);
     }

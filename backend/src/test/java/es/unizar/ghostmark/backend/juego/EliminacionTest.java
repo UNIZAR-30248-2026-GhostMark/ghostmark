@@ -3,6 +3,7 @@ package es.unizar.ghostmark.backend.juego;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -18,9 +19,16 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,7 +134,9 @@ class EliminacionTest {
                 .body("carta.estado", equalTo("VIVO"))
                 .body("carta.aliasObjetivo", equalTo(null))
                 .body("carta.mision", equalTo(null))
-                .body("carta.eliminaciones", equalTo(2));
+                .body("carta.eliminaciones", equalTo(2))
+                .body("carta.intentosRestantes", nullValue())
+                .body("carta.bloqueadoHasta", nullValue());
 
         assertNull(objetivo(mesa.juego(), cazadorId));
         assertNull(mision(mesa.juego(), cazadorId));
@@ -159,7 +169,9 @@ class EliminacionTest {
                 mesa.juego().id(), inscripcion(cazador, mesa.juego())));
 
         eliminar(cazador, mesa.juego(), correcto).then().statusCode(200)
-                .body("carta.eliminaciones", equalTo(1));
+                .body("carta.eliminaciones", equalTo(1))
+                .body("carta.intentosRestantes", equalTo(3))
+                .body("carta.bloqueadoHasta", nullValue());
         assertEquals(0, jdbc.queryForObject("select intentos_fallidos from jugador_partida"
                 + " where partida_id = ? and inscripcion_id = ?", Integer.class,
                 mesa.juego().id(), inscripcion(cazador, mesa.juego())));
@@ -222,6 +234,147 @@ class EliminacionTest {
 
         eliminar(cazador, mesa.juego(), correcto).then().statusCode(409)
                 .body("codigo", equalTo("INTENTOS_BLOQUEADOS"));
+    }
+
+    @Test
+    void unCodigoDeOtroJugadorNoElimina() {
+        Mesa mesa = preparar(4, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa.juego());
+        UUID victimaId = objetivo(mesa.juego(), cazadorId);
+        UUID ajeno = objetivo(mesa.juego(), victimaId);
+
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), ajeno, reloj.instant()))
+                .then().statusCode(422)
+                .body("codigo", equalTo("CODIGO_INCORRECTO"))
+                .body("intentosRestantes", equalTo(2));
+
+        assertEquals("VIVO", estadoJugador(victimaId));
+        assertEquals(1, jdbc.queryForObject("select intentos_fallidos from jugador_partida"
+                + " where partida_id = ? and inscripcion_id = ?", Integer.class,
+                mesa.juego().id(), cazadorId));
+    }
+
+    @Test
+    void elCodigoDeUnaVictimaYaEliminadaEsIncorrecto() {
+        Mesa mesa = preparar(4, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa.juego());
+        UUID victimaId = objetivo(mesa.juego(), cazadorId);
+        String codigoVictima = codigoDe(mesa.juego(), victimaId, reloj.instant());
+        eliminar(cazador, mesa.juego(), codigoVictima).then().statusCode(200);
+
+        eliminar(cazador, mesa.juego(), codigoVictima)
+                .then().statusCode(422)
+                .body("codigo", equalTo("CODIGO_INCORRECTO"))
+                .body("intentosRestantes", equalTo(2));
+
+        assertEquals(1, jdbc.queryForObject("select count(*) from evento where partida_id = ?"
+                + " and tipo = 'JUGADOR_ELIMINADO'", Integer.class, mesa.juego().id()));
+        assertEquals(1, jdbc.queryForObject("select intentos_fallidos from jugador_partida"
+                + " where partida_id = ? and inscripcion_id = ?", Integer.class,
+                mesa.juego().id(), cazadorId));
+    }
+
+    @Test
+    void laCartaLlevaLosIntentosQueQuedanYElBloqueo() {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
+        String incorrecto = distintoDe(codigoDe(mesa.juego(), victimaId, reloj.instant()));
+
+        carta(cazador, mesa.juego()).then().statusCode(200)
+                .body("intentosRestantes", equalTo(3))
+                .body("bloqueadoHasta", nullValue());
+        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
+        carta(cazador, mesa.juego()).then().statusCode(200)
+                .body("intentosRestantes", equalTo(2))
+                .body("bloqueadoHasta", nullValue());
+        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
+        carta(cazador, mesa.juego()).then().statusCode(200)
+                .body("intentosRestantes", equalTo(1));
+        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409);
+
+        Instant rotado = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        carta(cazador, mesa.juego()).then().statusCode(200)
+                .body("intentosRestantes", equalTo(3))
+                .body("bloqueadoHasta", equalTo(rotado.toString()));
+        when(reloj.instant()).thenReturn(rotado);
+        carta(cazador, mesa.juego()).then().statusCode(200)
+                .body("intentosRestantes", equalTo(3))
+                .body("bloqueadoHasta", nullValue());
+    }
+
+    @Test
+    void trasRotarElCodigoSeDesbloqueaYSePuedeEliminar() {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
+        String incorrecto = distintoDe(codigoDe(mesa.juego(), victimaId, reloj.instant()));
+
+        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
+        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
+        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409)
+                .body("codigo", equalTo("INTENTOS_BLOQUEADOS"));
+
+        Instant rotado = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        when(reloj.instant()).thenReturn(rotado);
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, rotado))
+                .then().statusCode(200)
+                .body("carta.eliminaciones", equalTo(1));
+        assertEquals("ELIMINADO", estadoJugador(victimaId));
+    }
+
+    @Test
+    void eliminacionesEnCadenaALaVezDejanElCicloCerrado() throws Exception {
+        Mesa mesa = preparar(4, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona a = mesa.jugadores().get(0);
+        UUID aId = inscripcion(a, mesa.juego());
+        UUID bId = objetivo(mesa.juego(), aId);
+        UUID cId = objetivo(mesa.juego(), bId);
+        UUID dId = objetivo(mesa.juego(), cId);
+        Persona b = persona(mesa, bId);
+        String codigoB = codigoDe(mesa.juego(), bId, reloj.instant());
+        String codigoC = codigoDe(mesa.juego(), cId, reloj.instant());
+        CyclicBarrier barrera = new CyclicBarrier(2);
+        Callable<Response> deA = () -> {
+            barrera.await();
+            return eliminar(a, mesa.juego(), codigoB);
+        };
+        Callable<Response> deB = () -> {
+            barrera.await();
+            return eliminar(b, mesa.juego(), codigoC);
+        };
+        List<Response> respuestas = new ArrayList<>();
+
+        try (var ejecutor = Executors.newFixedThreadPool(2)) {
+            for (Future<Response> respuesta : ejecutor.invokeAll(List.of(deA, deB))) {
+                respuestas.add(respuesta.get());
+            }
+        }
+
+        respuestas.get(0).then().statusCode(200);
+        int eliminaciones = jdbc.queryForObject("select count(*) from evento"
+                + " where partida_id = ? and tipo = 'JUGADOR_ELIMINADO'", Integer.class,
+                mesa.juego().id());
+        assertEquals("ELIMINADO", estadoJugador(bId));
+        if (respuestas.get(1).statusCode() == 200) {
+            assertEquals(2, eliminaciones);
+            assertEquals("ELIMINADO", estadoJugador(cId));
+            assertEquals(dId, objetivo(mesa.juego(), aId));
+        } else {
+            respuestas.get(1).then().statusCode(409)
+                    .body("codigo", equalTo("JUGADOR_ELIMINADO"));
+            assertEquals(1, eliminaciones);
+            assertEquals("VIVO", estadoJugador(cId));
+            assertEquals(cId, objetivo(mesa.juego(), aId));
+        }
+        comprobarCicloCerrado(mesa.juego());
     }
 
     @Test
@@ -300,7 +453,9 @@ class EliminacionTest {
                 .then().statusCode(200)
                 .body("estado", equalTo("ELIMINADO"))
                 .body("aliasObjetivo", equalTo(null))
-                .body("mision", equalTo(null));
+                .body("mision", equalTo(null))
+                .body("intentosRestantes", nullValue())
+                .body("bloqueadoHasta", nullValue());
     }
 
     @Test
@@ -347,23 +502,65 @@ class EliminacionTest {
         Persona perseguidor = persona(mesa, jdbc.queryForObject("select inscripcion_id"
                 + " from jugador_partida where partida_id = ? and objetivo_id = ?", UUID.class,
                 mesa.juego().id(), cazadorId));
+        UUID perseguidorId = inscripcion(perseguidor, mesa.juego());
+        eliminar(perseguidor, mesa.juego(), distintoDe(codigoDe(mesa.juego(),
+                objetivo(mesa.juego(), perseguidorId), reloj.instant())))
+                .then().statusCode(422);
         List<Map<String, Object>> antes = filas(mesa.juego());
+        Persona restante = mesa.jugadores().stream()
+                .filter(persona -> !List.of(cazadorId, victimaId, perseguidorId)
+                        .contains(inscripcion(persona, mesa.juego())))
+                .findFirst().orElseThrow();
 
-        given().port(puerto).auth().oauth2(cazador.token()).delete("/api/v1/cuentas/yo")
-                .then().statusCode(204);
-        given().port(puerto).auth().oauth2(victima.token()).delete("/api/v1/cuentas/yo")
-                .then().statusCode(204);
+        for (Persona persona : List.of(cazador, victima, perseguidor)) {
+            given().port(puerto).auth().oauth2(persona.token()).delete("/api/v1/cuentas/yo")
+                    .then().statusCode(204);
+        }
 
-        // Las filas no tienen datos de la persona: siguen con su estado y sus eliminaciones.
+        // Las filas no tienen datos de la persona: siguen con su estado, sus eliminaciones
+        // y sus intentos fallidos.
         assertEquals(antes, filas(mesa.juego()));
         assertEquals(1, jdbc.queryForObject("select eliminaciones from jugador_partida"
                 + " where inscripcion_id = ?", Integer.class, cazadorId));
+        assertEquals(1, jdbc.queryForObject("select intentos_fallidos from jugador_partida"
+                + " where inscripcion_id = ?", Integer.class, perseguidorId));
         assertEquals("ELIMINADO", jdbc.queryForObject("select estado from jugador_partida"
                 + " where inscripcion_id = ?", String.class, victimaId));
-        given().port(puerto).auth().oauth2(perseguidor.token()).get(RUTA_CARTA, mesa.juego().id())
+
+        given().port(puerto).auth().oauth2(restante.token()).get(RUTA_CARTA, mesa.juego().id())
                 .then().statusCode(200)
                 .body("estado", equalTo("VIVO"))
                 .body("aliasObjetivo", equalTo(null));
+    }
+
+    private void comprobarCicloCerrado(Juego juego) {
+        Map<UUID, UUID> siguiente = new HashMap<>();
+        for (Map<String, Object> fila : jdbc.queryForList("select inscripcion_id, estado,"
+                + " objetivo_id from jugador_partida where partida_id = ?", juego.id())) {
+            if ("VIVO".equals(fila.get("estado"))) {
+                siguiente.put((UUID) fila.get("inscripcion_id"), (UUID) fila.get("objetivo_id"));
+            } else {
+                assertNull(fila.get("objetivo_id"));
+            }
+        }
+        UUID inicio = siguiente.keySet().iterator().next();
+        Set<UUID> vistos = new HashSet<>();
+        UUID actual = inicio;
+        do {
+            assertTrue(vistos.add(actual));
+            actual = siguiente.get(actual);
+            assertNotNull(actual);
+        } while (!actual.equals(inicio));
+        assertEquals(siguiente.keySet(), vistos);
+    }
+
+    private Response carta(Persona persona, Juego juego) {
+        return given().port(puerto).auth().oauth2(persona.token()).get(RUTA_CARTA, juego.id());
+    }
+
+    private String estadoJugador(UUID inscripcionId) {
+        return jdbc.queryForObject("select estado from jugador_partida"
+                + " where inscripcion_id = ?", String.class, inscripcionId);
     }
 
     private Persona persona(Mesa mesa, UUID inscripcionId) {
@@ -374,8 +571,8 @@ class EliminacionTest {
 
     private List<Map<String, Object>> filas(Juego juego) {
         return jdbc.queryForList("select inscripcion_id, estado, objetivo_id, mision_id,"
-                + " eliminaciones from jugador_partida where partida_id = ?"
-                + " order by inscripcion_id", juego.id());
+                + " eliminaciones, intentos_fallidos, bloqueado_hasta from jugador_partida"
+                + " where partida_id = ? order by inscripcion_id", juego.id());
     }
 
     private Mesa preparar(int jugadores, boolean masterJuega) {
