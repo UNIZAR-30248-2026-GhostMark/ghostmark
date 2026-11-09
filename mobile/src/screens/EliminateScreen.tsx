@@ -16,8 +16,9 @@ export function EliminateScreen({ navigation, route }: Props) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string>();
   const [sending, setSending] = useState(false);
-  const [attempts, setAttempts] = useState(3);
-  const [blockedUntil, setBlockedUntil] = useState<string>();
+  // Se empieza con lo que dice la carta, para no esperar a un fallo (modelo-datos, «Intentos en la carta»).
+  const [attempts, setAttempts] = useState(route.params.attemptsLeft ?? 3);
+  const [blockedUntil, setBlockedUntil] = useState<string | undefined>(route.params.blockedUntil ?? undefined);
   const [now, setNow] = useState(() => Date.now());
   const target = route.params.targetAlias?.toUpperCase() ?? "TU OBJETIVO";
   const blockedSeconds = blockedUntil
@@ -86,7 +87,7 @@ export function EliminateScreen({ navigation, route }: Props) {
       <Text style={styles.description}>Pídele que te enseñe su código</Text>
       <View accessibilityLabel={`Código introducido: ${code.length} de 6 dígitos`} style={styles.codeSlots}>{Array.from({ length: 6 }, (_, index) => <View key={index} style={[styles.slot, index === code.length && !sending && !blocked && styles.slotCurrent]}><Text style={styles.slotText}>{code[index] ?? ""}</Text></View>)}</View>
       <View accessibilityLiveRegion="polite" style={styles.feedback}>
-        {blocked ? <><Text style={styles.blockedTitle}>INTENTOS BLOQUEADOS</Text><Text style={styles.blockedMessage}>Podrás volver a intentarlo en {blockedSeconds} s</Text></> : <>{error ? <Text style={styles.error}>{error}</Text> : null}<Text style={styles.attempts}>{sending ? "COMPROBANDO…" : `Te quedan ${attempts} ${attempts === 1 ? "intento" : "intentos"}`}</Text></>}
+        {blocked ? <><Text style={styles.blockedTitle}>INTENTOS BLOQUEADOS</Text><Text style={styles.blockedMessage}>Podrás volver a intentarlo en {blockedSeconds} s</Text></> : <>{error ? <Text style={styles.error}>{error}</Text> : null}<Text style={styles.attempts}>{sending ? "COMPROBANDO…" : `Te ${attempts === 1 ? "queda 1 intento" : `quedan ${attempts} intentos`}`}</Text></>}
       </View>
       <View style={styles.keypad}>{keypad.map((key, index) => key ? <Pressable accessibilityLabel={key === "←" ? "Borrar último dígito" : `Introducir ${key}`} accessibilityRole="button" disabled={sending || blocked} key={key} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, pressed && !blocked && styles.pressed, (sending || blocked) && styles.disabled]}><Text style={styles.keyText}>{key === "←" ? "⌫" : key}</Text></Pressable> : <View key={`empty-${index}`} style={styles.keyPlaceholder} />)}</View>
     </View>

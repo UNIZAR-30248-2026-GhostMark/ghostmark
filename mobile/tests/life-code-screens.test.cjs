@@ -240,3 +240,39 @@ test('Eliminar bloquea el teclado hasta la fecha que devuelve el servidor', asyn
   assert.equal(digit.props.disabled, true);
   await act(async () => tree.unmount());
 });
+
+test('Eliminar se abre con los intentos que quedan según la carta', async () => {
+  let sent = false;
+  const { EliminateScreen } = load('screens/EliminateScreen.tsx', {
+    ...common,
+    '../api/client': { ApiError },
+    '../api/game': { eliminateTarget: async () => { sent = true; } },
+  });
+  let tree;
+  await act(async () => { tree = create(React.createElement(EliminateScreen, { navigation: { goBack() {}, replace() {} }, route: { params: { gameId: 'p1', attemptsLeft: 1, blockedUntil: null } } })); });
+  const shown = JSON.stringify(tree.toJSON());
+  assert.match(shown, /Te queda 1 intento/);
+  assert.equal(/Te quedan 3 intentos/.test(shown), false);
+  assert.equal(sent, false);
+  await act(async () => tree.unmount());
+});
+
+test('Eliminar se abre bloqueado si la carta trae bloqueadoHasta y no deja escribir', async () => {
+  let sent = false;
+  const { EliminateScreen } = load('screens/EliminateScreen.tsx', {
+    ...common,
+    '../api/client': { ApiError },
+    '../api/game': { eliminateTarget: async () => { sent = true; } },
+  });
+  let tree;
+  const blockedUntil = new Date(Date.now() + 45_000).toISOString();
+  await act(async () => { tree = create(React.createElement(EliminateScreen, { navigation: { goBack() {}, replace() {} }, route: { params: { gameId: 'p1', attemptsLeft: 3, blockedUntil } } })); });
+  const shown = JSON.stringify(tree.toJSON());
+  assert.match(shown, /INTENTOS BLOQUEADOS/);
+  assert.match(shown, /Podrás volver a intentarlo en/);
+  const digit = tree.root.findAllByType('Pressable').find((node) => node.props.accessibilityLabel === 'Introducir 1');
+  assert.equal(digit.props.disabled, true);
+  await act(async () => digit.props.onPress());
+  assert.equal(sent, false);
+  await act(async () => tree.unmount());
+});

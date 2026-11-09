@@ -6,6 +6,10 @@ export type MissionCard = {
   aliasObjetivo: string | null;
   mision: string | null;
   eliminaciones: number;
+  /** Códigos que puede probar antes del bloqueo (3, 2 o 1); nulo si está eliminado o sin objetivo. */
+  intentosRestantes: number | null;
+  /** Hasta cuándo no puede eliminar tras 3 fallos seguidos; nulo si no está bloqueado. */
+  bloqueadoHasta: string | null;
 };
 
 export type LifeCode = {
