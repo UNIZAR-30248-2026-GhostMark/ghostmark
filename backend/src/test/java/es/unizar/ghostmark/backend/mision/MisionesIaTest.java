@@ -200,6 +200,43 @@ class MisionesIaTest {
                 String.class, UUID.fromString(ajena)));
     }
 
+    @ParameterizedTest
+    @EnumSource(value = GeneradorSimulado.Modo.class, names = {"CAIDO", "LENTO"})
+    void elMasterRecibeElAvisoYCambiaLaMismaPartidaABiblioteca(GeneradorSimulado.Modo modo) {
+        simulado().usar(modo);
+        Persona master = registrar();
+        Juego juego = crear(master, "IA");
+        tanda(master, juego, "Campus").then().statusCode(503)
+                .body("codigo", equalTo("IA_NO_DISPONIBLE"))
+                .body("detail", equalTo("La IA no responde: se usarán misiones de la biblioteca"));
+        assertEquals(0, tandasRegistradas(juego));
+
+        // La app continúa con Biblioteca editando la partida que ya había creado
+        given().port(puerto).auth().oauth2(master.token()).contentType(ContentType.JSON)
+                .body(Map.of("tipoMisiones", "BIBLIOTECA"))
+                .patch("/api/v1/partidas/{id}", juego.id()).then().statusCode(200)
+                .body("id", equalTo(juego.id().toString()))
+                .body("codigoInvitacion", equalTo(juego.codigo()))
+                .body("estado", equalTo("EN_INSCRIPCION"))
+                .body("tipoMisiones", equalTo("BIBLIOTECA"));
+
+        Persona segundo = registrar();
+        Persona tercero = registrar();
+        apuntar(segundo, juego);
+        apuntar(tercero, juego);
+        arrancarYa(master, juego);
+
+        // Leemos la misión desde la carta de cada jugador con el generador aún caído o lento
+        List<String> biblioteca = jdbc.queryForList(
+                "select texto from mision where activa and partida_id is null", String.class);
+        for (Persona jugador : List.of(master, segundo, tercero)) {
+            String mision = given().port(puerto).auth().oauth2(jugador.token())
+                    .get("/api/v1/partidas/{id}/yo/carta", juego.id()).then().statusCode(200)
+                    .body("estado", equalTo("VIVO")).extract().path("mision");
+            assertTrue(biblioteca.contains(mision), "La carta debe tener una misión de biblioteca");
+        }
+    }
+
     @Test
     void elContextoTieneDeTresACuarentaCaracteres() {
         Persona master = registrar();
