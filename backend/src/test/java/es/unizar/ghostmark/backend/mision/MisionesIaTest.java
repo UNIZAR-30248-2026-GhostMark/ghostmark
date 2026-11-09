@@ -1,6 +1,7 @@
 package es.unizar.ghostmark.backend.mision;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -103,9 +104,16 @@ class MisionesIaTest {
     void lasDescartadasNoLleganAlMasterPeroLaTandaCuenta() {
         Persona master = registrar();
         Juego juego = crear(master, "IA");
+        // El simulado mezcla cuatro propuestas válidas con otras de categoría o texto prohibido
+        String[] validas = {
+            "Que te cuente qué asignatura le cuesta más",
+            "Que te preste un lápiz durante un momento",
+            "Que te recomiende una cafetería cerca de la facultad",
+            "Que te diga una palabra que empiece por la letra q"
+        };
         simulado().usar(GeneradorSimulado.Modo.PROHIBIDAS);
         tanda(master, juego, "Fiesta de bienvenida").then().statusCode(201)
-                .body("misiones", hasSize(4))
+                .body("misiones.texto", containsInAnyOrder(validas))
                 .body("descartadas", equalTo(8))
                 .body("tandasRestantes", equalTo(4));
         simulado().usar(GeneradorSimulado.Modo.FORMATO_INVALIDO);
@@ -113,6 +121,10 @@ class MisionesIaTest {
                 .body("tanda", equalTo(2))
                 .body("misiones", hasSize(0))
                 .body("descartadas", equalTo(12))
+                .body("tandasRestantes", equalTo(3));
+        // Al volver a cargar la lista siguen apareciendo solo las propuestas válidas
+        listar(master, juego).then().statusCode(200)
+                .body("misiones.texto", containsInAnyOrder(validas))
                 .body("tandasRestantes", equalTo(3));
         assertEquals(4, jdbc.queryForObject("select count(*) from mision where partida_id = ?",
                 Integer.class, juego.id()));
@@ -306,6 +318,12 @@ class MisionesIaTest {
         for (String id : ids.subList(2, ids.size())) {
             assertFalse(repartidas.contains(id));
         }
+        // La plaza que falta sale de la biblioteca activa y no de las propuestas sin revisar
+        String deBiblioteca = repartidas.stream().filter(id -> !ids.contains(id))
+                .findFirst().orElseThrow();
+        assertEquals(1, jdbc.queryForObject("select count(*) from mision"
+                + " where id = ? and partida_id is null and activa", Integer.class,
+                UUID.fromString(deBiblioteca)));
     }
 
     private GeneradorSimulado simulado() {
