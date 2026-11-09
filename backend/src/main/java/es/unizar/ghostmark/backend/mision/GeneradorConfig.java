@@ -14,9 +14,17 @@ public class GeneradorConfig {
 
     @Bean
     GeneradorMisiones generadorMisiones(@Value("${GEMINI_CLAVE:}") String clave,
-            @Value("${GEMINI_MODELO:}") String modelo) {
-        if (clave.isBlank()) {
+            @Value("${GEMINI_MODELO:}") String modelo,
+            @Value("${GENERADOR_SIMULADO:false}") boolean simulado) {
+        if (simulado) {
             return new GeneradorSimulado();
+        }
+        if (clave.isBlank()) {
+            // Sin clave, la IA cuenta como no disponible y la partida sigue con la biblioteca
+            // (R11-32): las misiones fijas del simulado nunca llegan a un máster de verdad.
+            return (cuantas, contexto, evitar) -> {
+                throw new GeneradorNoDisponible("Falta GEMINI_CLAVE en el entorno");
+            };
         }
         if (modelo.isBlank()) {
             throw new IllegalStateException("Hay GEMINI_CLAVE pero falta GEMINI_MODELO");
