@@ -15,9 +15,13 @@ public class GeneradorConfig {
     @Bean
     GeneradorMisiones generadorMisiones(@Value("${GEMINI_CLAVE:}") String clave,
             @Value("${GEMINI_MODELO:}") String modelo,
-            @Value("${GENERADOR_SIMULADO:false}") boolean simulado) {
+            @Value("${GENERADOR_SIMULADO:false}") boolean simulado,
+            @Value("${GENERADOR_SIMULADO_MODO:NORMAL}") GeneradorSimulado.Modo modo) {
         if (simulado) {
-            return new GeneradorSimulado();
+            // En local se puede probar el aviso desde la app sin llamar a Gemini
+            GeneradorSimulado generador = new GeneradorSimulado();
+            generador.usar(modo);
+            return generador;
         }
         if (clave.isBlank()) {
             // Sin clave, la IA cuenta como no disponible y la partida sigue con la biblioteca

@@ -27,6 +27,7 @@ class GeneradorGeminiTest {
     private volatile int estado = 200;
     private volatile String respuesta = "";
     private volatile long espera = 0;
+    private volatile long esperaCuerpo = 0;
 
     @BeforeEach
     void arrancar() throws IOException {
@@ -36,18 +37,24 @@ class GeneradorGeminiTest {
                     + new String(intercambio.getRequestBody().readAllBytes(),
                             StandardCharsets.UTF_8));
             clave.set(intercambio.getRequestHeaders().getFirst("x-goog-api-key"));
-            try {
-                Thread.sleep(espera);
-            } catch (InterruptedException error) {
-                Thread.currentThread().interrupt();
-            }
+            esperar(espera);
             byte[] cuerpo = respuesta.getBytes(StandardCharsets.UTF_8);
             intercambio.sendResponseHeaders(estado, cuerpo.length);
             try (OutputStream salida = intercambio.getResponseBody()) {
+                salida.flush();
+                esperar(esperaCuerpo);
                 salida.write(cuerpo);
             }
         });
         servidor.start();
+    }
+
+    private void esperar(long milisegundos) {
+        try {
+            Thread.sleep(milisegundos);
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @AfterEach
@@ -92,6 +99,19 @@ class GeneradorGeminiTest {
     void siTardaMasDelLimiteNoEstaDisponible() {
         espera = 2000;
         respuesta = "{}";
+        assertThrows(GeneradorNoDisponible.class,
+                () -> generador(Duration.ofSeconds(1)).generar(12, "Campus", List.of()));
+    }
+
+    @Test
+    void siElCuerpoTardaMasDelLimiteTampocoEstaDisponible() {
+        // El servidor manda las cabeceras enseguida y retrasa solo el cuerpo, que es válido:
+        // solo el límite puede hacer que falle
+        esperaCuerpo = 2000;
+        String misiones = "{\"misiones\":[{\"texto\":\"Que te diga la hora\",\"categoria\":"
+                + "\"CONVERSACION\"}]}";
+        respuesta = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":"
+                + JsonMapper.shared().writeValueAsString(misiones) + "}]}}]}";
         assertThrows(GeneradorNoDisponible.class,
                 () -> generador(Duration.ofSeconds(1)).generar(12, "Campus", List.of()));
     }
