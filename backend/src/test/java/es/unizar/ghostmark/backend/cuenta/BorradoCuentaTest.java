@@ -92,7 +92,8 @@ class BorradoCuentaTest {
                 .get("/api/v1/partidas/{id}/inscritos", partidaId).then().statusCode(200)
                 .body("find { it.id == '" + inscripcionId + "' }.id",
                         equalTo(inscripcionId.toString()))
-                .body("find { it.id == '" + inscripcionId + "' }.alias", nullValue());
+                .body("find { it.id == '" + inscripcionId + "' }.alias", nullValue())
+                .body("find { it.id == '" + inscripcionId + "' }.estado", equalTo("VIVO"));
     }
 
     private List<Map<String, Object>> eventosDe(UUID partidaId) {

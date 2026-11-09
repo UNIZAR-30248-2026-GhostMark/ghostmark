@@ -179,7 +179,7 @@ class CartaAceptacionTest {
                     .extract().jsonPath().getList("");
             assertEquals(mesa.jugadores().size(), lista.size());
             for (Map<String, Object> inscrito : lista) {
-                assertEquals(Set.of("id", "alias", "esMaster"), inscrito.keySet());
+                assertEquals(Set.of("id", "alias", "esMaster", "estado"), inscrito.keySet());
             }
         }
     }

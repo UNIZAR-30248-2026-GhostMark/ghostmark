@@ -762,11 +762,15 @@ components:
         horario: { $ref: '#/components/schemas/Horario' }
     Inscrito:
       type: object
-      required: [id, alias, esMaster]
+      required: [id, alias, esMaster, estado]
       properties:
         id: { type: string, format: uuid, description: 'Id de la inscripción: clave de la lista y de expulsar (PBI 4)' }
         alias: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
         esMaster: { type: boolean }
+        estado:
+          type: string
+          enum: [VIVO, ELIMINADO]
+          description: 'Estado del jugador en la partida; VIVO mientras la partida no ha arrancado'
     CodigoInvitacion:
       type: string
       pattern: '^[2-9A-HJKMNP-Z]{8}$'
@@ -832,7 +836,7 @@ components:
     ResultadoPartida:
       description: Solo en una partida `CERRADA`, el resultado de su evento `PARTIDA_CERRADA`; nulo en los demás estados
       type: [object, 'null']
-      required: [tipo, motivo, aliasGanadores, eliminaciones]
+      required: [tipo, motivo, aliasGanadores, eliminaciones, cerradaEn]
       properties:
         tipo: { type: string, enum: [SUPERVIVIENTE, GANADOR, EMPATE], description: '«X, último superviviente», «Gana X con N eliminaciones» o «Empate entre X e Y»' }
         motivo: { type: string, enum: [ULTIMO_SUPERVIVIENTE, FECHA_FIN, MASTER] }
@@ -842,6 +846,7 @@ components:
           items: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
           description: Uno con `SUPERVIVIENTE` o `GANADOR`; dos o más con `EMPATE`
         eliminaciones: { type: integer, minimum: 0, description: Las del ganador o de cada empatado }
+        cerradaEn: { type: string, format: date-time, description: Momento del cierre (el del evento `PARTIDA_CERRADA`) }
     PartidaPublica:
       description: Lo que ve quien abre el enlace antes de unirse
       type: object
