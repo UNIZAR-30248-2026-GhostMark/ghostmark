@@ -23,3 +23,7 @@ services:
         sync: false
       - key: JWT_SECRETO
         generateValue: true
+      - key: GEMINI_CLAVE
+        sync: false
+      - key: GEMINI_MODELO
+        sync: false

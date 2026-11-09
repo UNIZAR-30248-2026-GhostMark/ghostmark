@@ -106,11 +106,11 @@ class CartaAceptacionTest {
     @Test
     void criterio2AlArrancarTodosRecibenUnaMisionDeLaBibliotecaCuradaSegura() {
         Set<String> biblioteca = new HashSet<>(jdbc.queryForList(
-                "select texto from mision where activa", String.class));
+                "select texto from mision where activa and partida_id is null", String.class));
         assertFalse(biblioteca.isEmpty());
         // Se fija el contenido revisado: buscar palabras prohibidas no verifica su significado.
         assertTrue(MISIONES_REVISADAS.containsAll(jdbc.queryForList(
-                "select texto from mision", String.class)),
+                "select texto from mision where partida_id is null", String.class)),
                 "Hay textos sin revisar: comprobar contacto físico y objetos que simulen armas");
 
         Mesa mesa = preparar(true);

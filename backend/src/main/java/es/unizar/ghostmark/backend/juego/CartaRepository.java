@@ -20,7 +20,14 @@ public class CartaRepository {
     }
 
     public List<UUID> misionesActivas() {
-        return jdbc.queryForList("select id from mision where activa order by id", UUID.class);
+        return jdbc.queryForList("select id from mision where activa and partida_id is null"
+                + " order by id", UUID.class);
+    }
+
+    public List<UUID> misionesAprobadas(UUID partidaId) {
+        return jdbc.queryForList("select m.id from mision m join partida p on p.id = m.partida_id"
+                + " where m.partida_id = ? and m.estado = 'APROBADA'"
+                + " and p.tipo_misiones = 'IA' order by m.id", UUID.class, partidaId);
     }
 
     public Optional<Carta> obtener(UUID partidaId, UUID inscripcionId, Instant ahora) {

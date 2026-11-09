@@ -44,19 +44,26 @@ public class ServicioCarta {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void repartir(UUID partidaId, List<UUID> jugadores, Instant ahora) {
+        List<UUID> aprobadas = new ArrayList<>(cartas.misionesAprobadas(partidaId));
+        Collections.shuffle(aprobadas, aleatorio);
         List<UUID> misiones = new ArrayList<>(cartas.misionesActivas());
-        if (misiones.isEmpty()) {
+        if (misiones.isEmpty() && aprobadas.size() < jugadores.size()) {
             throw new IllegalStateException("No hay misiones activas para repartir");
         }
         StringJoiner asignaciones = new StringJoiner(",", "{\"asignaciones\":[", "]}");
         for (int i = 0; i < jugadores.size(); i++) {
-            // Se agota cada baraja antes de repetir, también con tipoMisiones = IA en S1.
-            int posicion = i % misiones.size();
-            if (posicion == 0) {
-                Collections.shuffle(misiones, aleatorio);
+            UUID mision;
+            if (i < aprobadas.size()) {
+                mision = aprobadas.get(i);
+            } else {
+                int posicion = (i - aprobadas.size()) % misiones.size();
+                if (posicion == 0) {
+                    Collections.shuffle(misiones, aleatorio);
+                }
+                mision = misiones.get(posicion);
             }
             asignaciones.add("{\"inscripcionId\":\"" + jugadores.get(i)
-                    + "\",\"misionId\":\"" + misiones.get(posicion) + "\"}");
+                    + "\",\"misionId\":\"" + mision + "\"}");
         }
         eventos.guardar(partidaId, "MISIONES_REPARTIDAS", asignaciones.toString(), ahora);
     }

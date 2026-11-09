@@ -1,2 +1,4 @@
 # Secreto de mentira solo para los tests. En despliegue va en variable de entorno.
 JWT_SECRETO: "test-secreto-de-al-menos-32-bytes-123456"
+# Los tests usan el generador de misiones simulado, sin llamadas a Gemini (R11-32).
+GENERADOR_SIMULADO: true

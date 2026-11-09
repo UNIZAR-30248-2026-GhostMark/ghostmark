@@ -29,11 +29,12 @@ class MisionMigracionTest {
 
     @Test
     void cadaMisionTieneTextoUnicoDeComoMucho200Caracteres() {
-        Integer total = jdbc.queryForObject("select count(*) from mision", Integer.class);
-        Integer distintas = jdbc.queryForObject(
-                "select count(distinct lower(texto)) from mision", Integer.class);
-        Integer largas = jdbc.queryForObject(
-                "select count(*) from mision where char_length(texto) > 200", Integer.class);
+        Integer total = jdbc.queryForObject(
+                "select count(*) from mision where partida_id is null", Integer.class);
+        Integer distintas = jdbc.queryForObject("select count(distinct lower(texto)) from mision"
+                + " where partida_id is null", Integer.class);
+        Integer largas = jdbc.queryForObject("select count(*) from mision"
+                + " where partida_id is null and char_length(texto) > 200", Integer.class);
         assertEquals(total, distintas);
         assertEquals(0, largas);
     }

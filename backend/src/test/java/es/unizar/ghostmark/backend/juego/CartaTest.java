@@ -92,10 +92,11 @@ class CartaTest {
 
     @Test
     void noRepiteHastaAgotarLasActivasYDespuesVuelveARepartir() {
-        int disponibles = jdbc.queryForObject("select count(*) from mision where activa",
-                Integer.class) - 1;
+        int disponibles = jdbc.queryForObject("select count(*) from mision"
+                + " where activa and partida_id is null", Integer.class) - 1;
         UUID retirada = jdbc.queryForObject(
-                "select id from mision where activa order by id limit 1", UUID.class);
+                "select id from mision where activa and partida_id is null order by id limit 1",
+                UUID.class);
         Mesa mesa = preparar(disponibles + 3, true, "BIBLIOTECA");
         jdbc.update("update mision set activa = false where id = ?", retirada);
         try {
@@ -149,7 +150,8 @@ class CartaTest {
     @Test
     void sinMisionesElArranqueSeRevierteCompleto() {
         Mesa mesa = preparar(3, true, "BIBLIOTECA");
-        List<UUID> activas = jdbc.queryForList("select id from mision where activa", UUID.class);
+        List<UUID> activas = jdbc.queryForList("select id from mision"
+                + " where activa and partida_id is null", UUID.class);
         List<Map<String, Object>> antes = jdbc.queryForList("select * from evento"
                 + " where partida_id = ? order by secuencia", mesa.juego().id());
         jdbc.update("update mision set activa = false where activa");
