@@ -50,7 +50,7 @@ Se borran tu alias, tus datos de acceso y tu horario, y no se puede deshacer. De
 
 ## 2. Crear una partida
 
-En Inicio, pulsa «Crear partida». El asistente te pide el nombre y las fechas, después las reglas, y termina en la pantalla para compartirla.
+En Inicio, pulsa «Crear partida». El asistente tiene cuatro pasos: nombre y fechas, reglas, misiones y, con la partida ya creada, compartirla.
 
 ### 2.1 Nombre y fechas
 
@@ -68,11 +68,34 @@ La partida tiene que empezar al menos 15 minutos después de crearla y terminar 
 - **Permitir entradas tardías.** Queda guardado con la partida; por ahora nadie puede unirse una vez empezada.
 - **Plazo para resolver disputas.** 2, 6, 12 o 24 horas; por defecto, 12.
 
-Las misiones salen de la biblioteca de GhostMark. Pulsa «Crear partida».
+Pulsa «Siguiente».
 
 <img src="img/crear-reglas.png" alt="Reglas de la partida" width="250">
 
-### 2.3 Compartirla
+### 2.3 Misiones
+
+Elige de dónde salen las misiones de la partida:
+
+- **Biblioteca.** Se usan las misiones revisadas de GhostMark. Pulsa «Crear partida».
+- **Generar con IA.** Elige un contexto («Campus», «Fiesta de bienvenida», «Semana de exámenes» u «Otro…», donde lo escribes tú, de 3 a 40 caracteres) y pulsa «Generar misiones». La partida se crea en ese momento y la IA propone una tanda de hasta 8 misiones pensadas para ese contexto.
+
+<img src="img/crear-misiones-ia.png" alt="Paso de misiones con la IA y el contexto" width="250">
+
+Ninguna misión de la IA entra en la partida si no la apruebas tú. La app te las enseña de una en una, con el contador arriba («1 de 8»):
+
+1. Lee la misión y desliza la carta a la derecha para aprobarla o a la izquierda para rechazarla. También puedes pulsar «Aprobar» o «Rechazar».
+2. La decisión es definitiva: una misión rechazada no vuelve a salir y una aprobada no se puede quitar.
+3. Al revisar la última, la app muestra «Tanda revisada» y cuántas has aprobado.
+
+<img src="img/revisar-mision-ia.png" alt="Misión propuesta por la IA, con Aprobar y Rechazar" width="250"> <img src="img/tanda-revisada.png" alt="Tanda revisada, con otra tanda o continuar" width="250">
+
+Desde ahí, «Pedir otra tanda» trae hasta ocho más con el mismo contexto; el número entre paréntesis son las tandas que te quedan, hasta 5 por partida. «Continuar» lleva a la pantalla para compartirla.
+
+Antes de enseñártelas, GhostMark descarta las que no tienen el formato de una misión y las que tocan algo prohibido, como el contacto físico o los objetos que simulen armas. Por eso una tanda puede traer menos de 8.
+
+Al arrancar, cada jugador recibe una de las que aprobaste; si hay menos aprobadas que jugadores, el resto sale de la biblioteca. Las misiones de la IA solo se piden en este paso: si sales con la flecha, la partida se queda con las que hayas aprobado.
+
+### 2.4 Compartirla
 
 La app muestra «¡Partida creada!» con el nombre, el código de invitación, un QR y el enlace de la partida.
 
@@ -156,7 +179,7 @@ Tu objetivo y tu misión solo los ves tú. Nadie más puede verlos, tampoco el m
 
 ### 5.3 Las misiones
 
-La misión sale de una biblioteca de misiones revisadas, y en una misma partida no se repite hasta que se acaban. Ninguna implica contacto físico ni objetos que simulen armas: son cosas como conseguir que tu objetivo te diga la hora o que te recomiende una canción.
+Si el máster eligió generar las misiones con IA, la tuya es una de las que aprobó. Si no, o si no llegan para todos, sale de una biblioteca de misiones revisadas, y en una misma partida no se repite hasta que se acaban. Ninguna implica contacto físico ni objetos que simulen armas: son cosas como conseguir que tu objetivo te diga la hora o que te recomiende una canción.
 
 ## 6. Código de vida y eliminación
 
