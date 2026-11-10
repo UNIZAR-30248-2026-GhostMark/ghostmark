@@ -1,14 +1,16 @@
 package es.unizar.ghostmark.backend.mision;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -51,20 +53,24 @@ public class GeneradorGemini implements GeneradorMisiones {
     public List<MisionGenerada> generar(int cuantas, String contexto, List<String> evitar) {
         HttpRequest peticion = HttpRequest.newBuilder()
                 .uri(base.resolve("models/" + modelo + ":generateContent"))
-                .timeout(limite)
                 .header("Content-Type", "application/json")
                 .header("x-goog-api-key", clave)
                 .POST(HttpRequest.BodyPublishers.ofString(cuerpo(cuantas, contexto, evitar)))
                 .build();
+        // El límite cubre también el cuerpo por si Gemini manda las cabeceras y se queda a medias
+        CompletableFuture<HttpResponse<String>> pendiente =
+                cliente.sendAsync(peticion, HttpResponse.BodyHandlers.ofString());
         HttpResponse<String> respuesta;
         try {
-            respuesta = cliente.send(peticion, HttpResponse.BodyHandlers.ofString());
-        } catch (HttpTimeoutException error) {
+            respuesta = pendiente.get(limite.toNanos(), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException error) {
+            pendiente.cancel(true);
             throw new GeneradorNoDisponible("Gemini tarda más de " + limite.toSeconds() + " s",
                     error);
-        } catch (IOException error) {
-            throw new GeneradorNoDisponible("No se puede conectar con Gemini", error);
+        } catch (ExecutionException error) {
+            throw new GeneradorNoDisponible("No se puede conectar con Gemini", error.getCause());
         } catch (InterruptedException error) {
+            pendiente.cancel(true);
             Thread.currentThread().interrupt();
             throw new GeneradorNoDisponible("Petición a Gemini interrumpida", error);
         }

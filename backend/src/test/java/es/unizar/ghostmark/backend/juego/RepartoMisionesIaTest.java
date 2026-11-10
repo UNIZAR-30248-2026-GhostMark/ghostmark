@@ -1,12 +1,15 @@
 package es.unizar.ghostmark.backend.juego;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
+import es.unizar.ghostmark.backend.mision.GeneradorMisiones;
+import es.unizar.ghostmark.backend.mision.GeneradorSimulado;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Duration;
@@ -16,7 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -34,6 +40,29 @@ class RepartoMisionesIaTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @Autowired
+    GeneradorMisiones generador;
+
+    @AfterEach
+    void restaurarGenerador() {
+        ((GeneradorSimulado) generador).usar(GeneradorSimulado.Modo.NORMAL);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = GeneradorSimulado.Modo.class, names = {"CAIDO", "LENTO"})
+    void siFallaLaIaLaMismaPartidaArrancaConLaBiblioteca(GeneradorSimulado.Modo modo) {
+        Mesa mesa = preparar(3, "IA");
+        ((GeneradorSimulado) generador).usar(modo);
+
+        pedirTandaFallida(mesa);
+        // El máster puede arrancar la misma partida aunque el generador siga fallando
+        arrancar(mesa);
+
+        List<UUID> repartidas = repartidas(mesa.partidaId());
+        assertEquals(3, repartidas.size());
+        assertTrue(repartidas.stream().allMatch(this::deBiblioteca));
+    }
+
     @Test
     void conIaSeRepartenPrimeroLasAprobadasYElRestoDeLaBiblioteca() {
         Mesa mesa = preparar(3, "IA");
@@ -42,6 +71,9 @@ class RepartoMisionesIaTest {
         UUID propuesta = mision(mesa.partidaId(), "PROPUESTA");
         UUID rechazada = mision(mesa.partidaId(), "RECHAZADA");
 
+        // Si falla otra tanda, las aprobadas anteriores siguen disponibles para el reparto
+        ((GeneradorSimulado) generador).usar(GeneradorSimulado.Modo.CAIDO);
+        pedirTandaFallida(mesa);
         arrancar(mesa);
 
         List<UUID> repartidas = repartidas(mesa.partidaId());
@@ -147,6 +179,14 @@ class RepartoMisionesIaTest {
     private void arrancar(Mesa mesa) {
         given().port(puerto).auth().oauth2(mesa.tokenMaster())
                 .post("/api/v1/partidas/{id}/arranque", mesa.partidaId()).then().statusCode(200);
+    }
+
+    private void pedirTandaFallida(Mesa mesa) {
+        given().port(puerto).auth().oauth2(mesa.tokenMaster()).contentType(ContentType.JSON)
+                .body(Map.of("contexto", "Campus"))
+                .post("/api/v1/partidas/{id}/misiones-ia/tandas", mesa.partidaId()).then()
+                .statusCode(503).body("codigo", equalTo("IA_NO_DISPONIBLE"))
+                .body("detail", equalTo("La IA no responde: se usarán misiones de la biblioteca"));
     }
 
     private String registrar() {

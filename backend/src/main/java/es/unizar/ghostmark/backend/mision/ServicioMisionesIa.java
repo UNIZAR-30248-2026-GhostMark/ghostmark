@@ -57,6 +57,7 @@ public class ServicioMisionesIa {
         try {
             generadas = generador.generar(PEDIDAS, contexto, existentes);
         } catch (GeneradorNoDisponible error) {
+            // La tanda fallida no cuenta y al arrancar se completa el reparto con la biblioteca
             throw new ErrorJuego(HttpStatus.SERVICE_UNAVAILABLE, "IA_NO_DISPONIBLE",
                     "La IA no responde: se usarán misiones de la biblioteca");
         }
