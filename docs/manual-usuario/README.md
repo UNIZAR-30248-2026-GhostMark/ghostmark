@@ -180,9 +180,22 @@ Si tu cazador cumple su misión contigo, gira el móvil hacia él para que vea t
 
 Si el código no es el de tu objetivo, o ya ha caducado, la app lo dice, lo borra y puedes volver a escribirlo. Si el código acaba de cambiar, el anterior todavía vale durante 15 segundos.
 
-<img src="img/eliminar-teclado.png" alt="Teclado de «Eliminar» con tres dígitos escritos" width="250"> <img src="img/eliminar-error.png" alt="«El código no es el de tu objetivo»" width="250">
+<img src="img/eliminar-teclado.png" alt="Teclado de «Eliminar» con tres dígitos escritos y tres intentos" width="250"> <img src="img/eliminar-error.png" alt="«El código no es el de tu objetivo» y dos intentos" width="250">
 
-### 6.3 Heredas su objetivo y su misión
+### 6.3 Intentos y bloqueo
+
+Tienes 3 intentos seguidos para escribir el código de tu objetivo. Debajo de las casillas, la app dice cuántos te quedan. Cuenta como fallo cualquier código que no valga:
+
+- uno de tu objetivo que ya ha caducado («El código ha caducado»);
+- el de otro jugador, o el de alguien que ya está eliminado («El código no es el de tu objetivo»).
+
+Al tercer fallo seguido salen «Intentos bloqueados» y una cuenta atrás: no puedes escribir hasta que cambie el código, como mucho 60 segundos. Después vuelves a tener 3 intentos, y cuando eliminas a tu objetivo también se reinician. Los intentos que te quedan y el bloqueo se mantienen aunque salgas de «Eliminar» y vuelvas a entrar.
+
+<img src="img/eliminar-bloqueado.png" alt="«Intentos bloqueados» con la cuenta atrás" width="250">
+
+Si dos eliminaciones de la misma cadena llegan a la vez, por ejemplo tú eliminas a tu objetivo justo cuando tu cazador te elimina a ti, vale la que GhostMark registra primero. Si es la de tu cazador, la tuya no cuenta: la app dice «El jugador está eliminado» y, al volver a tu carta, sale «Te han cazado». Si es la tuya, valen las dos: heredas el objetivo de tu víctima y después tu cazador te elimina.
+
+### 6.4 Heredas su objetivo y su misión
 
 Con el código correcto sale «¡Eliminado!»: tu objetivo queda fuera de la partida y se te suma una eliminación. Heredas su objetivo y su misión, así que la cadena sigue cerrada: cuando solo quedan dos jugadores, cada uno es el objetivo del otro.
 
@@ -190,13 +203,13 @@ Pulsa «Ver mi nueva carta». La carta se gira sola una vez para enseñarte tu n
 
 <img src="img/eliminar-acierto.png" alt="«¡Eliminado!» con el objetivo heredado" width="250"> <img src="img/eliminar-carta-heredada.png" alt="La carta enseña el nuevo objetivo y la nueva misión" width="250">
 
-### 6.4 Te han cazado
+### 6.5 Te han cazado
 
 Si te eliminan, la primera vez que abres tu carta sale «Te han cazado». Pulsa «Cerrar». Desde entonces eres espectador: tu carta queda en gris, sin objetivo ni misión, y ya no tienes código ni puedes eliminar. Puedes seguir la partida en Feed y en Partida hasta el final.
 
 <img src="img/cazado.png" alt="«Te han cazado»" width="250"> <img src="img/cazado-espectador.png" alt="Carta de espectador" width="250">
 
-### 6.5 El feed
+### 6.6 El feed
 
 La pestaña Feed, en la carta y en Partida, lista las eliminaciones de la partida, de la más reciente a la más antigua, con su hora: «Pablo_23 fue eliminado». Nunca dice quién eliminó a quién. Si el eliminado borró su cuenta, pone «Una cuenta eliminada fue eliminada». Lo ven todos los jugadores, vivos o eliminados, y el máster, aunque no juegue.
 
