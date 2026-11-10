@@ -33,7 +33,7 @@ La posición del jugador nunca sale del móvil. Cuando se introduce un código d
   - Si el máster borra su cuenta, sus partidas en inscripción se cancelan en la misma transacción.
   - En la app, el asistente tiene tres pasos (datos, reglas y compartir); los de misiones y zonas seguras llegan con las PBI 6 y 10. «Compartir» enseña el QR (`react-native-qrcode-svg`) y el enlace `ghostmark://unirse/<código>`, que la app abre por su esquema `ghostmark`.
 - **Inscribirse (PBI 3).** El módulo `inscripcion` inscribe al jugador con las normas aceptadas y le copia el horario de su cuenta en un horario propio de esa partida, que puede cambiar hasta el arranque sin tocar el de la cuenta ni el de sus otras partidas. Si el máster juega, tiene su inscripción como cualquier otro.
-  - Al borrar la cuenta, la inscripción se borra si la partida no ha arrancado; si está en juego se queda sin cuenta, porque la cadena y los eventos la siguen usando.
+  - Al borrar la cuenta, la inscripción se borra si la partida no ha arrancado; si está en juego o cerrada se queda sin cuenta, porque la cadena y los eventos la siguen usando.
   - En la app, el escáner usa la cámara (`expo-camera`) y solo acepta enlaces de invitación válidos; un enlace recibido sin sesión espera al inicio de sesión y a los permisos. Después vienen las normas y la sala de espera con los inscritos.
 - **Arrancar la partida y formar la cadena (PBI 4).** El módulo `juego` arranca la partida de tres maneras con el mismo método:
   - una tarea programada cada minuto (`TareaArranque`) revisa las partidas en inscripción con la hora de inicio pasada;
