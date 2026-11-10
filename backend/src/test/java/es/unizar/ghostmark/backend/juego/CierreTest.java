@@ -2,6 +2,7 @@ package es.unizar.ghostmark.backend.juego;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -25,12 +26,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -53,6 +56,9 @@ class CierreTest {
 
     @Autowired
     TareaCierre tarea;
+
+    @Autowired
+    ServicioCierre servicioCierre;
 
     @MockitoBean
     Clock reloj;
@@ -118,21 +124,35 @@ class CierreTest {
 
     @Test
     void laFechaDeFinCierraConEmpateEnCabeza() {
-        Mesa mesa = conJugadores(3, false);
+        Mesa mesa = conJugadores(5, false);
         arrancar(mesa).then().statusCode(200);
-        vencer(mesa.juego());
+        Juego juego = mesa.juego();
+        Persona primero = mesa.jugadores().get(0);
+        UUID primeroId = inscripcion(primero, juego);
+        UUID primeraVictima = objetivo(juego, primeroId);
 
-        tarea.revisar(reloj.instant());
+        // Elegimos al segundo cazador detrás de la primera víctima para que ambos sigan vivos
+        UUID segundoId = objetivo(juego, primeraVictima);
+        Persona segundo = jugador(mesa, segundoId);
+        eliminar(primero, juego, codigoDe(juego, primeraVictima, reloj.instant()))
+                .then().statusCode(200);
+        UUID segundaVictima = objetivo(juego, segundoId);
+        eliminar(segundo, juego, codigoDe(juego, segundaVictima, reloj.instant()))
+                .then().statusCode(200);
 
-        assertEquals("CERRADA", estado(mesa.juego()));
-        assertEquals("EMPATE|FECHA_FIN|0", cierre(mesa.juego()));
+        Instant fin = fechaFin(mesa);
+        tarea.revisar(fin);
+
+        assertEquals("CERRADA", estado(juego));
+        assertEquals("EMPATE|FECHA_FIN|1", cierre(juego));
         given().port(puerto).auth().oauth2(mesa.master().token())
-                .get(RUTA_PARTIDA, mesa.juego().id()).then().statusCode(200)
+                .get(RUTA_PARTIDA, juego.id()).then().statusCode(200)
                 .body("resultado.tipo", equalTo("EMPATE"))
                 .body("resultado.motivo", equalTo("FECHA_FIN"))
-                .body("resultado.aliasGanadores", hasSize(3))
-                .body("resultado.eliminaciones", equalTo(0))
-                .body("resultado.cerradaEn", equalTo(reloj.instant().toString()));
+                .body("resultado.aliasGanadores",
+                        containsInAnyOrder(alias(primeroId), alias(segundoId)))
+                .body("resultado.eliminaciones", equalTo(1))
+                .body("resultado.cerradaEn", equalTo(fin.toString()));
     }
 
     @Test
@@ -142,12 +162,23 @@ class CierreTest {
         Persona cazador = mesa.jugadores().get(0);
         UUID cazadorId = inscripcion(cazador, mesa.juego());
         eliminarDosVeces(cazador, mesa.juego(), cazadorId);
-        vencer(mesa.juego());
+        Instant fin = fechaFin(mesa);
 
-        tarea.revisar(Instant.now());
+        // Pasamos la fecha a la tarea para probar el límite sin esperar al reloj real
+        tarea.revisar(fin.minusSeconds(1));
+        assertEquals("EN_JUEGO", estado(mesa.juego()));
+        tarea.revisar(fin);
 
         assertEquals("CERRADA", estado(mesa.juego()));
         assertEquals("GANADOR|FECHA_FIN|2", cierre(mesa.juego()));
+        given().port(puerto).auth().oauth2(mesa.master().token())
+                .get(RUTA_PARTIDA, mesa.juego().id()).then().statusCode(200)
+                .body("estado", equalTo("CERRADA"))
+                .body("resultado.tipo", equalTo("GANADOR"))
+                .body("resultado.motivo", equalTo("FECHA_FIN"))
+                .body("resultado.aliasGanadores", contains(alias(cazadorId)))
+                .body("resultado.eliminaciones", equalTo(2))
+                .body("resultado.cerradaEn", equalTo(fin.toString()));
     }
 
     @Test
@@ -227,8 +258,89 @@ class CierreTest {
         }
 
         assertEquals(List.of(200, 409), codigos.stream().sorted().toList());
-        assertEquals(1, jdbc.queryForObject("select count(*) from evento where partida_id = ?"
-                + " and tipo = 'PARTIDA_CERRADA'", Integer.class, mesa.juego().id()));
+        assertEquals(1, contarEventosDeCierre(mesa.juego()));
+    }
+
+    @Test
+    void elFeedSigueVisibleDespuesDelCierre() {
+        Mesa mesa = conJugadores(3, false);
+        arrancar(mesa).then().statusCode(200);
+        Juego juego = mesa.juego();
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(juego, inscripcion(cazador, juego));
+        Persona victima = jugador(mesa, victimaId);
+
+        // Generamos una eliminación real antes de cerrar para que el feed tenga una entrada
+        eliminar(cazador, juego, codigoDe(juego, victimaId, reloj.instant()))
+                .then().statusCode(200);
+        List<Map<String, Object>> antes = feed(victima, juego);
+        assertEquals(1, antes.size());
+        assertEquals("ELIMINACION", antes.get(0).get("tipo"));
+        assertEquals(alias(victimaId), antes.get(0).get("alias"));
+
+        cerrar(mesa.master(), juego).then().statusCode(200)
+                .body("estado", equalTo("CERRADA"));
+
+        assertEquals(antes, feed(victima, juego));
+        assertEquals(antes, feed(cazador, juego));
+        assertEquals(antes, feed(mesa.master(), juego));
+    }
+
+    @Test
+    void unJugadorEliminadoNoPuedeCerrarLaPartida() {
+        Mesa mesa = conJugadores(3, false);
+        arrancar(mesa).then().statusCode(200);
+        Juego juego = mesa.juego();
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(juego, inscripcion(cazador, juego));
+        Persona victima = jugador(mesa, victimaId);
+        eliminar(cazador, juego, codigoDe(juego, victimaId, reloj.instant()))
+                .then().statusCode(200);
+        given().port(puerto).auth().oauth2(victima.token())
+                .get(RUTA_CARTA, juego.id()).then().statusCode(200)
+                .body("estado", equalTo("ELIMINADO"));
+
+        cerrar(victima, juego).then().statusCode(403)
+                .body("codigo", equalTo("NO_ES_MASTER"));
+
+        assertEquals("EN_JUEGO", estado(juego));
+        assertEquals(0, contarEventosDeCierre(juego));
+    }
+
+    @Test
+    void elCierrePorFechaYElDelMasterSoloCierranUnaVez() throws Exception {
+        Mesa mesa = conJugadores(3, false);
+        arrancar(mesa).then().statusCode(200);
+        Juego juego = mesa.juego();
+        Instant fin = fechaFin(mesa);
+        CyclicBarrier barrera = new CyclicBarrier(2);
+
+        try (var ejecutor = Executors.newFixedThreadPool(2)) {
+            var porFecha = ejecutor.submit(() -> {
+                barrera.await(10, TimeUnit.SECONDS);
+                tarea.revisar(fin);
+                return null;
+            });
+            var porMaster = ejecutor.submit(() -> {
+                barrera.await(10, TimeUnit.SECONDS);
+                try {
+                    // Llamamos al servicio para que el interceptor HTTP no cierre antes que el máster
+                    servicioCierre.cerrarPorMaster(mesa.master().id(), juego.id(), fin);
+                    return "MASTER";
+                } catch (ErrorJuego error) {
+                    assertEquals(HttpStatus.CONFLICT, error.estado());
+                    assertEquals("PARTIDA_NO_EN_JUEGO", error.codigo());
+                    return "FECHA_FIN";
+                }
+            });
+
+            String motivo = porMaster.get(10, TimeUnit.SECONDS);
+            porFecha.get(10, TimeUnit.SECONDS);
+            assertEquals("EMPATE|" + motivo + "|0", cierre(juego));
+        }
+
+        assertEquals("CERRADA", estado(juego));
+        assertEquals(1, contarEventosDeCierre(juego));
     }
 
     @Test
@@ -310,6 +422,30 @@ class CierreTest {
                 .get(RUTA_INSCRITOS, mesa.juego().id()).then().statusCode(404);
     }
 
+    private Persona jugador(Mesa mesa, UUID inscripcionId) {
+        return mesa.jugadores().stream()
+                .filter(persona -> inscripcion(persona, mesa.juego()).equals(inscripcionId))
+                .findFirst().orElseThrow();
+    }
+
+    private List<Map<String, Object>> feed(Persona persona, Juego juego) {
+        return given().port(puerto).auth().oauth2(persona.token())
+                .get("/api/v1/partidas/{id}/feed", juego.id())
+                .then().statusCode(200).extract().jsonPath().getList("");
+    }
+
+    private Instant fechaFin(Mesa mesa) {
+        String fin = given().port(puerto).auth().oauth2(mesa.master().token())
+                .get(RUTA_PARTIDA, mesa.juego().id())
+                .then().statusCode(200).extract().path("finEn");
+        return Instant.parse(fin);
+    }
+
+    private int contarEventosDeCierre(Juego juego) {
+        return jdbc.queryForObject("select count(*) from evento where partida_id = ?"
+                + " and tipo = 'PARTIDA_CERRADA'", Integer.class, juego.id());
+    }
+
     private void eliminarDosVeces(Persona cazador, Juego juego, UUID cazadorId) {
         for (int vez = 0; vez < 2; vez++) {
             UUID victima = objetivo(juego, cazadorId);
@@ -334,7 +470,7 @@ class CierreTest {
     }
 
     private Juego crear(Persona master, boolean masterJuega) {
-        Instant inicio = Instant.now().plus(Duration.ofDays(1));
+        Instant inicio = reloj.instant().plus(Duration.ofDays(1));
         Response respuesta = given().port(puerto).auth().oauth2(master.token())
                 .contentType(ContentType.JSON).body(Map.of("nombre", "Partida Cierre",
                         "inicioEn", inicio.toString(),
