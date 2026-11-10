@@ -12,8 +12,8 @@ PBI #3. Los tests son los de las tareas del sprint 1; esta tabla los enlaza con 
 | 1. «Yo también juego» crea y borra la inscripción del máster | `PartidaIntegracionTest.yoTambienJuegoCreaYBorraLaInscripcionDelMaster` |
 | 1. Quien no es máster ni inscrito no ve la partida | `PartidaIntegracionTest.quienNoEsMasterNiInscritoNoVeLaPartida` |
 | 1. Si el máster borra su cuenta, sus partidas en inscripción se cancelan | `PartidaCanceladaTest.borrarCuentaDelMasterCancelaPartidasEnInscripcion` |
-| 1. El asistente de la app muestra sus tres pasos y el nombre empieza vacío | `wizard.test.cjs`: «el asistente muestra los tres pasos que existen sin saltar del 2 al 5»; `invitation.test.cjs`: «el nombre de la partida empieza vacío, con «Killer Bienvenida EINA» como ejemplo» |
-| 1. Crear la partida en la app abre «Compartir» | `invitation.test.cjs`: «crear una partida abre compartir y retira los formularios del historial» |
+| 1. El asistente de la app muestra sus cuatro pasos y el nombre empieza vacío | `wizard.test.cjs`: «el asistente cuenta solo los cuatro pasos que existen, con Misiones como paso 3»; `invitation.test.cjs`: «el nombre de la partida empieza vacío, con «Killer Bienvenida EINA» como ejemplo» |
+| 1. Crear la partida en la app abre «Compartir» | `missions-ai.test.cjs`: «Biblioteca crea la partida con las misiones de la biblioteca y abre Compartir» |
 | 2. El enlace del QR abre esa partida | `PartidaIntegracionTest.criterio2ElEnlaceDelQrAbreEsaPartida`; `PartidaCodigoTest.jugadorAutenticadoConsultaPartidaPorCodigo` y `codigoDesconocidoDa404` |
 | 2. El QR y «Copiar» usan el enlace del servidor | `invitation.test.cjs`: «el QR y copiar usan el enlace del servidor; ir a la partida abre la sala» |
 | 2. La app solo acepta enlaces `ghostmark://unirse/<código>` válidos | `invitation.test.cjs`: «normaliza minúsculas en enlaces válidos» y «rechaza esquemas, rutas, longitudes y caracteres ajenos al contrato» |
