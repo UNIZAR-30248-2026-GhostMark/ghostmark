@@ -113,3 +113,15 @@ test('la carta reserva espacio y reduce el texto para el alias y la misión máx
   assert.equal(missionText.props.minimumFontScale, 0.35);
   assert.equal(missionText.props.style.lineHeight, 34);
 });
+
+test('ELIMINAR abre «Eliminar» con los intentos y el bloqueo de la carta', async () => {
+  let destination;
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
+    '../api/client': { ApiError: class ApiError extends Error {} },
+    '../api/game': { getMyMissionCard: async () => ({ estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di la palabra compilador', eliminaciones: 0, intentosRestantes: 2, bloqueadoHasta: '2026-11-09T10:31:00Z' }) },
+  });
+  await mount(MissionCardScreen, { navigation: { navigate: (...args) => { destination = args; } }, route: { params: { gameId: 'partida-propia' } } });
+  const button = tree.root.findAllByType('Pressable').find((node) => node.findAllByType('Text').some((text) => text.props.children === 'ELIMINAR'));
+  await act(async () => button.props.onPress());
+  assert.deepEqual(destination, ['Eliminate', { gameId: 'partida-propia', targetAlias: 'Pablo', attemptsLeft: 2, blockedUntil: '2026-11-09T10:31:00Z' }]);
+});

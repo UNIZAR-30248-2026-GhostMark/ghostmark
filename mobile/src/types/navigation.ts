@@ -22,7 +22,7 @@ export type RootStackParamList = {
   Caught: { gameId: string };
   Feed: { gameId: string; isPlayer: boolean };
   LifeCode: { gameId: string };
-  Eliminate: { gameId: string; targetAlias?: string | null };
+  Eliminate: { gameId: string; targetAlias?: string | null; attemptsLeft?: number | null; blockedUntil?: string | null };
   EliminationSuccess: { gameId: string; result: import("../api/game").EliminationResult };
   ScanInvitation: undefined;
   ApiStatus: undefined;

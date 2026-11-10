@@ -97,7 +97,7 @@ export function MissionCardScreen({ navigation, route }: Props) {
     {/* El espectador ya no tiene código ni objetivo; el último vivo, nadie a quien eliminar (R11-26). */}
     {spectator ? null : <View style={styles.footer}>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate("LifeCode", { gameId })} style={styles.codeButton}><Text style={styles.codeText}>MI CÓDIGO</Text></Pressable>
-      {lastAlive ? null : <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo })} style={styles.removeButton}><Text style={styles.removeText}>ELIMINAR</Text></Pressable>}
+      {lastAlive ? null : <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo, attemptsLeft: card?.intentosRestantes, blockedUntil: card?.bloqueadoHasta })} style={styles.removeButton}><Text style={styles.removeText}>ELIMINAR</Text></Pressable>}
     </View>}
   </View></Screen>;
 }
