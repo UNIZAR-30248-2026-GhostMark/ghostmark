@@ -157,3 +157,47 @@ Tu objetivo y tu misión solo los ves tú. Nadie más puede verlos, tampoco el m
 ### 5.3 Las misiones
 
 La misión sale de una biblioteca de misiones revisadas, y en una misma partida no se repite hasta que se acaban. Ninguna implica contacto físico ni objetos que simulen armas: son cosas como conseguir que tu objetivo te diga la hora o que te recomiende una canción.
+
+## 6. Código de vida y eliminación
+
+Bajo tu carta tienes dos botones: «Mi código» y «Eliminar».
+
+<img src="img/eliminar-carta.png" alt="Carta con «Mi código» y «Eliminar»" width="250">
+
+### 6.1 Tu código de vida
+
+Cada jugador vivo tiene un código de 6 dígitos que cambia cada 60 segundos. Pulsa «Mi código» para verlo: el círculo y el contador marcan los segundos que le quedan, y al llegar a 0 sale el siguiente. Solo lo ves tú, ni siquiera el máster.
+
+Si tu cazador cumple su misión contigo, gira el móvil hacia él para que vea tu código. Con la «×» vuelves a tu carta.
+
+<img src="img/eliminar-mi-codigo.png" alt="«Mi código» con los seis dígitos y la cuenta atrás" width="250">
+
+### 6.2 Eliminar a tu objetivo
+
+1. Cumple tu misión con tu objetivo y pídele que te enseñe su código.
+2. Pulsa «Eliminar». La pantalla dice de quién es el código que tienes que escribir.
+3. Escribe los 6 dígitos con el teclado; con «⌫» borras el último. Al escribir el sexto, la app lo comprueba sola.
+
+Si el código no es el de tu objetivo, o ya ha caducado, la app lo dice, lo borra y puedes volver a escribirlo. Si el código acaba de cambiar, el anterior todavía vale durante 15 segundos.
+
+<img src="img/eliminar-teclado.png" alt="Teclado de «Eliminar» con tres dígitos escritos" width="250"> <img src="img/eliminar-error.png" alt="«El código no es el de tu objetivo»" width="250">
+
+### 6.3 Heredas su objetivo y su misión
+
+Con el código correcto sale «¡Eliminado!»: tu objetivo queda fuera de la partida y se te suma una eliminación. Heredas su objetivo y su misión, así que la cadena sigue cerrada: cuando solo quedan dos jugadores, cada uno es el objetivo del otro.
+
+Pulsa «Ver mi nueva carta». La carta se gira sola una vez para enseñarte tu nuevo objetivo y tu nueva misión, y vuelve a taparse. Si no queda nadie más en juego, la carta dice «Ya no tienes objetivo: eres la última persona en juego».
+
+<img src="img/eliminar-acierto.png" alt="«¡Eliminado!» con el objetivo heredado" width="250"> <img src="img/eliminar-carta-heredada.png" alt="La carta enseña el nuevo objetivo y la nueva misión" width="250">
+
+### 6.4 Te han cazado
+
+Si te eliminan, la primera vez que abres tu carta sale «Te han cazado». Pulsa «Cerrar». Desde entonces eres espectador: tu carta queda en gris, sin objetivo ni misión, y ya no tienes código ni puedes eliminar. Puedes seguir la partida en Feed y en Partida hasta el final.
+
+<img src="img/cazado.png" alt="«Te han cazado»" width="250"> <img src="img/cazado-espectador.png" alt="Carta de espectador" width="250">
+
+### 6.5 El feed
+
+La pestaña Feed, en la carta y en Partida, lista las eliminaciones de la partida, de la más reciente a la más antigua, con su hora: «Pablo_23 fue eliminado». Nunca dice quién eliminó a quién. Si el eliminado borró su cuenta, pone «Una cuenta eliminada fue eliminada». Lo ven todos los jugadores, vivos o eliminados, y el máster, aunque no juegue.
+
+<img src="img/feed.png" alt="Feed con una eliminación" width="250">
