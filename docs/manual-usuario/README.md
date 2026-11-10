@@ -201,3 +201,43 @@ Si te eliminan, la primera vez que abres tu carta sale «Te han cazado». Pulsa 
 La pestaña Feed, en la carta y en Partida, lista las eliminaciones de la partida, de la más reciente a la más antigua, con su hora: «Pablo_23 fue eliminado». Nunca dice quién eliminó a quién. Si el eliminado borró su cuenta, pone «Una cuenta eliminada fue eliminada». Lo ven todos los jugadores, vivos o eliminados, y el máster, aunque no juegue.
 
 <img src="img/feed.png" alt="Feed con una eliminación" width="250">
+
+## 7. El cierre de la partida
+
+### 7.1 Cuándo termina
+
+Una partida termina de tres formas:
+
+- **Queda un solo jugador vivo.** Al eliminar a su último rival, la partida se cierra en ese momento.
+- **Llega la fecha de fin** que puso el máster al crearla.
+- **El máster la cierra** antes de tiempo, juegue o no.
+
+Cuando termina, ya no se puede ver la carta, ni el código de vida, ni eliminar. El feed se sigue viendo.
+
+### 7.2 Cerrar la partida (máster)
+
+En la pestaña Partida, el máster ve la lista de jugadores con su estado y, abajo, el botón «Cerrar partida». La app pregunta «¿Cerrar la partida?» y avisa de que termina para todos y no se puede deshacer; con «Cerrar» se cierra y con «Cancelar» sigue en juego.
+
+<img src="img/cierre-pestana-partida.png" alt="Pestaña Partida del máster con los jugadores y «Cerrar partida»" width="250">
+
+### 7.3 Quién gana
+
+Solo cuentan los jugadores que siguen vivos al cerrar:
+
+- Si queda uno, gana él: «Marta_eina, último superviviente».
+- Si quedan varios, gana el que más eliminaciones tiene: «Gana Marta_eina con 1 eliminación». Pasa igual si la partida termina por la fecha de fin o porque la cierra el máster.
+- Si varios empatan con el máximo de eliminaciones, la partida acaba en empate: «Empate entre Pablo_23 y Lucia_k».
+
+Las eliminaciones de quien ya está eliminado no cuentan para ganar.
+
+<img src="img/cierre-fin-ganador.png" alt="Fin con «Gana Marta_eina con 1 eliminación»" width="250"> <img src="img/cierre-fin-superviviente.png" alt="Fin con «Marta_eina, último superviviente»" width="250"> <img src="img/cierre-fin-empate.png" alt="Fin con «Empate entre Pablo_23 y Lucia_k»" width="250">
+
+### 7.4 La pantalla de fin
+
+Todos, jugadores y máster, ven «La partida ha terminado» con el resultado. Encima va la fecha y la hora en que se cerró, y debajo, el nombre de la partida, cuántos jugadores tuvo y cuántos días duró, desde el arranque hasta el cierre. Si duró menos de un día, pone «1 día». Con «Volver a mis partidas» vuelves a Inicio.
+
+### 7.5 La partida cerrada en Inicio
+
+En la lista de tus partidas, una cerrada sale con su resultado: «Cerrada · Gana Sara_93 con 1 eliminación». Solo ocupa la tarjeta grande de arriba si no tienes ninguna en juego ni en inscripción; entonces pone «Cerrada el» y la fecha del cierre. Al pulsarla vuelves a su pantalla de fin.
+
+<img src="img/cierre-inicio-cerradas.png" alt="Inicio con partidas cerradas y su resultado" width="250">
