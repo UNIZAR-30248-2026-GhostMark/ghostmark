@@ -189,6 +189,8 @@ class EliminacionTest {
                 .then().statusCode(422)
                 .body("codigo", equalTo("CODIGO_CADUCADO"))
                 .body("intentosRestantes", equalTo(2));
+        assertEquals("VIVO", estadoJugador(victimaId));
+        assertTrue(victimasRegistradas(mesa.juego()).isEmpty());
     }
 
     @Test
@@ -318,10 +320,18 @@ class EliminacionTest {
 
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
-        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409)
-                .body("codigo", equalTo("INTENTOS_BLOQUEADOS"));
-
         Instant rotado = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409)
+                .body("codigo", equalTo("INTENTOS_BLOQUEADOS"))
+                .body("bloqueadoHasta", equalTo(rotado.toString()));
+
+        // Un segundo antes de la rotación el código correcto tampoco permite eliminar
+        Instant antes = rotado.minusSeconds(1);
+        when(reloj.instant()).thenReturn(antes);
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, antes))
+                .then().statusCode(409).body("codigo", equalTo("INTENTOS_BLOQUEADOS"));
+        assertTrue(victimasRegistradas(mesa.juego()).isEmpty());
+
         when(reloj.instant()).thenReturn(rotado);
         eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, rotado))
                 .then().statusCode(200)
@@ -359,18 +369,17 @@ class EliminacionTest {
         }
 
         respuestas.get(0).then().statusCode(200);
-        int eliminaciones = jdbc.queryForObject("select count(*) from evento"
-                + " where partida_id = ? and tipo = 'JUGADOR_ELIMINADO'", Integer.class,
-                mesa.juego().id());
+        List<UUID> victimas = victimasRegistradas(mesa.juego());
         assertEquals("ELIMINADO", estadoJugador(bId));
         if (respuestas.get(1).statusCode() == 200) {
-            assertEquals(2, eliminaciones);
+            // B solo puede eliminar a C si su jugada quedó registrada antes que la de A
+            assertEquals(List.of(cId, bId), victimas);
             assertEquals("ELIMINADO", estadoJugador(cId));
             assertEquals(dId, objetivo(mesa.juego(), aId));
         } else {
             respuestas.get(1).then().statusCode(409)
                     .body("codigo", equalTo("JUGADOR_ELIMINADO"));
-            assertEquals(1, eliminaciones);
+            assertEquals(List.of(bId), victimas);
             assertEquals("VIVO", estadoJugador(cId));
             assertEquals(cId, objetivo(mesa.juego(), aId));
         }
@@ -561,6 +570,12 @@ class EliminacionTest {
     private String estadoJugador(UUID inscripcionId) {
         return jdbc.queryForObject("select estado from jugador_partida"
                 + " where inscripcion_id = ?", String.class, inscripcionId);
+    }
+
+    private List<UUID> victimasRegistradas(Juego juego) {
+        return jdbc.queryForList("select (datos->>'victimaId')::uuid from evento"
+                + " where partida_id = ? and tipo = 'JUGADOR_ELIMINADO' order by secuencia",
+                UUID.class, juego.id());
     }
 
     private Persona persona(Mesa mesa, UUID inscripcionId) {
