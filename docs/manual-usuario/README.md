@@ -93,6 +93,8 @@ Desde ahí, «Pedir otra tanda» trae hasta ocho más con el mismo contexto; el 
 
 Antes de enseñártelas, GhostMark descarta las que no tienen el formato de una misión y las que tocan algo prohibido, como el contacto físico o los objetos que simulen armas. Por eso una tanda puede traer menos de 8.
 
+**Si la IA no responde.** La IA puede fallar, tardar más de 15 segundos o haber agotado su cuota gratuita. Si pasa al pulsar «Generar misiones», la app vuelve a «Biblioteca» y avisa: «La IA no responde: se usarán misiones de la biblioteca». Pulsa «Crear partida» y sigues con la misma partida, ya con misiones de la biblioteca, o vuelve a «Generar con IA» para intentarlo otra vez. Si falla al pedir otra tanda, el aviso sale debajo de «Tanda revisada»: las misiones que ya aprobaste se mantienen y, si no llegan para todos, el resto sale de la biblioteca («La IA no responde: el resto de misiones saldrán de la biblioteca»). Una tanda que falla no cuenta entre las 5. La partida nunca se queda sin misiones: al arrancar, las que falten salen de la biblioteca.
+
 Al arrancar, cada jugador recibe una de las que aprobaste; si hay menos aprobadas que jugadores, el resto sale de la biblioteca. Las misiones de la IA solo se piden en este paso: si sales con la flecha, la partida se queda con las que hayas aprobado.
 
 ### 2.4 Compartirla
