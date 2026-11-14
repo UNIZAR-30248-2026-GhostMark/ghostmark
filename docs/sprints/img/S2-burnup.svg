@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 210" width="100%" role="img" aria-label="Burnup del sprint 2" style="font-family:Lato,DejaVu Sans,sans-serif">
+<line x1="40" x2="406" y1="180.0" y2="180.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="183.0" font-size="8" fill="#7d6d99" text-anchor="end">0</text>
+<line x1="40" x2="406" y1="138.5" y2="138.5" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="141.5" font-size="8" fill="#7d6d99" text-anchor="end">25</text>
+<line x1="40" x2="406" y1="97.0" y2="97.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="100.0" font-size="8" fill="#7d6d99" text-anchor="end">50</text>
+<line x1="40" x2="406" y1="55.5" y2="55.5" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="58.5" font-size="8" fill="#7d6d99" text-anchor="end">75</text>
+<line x1="40" x2="406" y1="14.0" y2="14.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="17.0" font-size="8" fill="#7d6d99" text-anchor="end">100</text>
+<text x="40.0" y="198" font-size="8" fill="#7d6d99" text-anchor="middle">29 oct</text>
+<text x="144.6" y="198" font-size="8" fill="#7d6d99" text-anchor="middle">2 nov</text>
+<text x="223.0" y="198" font-size="8" fill="#7d6d99" text-anchor="middle">5 nov</text>
+<text x="327.6" y="198" font-size="8" fill="#7d6d99" text-anchor="middle">9 nov</text>
+<text x="406.0" y="198" font-size="8" fill="#7d6d99" text-anchor="middle">12 nov</text>
+<text x="34" y="10" font-size="8" fill="#7d6d99" text-anchor="end">h</text>
+<polyline points="66.1,79.6 92.3,42.2 118.4,38.9 144.6,38.9 170.7,38.9 196.9,38.9 223.0,38.9 249.1,38.9 275.3,38.9 301.4,38.9 327.6,37.2 353.7,37.2 379.9,37.2 406.0,37.2" fill="none" stroke="#9A91A8" stroke-width="1.5" stroke-dasharray="4 3"/>
+<polyline points="66.1,180.0 92.3,180.0 118.4,180.0 144.6,174.2 170.7,155.9 196.9,136.8 223.0,136.8 249.1,133.5 275.3,116.9 301.4,116.9 327.6,77.1 353.7,42.2 379.9,37.2 406.0,37.2" fill="none" stroke="#6B2FA8" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="66.1" cy="180.0" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="92.3" cy="180.0" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="118.4" cy="180.0" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="144.6" cy="174.2" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="170.7" cy="155.9" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="196.9" cy="136.8" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="223.0" cy="136.8" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="249.1" cy="133.5" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="275.3" cy="116.9" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="301.4" cy="116.9" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="327.6" cy="77.1" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="353.7" cy="42.2" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="379.9" cy="37.2" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="406.0" cy="37.2" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<text x="413.0" y="30.2" font-size="8.5" fill="#1A0B2E" font-weight="700">Completadas</text>
+<text x="411.0" y="50.2" font-size="8.5" fill="#7d6d99">Alcance (86 h)</text>
+</svg>
