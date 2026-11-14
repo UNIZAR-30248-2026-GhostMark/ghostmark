@@ -15,13 +15,13 @@ Aquí solo se guarda lo que GitHub no registra por sí mismo. La pila, las tarea
 | Formato del comentario de revisión de las PR | `gestion/revision-pr.md` |
 | Arquitectura y decisiones técnicas | `diseno/` |
 | Manual de usuario | `manual-usuario/` |
-| Memoria del proyecto, por capítulos | `memoria/` |
+| Pruebas de aceptación de cada PBI: qué test cubre cada criterio | `pruebas/` |
 
 `pilaDeProducto/pantallas/` guarda las pantallas del prototipo que enlazan los issues de las PBI más prioritarias.
 
 ## Qué hay que hacer en cada sprint
 
-1. **Justo antes de planificar el sprint N:** exportar la pila de GitHub a `pilaDeProducto/instantaneas/SN-antes-de-planificar.md` con el orden, la talla y los criterios de cada PBI. Una vez guardada, no se vuelve a tocar. Es la pila del capítulo N.1 de la memoria, que tiene que mostrarla tal como estaba en ese momento y no puede limitarse a enlazar GitHub.
+1. **Justo antes de planificar el sprint N:** exportar la pila de GitHub a `pilaDeProducto/instantaneas/SN-antes-de-planificar.md` con el orden, la talla y los criterios de cada PBI. Una vez guardada, no se vuelve a tocar. Es la pila del capítulo N.1 del informe del sprint, que tiene que mostrarla tal como estaba en ese momento y no puede limitarse a enlazar GitHub.
 2. **Al planificar:** poner el objetivo y la capacidad en la descripción del milestone `SN`, y asignarle las PBI elegidas y sus tareas.
 3. **Durante el sprint:** en cada reunión diaria, apuntar en `sprints/SN.md` la suma de las horas restantes de las tareas. De ahí sale el *burndown*.
 4. **Al cerrar:** apuntar en `sprints/SN.md` lo que salga de la revisión (comentarios recibidos) y de la retrospectiva (votación y acciones de mejora medibles).
