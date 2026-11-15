@@ -87,6 +87,23 @@ test('los títulos Bangers de varias líneas tienen altura suficiente en Android
   assert.ok(cancelledTitle, 'GameCancelledScreen debe declarar el estilo title');
   assert.match(cancelledTitle[1], /\.\.\.bangers\(38\)/);
   assert.match(cancelledTitle[1], /lineHeight:\s*(3[8-9]|[4-9]\d)/);
+
+  // #259: con la altura de línea igual a la letra, Android corta la segunda línea («TERMINADO»).
+  const ended = fs.readFileSync(path.join(sourceRoot, 'screens/GameEndedScreen.tsx'), 'utf8');
+  const endedTitle = ended.match(/title:\s*\{([^}]*)\}/);
+  assert.ok(endedTitle, 'GameEndedScreen debe declarar el estilo title');
+  assert.match(endedTitle[1], /\.\.\.bangers\(42\)/);
+  assert.match(endedTitle[1], /lineHeight:\s*(4[3-9]|[5-9]\d)/);
+});
+
+test('los números de las casillas de Eliminar caben enteros y centrados (#263)', () => {
+  const eliminate = fs.readFileSync(path.join(__dirname, '../src/screens/EliminateScreen.tsx'), 'utf8');
+  const slotText = eliminate.match(/slotText:\s*\{([^}]*)\}/);
+  assert.ok(slotText, 'EliminateScreen debe declarar el estilo slotText');
+  assert.match(slotText[1], /alignSelf:\s*"stretch"/);
+  assert.match(slotText[1], /textAlign:\s*"center"/);
+  assert.match(slotText[1], /\.\.\.bangers\(34\)/);
+  assert.match(slotText[1], /lineHeight:\s*(3[5-9]|[4-9]\d)/);
 });
 
 test('Sala de espera reserva ancho para el título entre los controles', () => {

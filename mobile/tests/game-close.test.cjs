@@ -25,7 +25,7 @@ class ApiError extends Error { constructor(message, status = 400, code) { super(
 class AnimatedValue { constructor(value) { this.value = value; } interpolate() { return this; } }
 let alerts = [];
 const native = {
-  ActivityIndicator: 'ActivityIndicator', Image: 'Image', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View',
+  ActivityIndicator: 'ActivityIndicator', Image: 'Image', Modal: 'Modal', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View',
   Alert: { alert: (...args) => alerts.push(args) },
   Animated: { Value: AnimatedValue, View: 'AnimatedView', timing: () => ({ start() {} }) },
   StyleSheet: { create: (styles) => styles, absoluteFillObject: {} },
@@ -75,7 +75,8 @@ test('la pantalla de fin dice quién gana, la duración y vuelve a Inicio', asyn
   await mount(GameEndedScreen, { navigation: { reset: (value) => resets.push(value) }, route: { params: { game: closedGame(result('GANADOR', ['Marta'], 4)) } } });
   assert.match(texts(), /GANA MARTA \| con 4 eliminaciones/);
   assert.match(texts(), /Killer EINA · 7 jugadores · 6 días/);
-  await act(async () => tree.root.findByType('Pressable').props.onPress());
+  const back = tree.root.findAllByType('Pressable').find((node) => node.findAllByType('Text').some((text) => text.props.children === 'VOLVER A MIS PARTIDAS'));
+  await act(async () => back.props.onPress());
   assert.deepEqual(resets, [{ index: 0, routes: [{ name: 'Home' }] }]);
 });
 
@@ -98,6 +99,16 @@ test('la pantalla de fin dice el empate y el último superviviente', async () =>
     assert.match(texts(), expected);
     await act(async () => tree.unmount()); tree = undefined;
   }
+});
+
+test('un empate de muchos muestra un resumen y deja abrir la lista completa', async () => {
+  const { GameEndedScreen } = load('screens/GameEndedScreen.tsx', common);
+  const aliases = ['Alias muy largo uno', 'Alias muy largo dos', 'Alias muy largo tres', 'Alias muy largo cuatro', 'Alias muy largo cinco', 'Alias muy largo seis'];
+  await mount(GameEndedScreen, { navigation: { reset() {} }, route: { params: { game: closedGame(result('EMPATE', aliases, 0)) } } });
+  assert.match(texts(), /entre Alias muy largo uno, Alias muy largo dos, Alias muy largo tres y 3 más/);
+  const summary = byLabel('Ver lista completa del empate');
+  await act(async () => summary.props.onPress());
+  assert.match(texts(), /Alias muy largo seis/);
 });
 
 function gameTab({ games = [inPlay], players, close = async () => closedGame(result('GANADOR', ['Marta'], 4, 'MASTER')) } = {}) {
