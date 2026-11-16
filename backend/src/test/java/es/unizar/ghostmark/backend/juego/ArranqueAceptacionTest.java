@@ -161,7 +161,7 @@ class ArranqueAceptacionTest {
                     + " where inscripcion_id = ?", byte[].class, victimaId);
             given().port(puerto).auth().oauth2(cazador.token()).contentType(ContentType.JSON)
                     .body(Map.of("codigo", new GeneradorCodigoVida()
-                            .generar(secreto, Instant.now()).codigo()))
+                            .generar(secreto, Instant.now()).codigo(), "resultadoZona", "FUERA"))
                     .post("/api/v1/partidas/{id}/eliminaciones", mesa.id())
                     .then().statusCode(200);
         }

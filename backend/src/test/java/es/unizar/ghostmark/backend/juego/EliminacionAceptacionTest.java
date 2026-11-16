@@ -156,7 +156,8 @@ class EliminacionAceptacionTest {
         given().port(puerto).auth().oauth2(ajeno.token()).get(RUTA_FEED, mesa.partida())
                 .then().statusCode(404).body("codigo", equalTo("NO_ENCONTRADA"));
         given().port(puerto).auth().oauth2(mesa.master().token())
-                .contentType(ContentType.JSON).body(Map.of("codigo", valido))
+                .contentType(ContentType.JSON)
+                .body(Map.of("codigo", valido, "resultadoZona", "FUERA"))
                 .post(RUTA_ELIMINAR, mesa.partida()).then().statusCode(404)
                 .body("codigo", equalTo("NO_ENCONTRADA"));
     }
@@ -275,7 +276,8 @@ class EliminacionAceptacionTest {
 
     private Response eliminar(Persona persona, UUID partidaId, String codigo) {
         return given().port(puerto).auth().oauth2(persona.token()).contentType(ContentType.JSON)
-                .body(Map.of("codigo", codigo)).post(RUTA_ELIMINAR, partidaId);
+                .body(Map.of("codigo", codigo, "resultadoZona", "FUERA"))
+                .post(RUTA_ELIMINAR, partidaId);
     }
 
     private List<Map<String, Object>> feed(Persona persona, UUID partidaId) {

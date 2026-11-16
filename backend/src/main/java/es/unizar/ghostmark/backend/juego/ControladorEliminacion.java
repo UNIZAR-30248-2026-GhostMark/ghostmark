@@ -21,7 +21,6 @@ public class ControladorEliminacion {
     @PostMapping
     public Eliminacion eliminar(Authentication autenticacion, @PathVariable UUID partidaId,
             @RequestBody NuevaEliminacion peticion) {
-        return servicio.eliminar(UUID.fromString(autenticacion.getName()), partidaId,
-                peticion.codigo());
+        return servicio.eliminar(UUID.fromString(autenticacion.getName()), partidaId, peticion);
     }
 }
