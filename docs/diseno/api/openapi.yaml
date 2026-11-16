@@ -31,6 +31,11 @@ tags:
       Código de vida, eliminación, herencia y feed (PBI 7a, #7), y códigos rechazados y bloqueo (PBI 7b, #189).
       Cierre de la partida y resultado (PBI 8, #8): la partida se cierra sola al quedar un único vivo o al llegar
       la fecha de fin (revisado cada minuto y antes de atender cada petición), o cuando la cierra el máster.
+      Horarios seguros (PBI 9, #9): nadie elimina ni es eliminado en su horario lectivo.
+  - name: zonas
+    description: |
+      Zonas seguras de la partida (PBI 10a, #10) y resultado de zona al eliminar (PBI 10b, #272).
+      La posición del jugador no sale del móvil: el servidor solo recibe `DENTRO`, `FUERA` o `NO_CONCLUYENTE`.
 security:
   - bearerAuth: []
 paths:
@@ -374,6 +379,53 @@ paths:
         '404': { $ref: '#/components/responses/NoEncontrada' }
         '409':
           description: La partida ya ha arrancado y el horario está congelado (`PARTIDA_NO_EDITABLE`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/zonas:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [zonas]
+      operationId: obtenerZonas
+      summary: Zonas seguras de la partida
+      description: |
+        Para el máster (juegue o no) y los inscritos, en cualquier estado de la partida. Otra cuenta recibe 404.
+        Son las coordenadas del dibujo del máster; la API no da ni guarda nunca la posición de nadie.
+      responses:
+        '200':
+          description: Zonas seguras (lista vacía si no hay)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Zonas' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+    put:
+      tags: [zonas]
+      operationId: guardarZonas
+      summary: Crear, modificar y borrar las zonas seguras
+      description: |
+        Sustituye la lista entera: las zonas que no vienen se borran, las que traen `id` se modifican y las
+        demás se crean. Solo el máster, juegue o no, y con la partida en inscripción: al arrancar se congelan.
+        Hasta 10 zonas; cada una con un nombre de 1 a 30 caracteres, distinto en la partida sin distinguir
+        mayúsculas, y de 3 a 20 puntos sin repetir ni lados que se crucen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Zonas' }
+      responses:
+        '200':
+          description: Zonas guardadas, con el `id` de las nuevas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Zonas' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/NoEsMaster' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: La partida ya no está en inscripción y las zonas están congeladas (`PARTIDA_NO_EDITABLE`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -749,9 +801,44 @@ components:
         caducaEn: { type: string, format: date-time, description: Final del paso de 60 s actual }
     NuevaEliminacion:
       type: object
-      required: [codigo]
+      required: [codigo, resultadoZona]
+      additionalProperties: false
+      description: Cualquier otro campo, como una coordenada, responde 400 `DATOS_NO_VALIDOS`
       properties:
         codigo: { type: string, pattern: '^[0-9]{6}$', example: '482913' }
+        resultadoZona:
+          type: string
+          enum: [DENTRO, FUERA, NO_CONCLUYENTE]
+          description: >-
+            Lo calcula el móvil del cazador con su posición y su precisión, que no envía. `FUERA` también si la partida
+            no tiene zonas. Se guarda con la eliminación y solo se mira si hay disputa (PBI 11a)
+    Punto:
+      type: object
+      required: [lat, lon]
+      additionalProperties: false
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90, example: 41.6836 }
+        lon: { type: number, minimum: -180, maximum: 180, example: -0.8889 }
+    Zona:
+      type: object
+      required: [nombre, puntos]
+      properties:
+        id: { type: string, format: uuid, description: 'Al guardar: sin `id` se crea; con `id`, se modifica esa zona' }
+        nombre: { type: string, minLength: 1, maxLength: 30, example: Biblioteca }
+        puntos:
+          type: array
+          minItems: 3
+          maxItems: 20
+          description: Vértices del polígono en orden, sin repetir el primero al final
+          items: { $ref: '#/components/schemas/Punto' }
+    Zonas:
+      type: object
+      required: [zonas]
+      properties:
+        zonas:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/Zona' }
     Eliminacion:
       type: object
       required: [aliasVictima, carta]
