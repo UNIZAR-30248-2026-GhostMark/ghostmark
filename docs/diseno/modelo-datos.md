@@ -263,7 +263,7 @@ Los eventos no se modifican ni se borran. Con la PBI 14, al cerrar la partida se
 | `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo); los tres jugadores, por su `inscripcionId`. Desde la 10b, `resultadoZona` (`DENTRO`, `FUERA`, `NO_CONCLUYENTE`) | 7a.3; 10b.1 |
 | `PARTIDA_CERRADA` | Queda un único vivo, llega `fin_en` o el máster pulsa «Cerrar partida» | `motivo` (`ULTIMO_SUPERVIVIENTE`, `FECHA_FIN`, `MASTER`), `resultado` (`SUPERVIVIENTE`, `GANADOR`, `EMPATE`), `ganadores` (lista de `inscripcionId`), `eliminaciones` (las del ganador o de los empatados) | 8.2 |
 
-**Reconstruir el estado** (test de la tarea 4.6; desde la 10a.2, `zona_segura` tiene que coincidir con el último `ZONAS_CAMBIADAS`): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a), salvo `secreto_codigo`, `intentos_fallidos` y `bloqueado_hasta`, que no salen de eventos, y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (disputa, abandono…) a esta tabla.
+**Reconstruir el estado** (test de la tarea 4.6; desde la 10a.2, `zona_segura` tiene que coincidir con el último `ZONAS_CAMBIADAS`): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a), salvo `secreto_codigo`, `intentos_fallidos` y `bloqueado_hasta`, que no salen de eventos, y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos a esta tabla; los de las disputas y la anulación están en «Disputas», más abajo.
 
 ## Código de vida y eliminación (PBI 7a, #7, y PBI 7b, #189)
 
@@ -328,9 +328,9 @@ erDiagram
 
 ### Feed y jugador eliminado
 
-- **Feed:** `GET /partidas/{id}/feed`, con la partida `EN_JUEGO` o `CERRADA`, lista las eliminaciones, de la más reciente a la más antigua, con el alias de la víctima y la hora, sin el cazador. Sale de los eventos `JUGADOR_ELIMINADO`. Las anulaciones, abandonos y expulsiones llegan con sus PBI.
+- **Feed:** `GET /partidas/{id}/feed`, con la partida `EN_JUEGO` o `CERRADA`, lista las eliminaciones, de la más reciente a la más antigua, con el alias de la víctima y la hora, sin el cazador. Sale de los eventos `JUGADOR_ELIMINADO`. Las anulaciones llegan con la 11b (ver «Disputas»); los abandonos y expulsiones, con la PBI 12.
 - **Intentos en la carta:** la carta propia lleva `intentosRestantes` (3 menos `intentos_fallidos`: 3, 2 o 1) y `bloqueadoHasta` (`bloqueado_hasta` si aún no ha pasado; nulo si no), para que «Eliminar» enseñe los intentos que quedan y el bloqueo al abrirse, sin esperar a un fallo. Con el jugador eliminado o sin objetivo, los dos son nulos.
-- **Jugador eliminado:** su carta devuelve `estado = ELIMINADO`, sin objetivo ni misión. La app le enseña una vez «Te han cazado», sin decir quién (R11-14), y después la pestaña Misión en gris como espectador, con el feed. La disputa de los 10 minutos llega con la PBI 11.
+- **Jugador eliminado:** su carta devuelve `estado = ELIMINADO`, sin objetivo ni misión. La app le enseña una vez «Te han cazado», sin decir quién (R11-14), y después la pestaña Misión en gris como espectador, con el feed. La disputa de los 10 minutos llega con la PBI 11a (`disputarHasta` en la carta, ver «Disputas»).
 
 ### Quién puede hacer qué
 
@@ -345,7 +345,7 @@ Un test por rol comprueba que lo demás se rechaza.
 
 ## Cierre de la partida (PBI 8, #8)
 
-La partida pasa de `EN_JUEGO` a `CERRADA` por tres vías, y las tres calculan el resultado con la misma regla (R11-15). El borrado de los datos al cerrar y el Wrapped llegan con la PBI 14; hasta entonces todo se conserva.
+La partida pasa de `EN_JUEGO` a `CERRADA` por tres vías, y las tres calculan el resultado con la misma regla (R11-15). Desde la PBI 11a, ninguna cierra mientras quede una disputa abierta o una eliminación que aún se pueda disputar (ver «Cierre con disputas»). El borrado de los datos al cerrar y el Wrapped llegan con la PBI 14; hasta entonces todo se conserva.
 
 ### Las tres vías
 
@@ -468,7 +468,7 @@ La validación de «eliminar» (paso 2 de «Eliminar», más arriba) aplica una 
 - Se aplican en orden en `ServicioEliminacion`, después de lo que ya se comprueba (formato del código, partida en juego, cazador vivo y no bloqueado) y de leer a la víctima, y antes de comparar el código. La primera que rechaza corta.
 - Un rechazo por una regla **no compara el código ni cuenta como fallo** (R12-13): los intentos siguen igual.
 - **Horario lectivo (PBI 9):** si el cazador o la víctima están en clase, responde 409 `HORARIO_LECTIVO` con `motivo` y `disponibleEn`, calculados como arriba.
-- **Disputa abierta (PBI 11a):** la añade la 11a.
+- **Disputa abierta (PBI 11a):** si el cazador tiene abierta una disputa sobre una eliminación suya, responde 409 `DISPUTA_ABIERTA` (ver «Disputas»).
 
 ### En la carta
 
@@ -567,3 +567,164 @@ erDiagram
 - **10b.1 (servidor):** `resultadoZona` en «eliminar», guardado en el evento, y el 400 ante cualquier coordenada.
 - **10b.2 (app):** el permiso en «Eliminar», el cálculo del resultado y su envío.
 
+
+## Disputas (PBI 11a, #11) y anulación (PBI 11b, #273)
+
+Una disputa es una reclamación sobre una eliminación (la abre la víctima en los 10 minutos siguientes) o sobre la negativa a enseñar el código (la abre el cazador, hasta el cierre). La decide un árbitro, que puede dar la razón a uno u otro; si la víctima gana una disputa sobre su eliminación, la eliminación se anula (§10 de la Descripción). Este diseño es común a las dos partes: la 11a abre, responde y decide, y la 11b hace la anulación. Desde aquí se hacen a la vez (R12-2, R12-6).
+
+```mermaid
+erDiagram
+    partida ||--o{ disputa : "disputas"
+    evento |o--o| disputa : "eliminación disputada"
+    disputa }o--|| inscripcion : "cazador"
+    disputa }o--|| inscripcion : "víctima"
+    disputa }o--o| inscripcion : "árbitro sorteado"
+    disputa {
+        uuid id PK
+        uuid partida_id FK
+        varchar tipo "ELIMINACION, NEGATIVA"
+        uuid cazador_id FK
+        uuid victima_id FK
+        uuid evento_eliminacion_id FK "nulo en NEGATIVA; único"
+        varchar texto_apertura "1-280"
+        varchar texto_respuesta "1-280, nulo hasta responder"
+        uuid arbitro_id FK "nulo: el máster"
+        timestamptz plazo_hasta
+        varchar estado "ABIERTA, RESUELTA, SIN_OBJETO"
+        varchar razon "CAZADOR, VICTIMA; nula si no está resuelta"
+        varchar resuelta_por "MASTER, SORTEADO, ZONA"
+        timestamptz abierta_en
+        timestamptz respondida_en
+        timestamptz cerrada_en
+    }
+```
+
+### `disputa`
+
+Copia del estado de cada disputa, que se actualiza en la misma transacción que sus eventos, igual que `jugador_partida`.
+
+| Columna | Tipo | Restricciones | Regla de producto |
+|--|--|--|--|
+| `id` | `uuid` | clave primaria | |
+| `partida_id` | `uuid` | clave ajena a `partida`, `on delete cascade`; índice | |
+| `tipo` | `varchar(20)` | no nulo; `check (tipo in ('ELIMINACION', 'NEGATIVA'))` | `ELIMINACION` la abre la víctima; `NEGATIVA`, el cazador (§10) |
+| `cazador_id`, `victima_id` | `uuid` | no nulos; claves ajenas a `inscripcion` | Los dos implicados. En `NEGATIVA`, la víctima es el objetivo del cazador al abrirla |
+| `evento_eliminacion_id` | `uuid` | clave ajena a `evento`, `on delete cascade`; único; no nulo si y solo si `tipo = 'ELIMINACION'` | El `JUGADOR_ELIMINADO` disputado. Una sola disputa por eliminación (R12-26) |
+| `texto_apertura` | `varchar(280)` | no nulo; de 1 a 280 caracteres sin contar espacios de los extremos | La versión de quien abre (R12-26) |
+| `texto_respuesta` | `varchar(280)` | nulo hasta que responde el otro implicado; mismas reglas | Una sola respuesta, sin editar |
+| `arbitro_id` | `uuid` | clave ajena a `inscripcion`; nulo mientras arbitra el máster | El jugador sorteado (R12-23) |
+| `plazo_hasta` | `timestamptz` | no nulo | Hasta cuándo puede decidir el árbitro actual |
+| `estado` | `varchar(20)` | no nulo; `check (estado in ('ABIERTA', 'RESUELTA', 'SIN_OBJETO'))` | `SIN_OBJETO`: una disputa por negativa que se cierra sola (R12-21) o una disputa sobre una eliminación anulada en cadena |
+| `razon` | `varchar(10)` | `check (razon in ('CAZADOR', 'VICTIMA'))`; no nula si y solo si `estado = 'RESUELTA'` | A quién da la razón el árbitro |
+| `resuelta_por` | `varchar(10)` | `check (resuelta_por in ('MASTER', 'SORTEADO', 'ZONA'))`; no nula si y solo si `estado = 'RESUELTA'` | `ZONA`: anulada sola por un resultado de zona `DENTRO` |
+| `abierta_en`, `respondida_en`, `cerrada_en` | `timestamptz` | `abierta_en` no nulo; los otros, nulos hasta que pasa | |
+
+- Migración: `V202611161900__disputa.sql`. Además del índice por `partida_id`, un índice parcial sobre `(cazador_id) where estado = 'ABIERTA'` para la regla del bloqueo, que se mira en cada eliminación.
+- **Borrar la cuenta:** la disputa no tiene datos de la persona; sus alias salen como «cuenta eliminada», como en el feed. Un jugador sin cuenta no puede ser sorteado.
+- Las disputas no salen en el feed (R12-27): solo las ven los dos implicados y el árbitro.
+
+### Abrir
+
+`POST /partidas/{id}/disputas` con `tipo` y `texto`. En una transacción, con la fila de la partida bloqueada:
+
+- **`ELIMINACION` (la víctima):** quien llama tiene que estar `ELIMINADO`. La eliminación disputada es su último `JUGADOR_ELIMINADO`, y tiene que cumplir tres cosas: que se hiciera con el código (`origen = CODIGO`, ver abajo), que no tenga ya una disputa y que no hayan pasado 10 minutos desde su `ocurrido_en`. Si no se cumple alguna, 409 `ELIMINACION_NO_DISPUTABLE` o `PLAZO_DISPUTA_VENCIDO`, según el caso.
+- **`NEGATIVA` (el cazador):** quien llama tiene que estar `VIVO` y tener objetivo, y no tener ya una disputa por negativa abierta. La víctima es su objetivo actual. No hay límite de 10 minutos, pero se rechaza desde `fin_en` (R12-25). Si no se cumple, 409 `JUGADOR_ELIMINADO`, `DISPUTA_YA_ABIERTA` o `PARTIDA_NO_EN_JUEGO`.
+- **Quién arbitra:** el máster, salvo que esté implicado (juega y es el cazador o la víctima) o haya borrado su cuenta (R7-9). En esos dos casos se sortea un árbitro al abrirla (ver «Árbitro»). `plazo_hasta` es `abierta_en` más `plazo_disputa_horas` de la partida (R12-23).
+- **Zona `DENTRO`:** si la disputa es de tipo `ELIMINACION` y la eliminación se guardó con `resultadoZona = DENTRO`, en la misma transacción queda `RESUELTA` con `razon = VICTIMA` y `resuelta_por = ZONA`, y la eliminación se anula (ver «Anular», 11b). Con `FUERA` o `NO_CONCLUYENTE` sigue su curso, y el árbitro ve la etiqueta (R12-24).
+- Se guarda `DISPUTA_ABIERTA` y, si se resuelve sola, `DISPUTA_RESUELTA`.
+
+### Responder
+
+`POST /partidas/{id}/disputas/{disputaId}/respuesta` con `texto`. Solo el otro implicado (la víctima en `NEGATIVA` y el cazador en `ELIMINACION`), una vez y con la disputa `ABIERTA`. Se guarda `DISPUTA_RESPONDIDA`. El árbitro puede decidir sin esperar la respuesta (R12-26).
+
+### Árbitro
+
+- **Sorteo:** entre las inscripciones de la partida, vivas o eliminadas, que tengan cuenta y no sean el cazador, la víctima ni la del máster. Se usa `SecureRandom` y se excluye a quien ya la tuvo, según sus `DISPUTA_ARBITRO_SORTEADO`. Si no queda nadie nuevo, se sortea otra vez entre todos los candidatos. Si no hay ningún candidato, la decide el máster aunque esté implicado.
+- **Vencimiento:** la tarea programada del cierre (cada minuto y antes de atender cada petición, como `TareaCierre`) revisa las disputas `ABIERTA` con `plazo_hasta` ya pasado. A cada una le sortea un árbitro nuevo con `plazo_hasta = ahora + plazo_disputa_horas` y guarda `DISPUTA_ARBITRO_SORTEADO` con `motivo = PLAZO_VENCIDO`. Ejemplo (R12-23): con un plazo de 6 h, una disputa abierta a las 10:00 pasa a las 16:00 a un sorteado, que tiene hasta las 22:00.
+- **Qué ve:** el árbitro ve la disputa con los alias de cazador y víctima, la misión (la que cumplió el cazador en `ELIMINACION`, o su misión actual en `NEGATIVA`), los dos textos y el resultado de zona. Nada más de la cadena (B12).
+
+### Decidir
+
+`POST /partidas/{id}/disputas/{disputaId}/decision` con `razon` (`CAZADOR` o `VICTIMA`). Solo el árbitro actual y con la disputa `ABIERTA`. En una transacción, con la fila de la partida bloqueada, queda `RESUELTA` con `resuelta_por` `MASTER` o `SORTEADO` y se guarda `DISPUTA_RESUELTA`. Después:
+
+| Tipo | `razon` | Efecto | En `h-disputa` |
+|--|--|--|--|
+| `ELIMINACION` | `CAZADOR` | La eliminación queda firme y el cazador deja de estar bloqueado | «Confirmar eliminación» |
+| `ELIMINACION` | `VICTIMA` | La eliminación se anula (ver «Anular», 11b) | «Anular» |
+| `NEGATIVA` | `CAZADOR` | La víctima queda eliminada como si hubiera dado el código: se aplica el paso 4 de «Eliminar» y se guarda `JUGADOR_ELIMINADO` con `origen = DISPUTA` y `resultadoZona` nulo, que no se puede disputar (R12-20) | «Eliminar a Pablo» |
+| `NEGATIVA` | `VICTIMA` | Nada cambia: el cazador sigue con su objetivo (R3-10) | «Rechazar» |
+
+La decisión no pasa por las reglas de la eliminación (horario lectivo): aplica lo que decide el árbitro.
+
+**Disputa por negativa sin objeto (R12-21):** el cazador con una disputa por negativa abierta sigue pudiendo eliminar. En cuanto deja de tener a esa víctima como objetivo (porque la elimina con el código, porque a uno de los dos lo eliminan o porque una anulación rehace el ciclo), la disputa queda `SIN_OBJETO`, en la misma transacción y sin árbitro.
+
+### Bloqueo del cazador
+
+Regla `DisputaAbierta` de la lista de «Reglas de la eliminación», después de la del horario: si quien llama es el cazador de una disputa `ELIMINACION` `ABIERTA`, responde 409 `DISPUTA_ABIERTA`. Como las demás reglas, no compara el código ni gasta intentos. La disputa por negativa no bloquea (R12-21). La carta lleva `bloqueadoPorDisputa`, para que «Eliminar» salga desactivado con «Tienes una disputa abierta».
+
+### En la carta y en las partidas
+
+- **Carta:** `bloqueadoPorDisputa` (verdadero mientras el jugador es el cazador de una disputa `ELIMINACION` abierta) y `disputarHasta`. Este segundo campo solo lo tiene el jugador eliminado: es el `ocurrido_en` de su eliminación más 10 minutos, mientras se pueda disputar. Es nulo si ya ha vencido, si ya la ha disputado o si la eliminación fue por una disputa. Con él, «Te han cazado» (`g-cazado`) enseña «Abrir disputa» con la cuenta atrás.
+- **`PartidaResumen` y `Partida`:** `disputasPorArbitrar`, el número de disputas `ABIERTA` cuyo árbitro actual es quien llama. Con él se ve el contador en «Tareas de máster» y el aviso al jugador sorteado. El aviso al móvil llega con la PBI 13.
+- **Ver las disputas:** `GET /partidas/{id}/disputas` devuelve las disputas en las que quien llama es implicado o árbitro actual, de la más reciente a la más antigua; `GET /partidas/{id}/disputas/{disputaId}` devuelve una. Quien no es implicado ni árbitro recibe 404. El resultado de zona solo se devuelve al árbitro; el plazo, al árbitro y a los implicados.
+
+### Cierre con disputas (criterio 5, R12-25)
+
+La partida **no se cierra** mientras tenga una disputa `ABIERTA` o una eliminación que todavía se pueda disputar, es decir, un `JUGADOR_ELIMINADO` con `origen = CODIGO` de hace menos de 10 minutos, sin disputa y con la víctima aún `ELIMINADO`. Cambian las tres vías de «Cierre de la partida»:
+
+- **Único superviviente:** la eliminación del último rival ya no cierra en su transacción. La tarea programada la cierra cuando no queda nada pendiente, con `motivo = ULTIMO_SUPERVIVIENTE`. Ejemplo: Imad elimina al último rival a las 18:00; si nadie disputa, la partida se cierra a las 18:10. Si la víctima disputa y gana, revive y la partida sigue.
+- **Fecha de fin:** desde `fin_en` se rechazan las eliminaciones y las disputas por negativa con `PARTIDA_NO_EN_JUEGO`, aunque la partida siga `EN_JUEGO`. Se siguen pudiendo abrir disputas de 10 minutos, responder y decidir. La tarea programada cierra con `motivo = FECHA_FIN` cuando no queda nada pendiente.
+- **El máster:** «Cerrar partida» con algo pendiente responde 409 `DISPUTAS_PENDIENTES`.
+- `PartidaRepository.pendientesDeCerrar` pasa a devolver las partidas `EN_JUEGO` con `fin_en` pasado o un único vivo, y sin nada pendiente. El motivo es `ULTIMO_SUPERVIVIENTE` si queda un vivo y `FECHA_FIN` si no.
+- **Tests que ya cierran:** los de la PBI 8 que esperan el cierre en la misma transacción que la última eliminación pasan a adelantar el reloj fijo 10 minutos y lanzar la revisión del cierre (11a.2).
+- **En la app:** al eliminar al último rival, el acierto ya no lleva a la pantalla de fin, porque la partida sigue `EN_JUEGO` 10 minutos más. La carta del único vivo, sin objetivo, enseña «Esperando el plazo de disputa» y la app vuelve a pedir la partida cada minuto hasta verla `CERRADA` (11a.4).
+
+### Anular (11b)
+
+Operación del servidor `anular(partida, eventoEliminacionId, ahora)`, dentro de la transacción de quien la llama y con la fila de la partida ya bloqueada. La llaman la decisión `VICTIMA` y la zona `DENTRO`. La 11a la llama a través de un evento de Spring, síncrono y en la misma transacción: la 11a publica `EliminacionAnulable` y la 11b.1 lo escucha. Así la 11a funciona y se prueba antes de que esté la 11b, y los tests de la 11b llaman a la operación directamente (R12-6).
+
+1. **Qué se anula (R12-22):** la eliminación disputada y todas las que el mismo cazador hizo después y no estén anuladas, porque sus objetivos le llegaron heredados de la víctima. Ejemplo: Imad elimina a Marta (hereda a Pablo) y después a Pablo; si se anula la de Marta, se anulan las dos. Las eliminaciones de otros cazadores no se tocan.
+2. **Quién revive:** las víctimas de las anuladas pasan a `VIVO`, con `eliminado_en` nulo, 0 fallos y sin bloqueo. Las disputas abiertas sobre las eliminaciones anuladas en cadena quedan `SIN_OBJETO`.
+3. **Marcador:** el cazador resta una eliminación por cada anulada.
+4. **Misiones (11b.2, R3-2):** las misiones relacionadas se sustituyen por otras activas de la biblioteca, al azar, sin aprobación y sin repetir ninguna que tenga ahora un jugador vivo, mientras queden. Son la del cazador y la de cada revivido, que no tiene misión porque estaba eliminado. Los demás vivos conservan la suya.
+5. **Ciclo nuevo (11b.1):** se baraja a todos los vivos con Fisher-Yates y `SecureRandom`, como al arrancar, y se descarta el orden si empareja a dos implicados en cualquier dirección: el cazador con cada revivido. Se prueba hasta 100 órdenes y, si ninguno lo evita, vale el último (con dos o tres vivos puede ser imposible, §17). Con dos vivos el ciclo no cambia y solo se sustituyen las misiones. Todos los vivos vuelven a 0 fallos sin bloqueo, porque su objetivo puede haber cambiado.
+6. **Feed (11b.2):** una entrada `ANULACION` por cada revivido, con su alias y la hora, sin decir quién lo eliminó.
+7. Se guarda `ELIMINACION_ANULADA` y se actualizan `jugador_partida` y las disputas por negativa que se quedan sin objeto.
+
+### Eventos
+
+| Tipo | Cuándo | `datos` | Tarea |
+|--|--|--|--|
+| `JUGADOR_ELIMINADO` (cambia) | Además de con el código, al ganar el cazador una disputa por negativa | Se añade `origen` (`CODIGO`, `DISPUTA`); con `DISPUTA`, `resultadoZona` es nulo. Los eventos anteriores, sin `origen`, son `CODIGO` | 11a.3 |
+| `DISPUTA_ABIERTA` | La víctima o el cazador la abren | `disputaId`, `tipo`, `cazadorId`, `victimaId`, `eventoEliminacionId` (nulo en `NEGATIVA`), `texto`, `arbitroId` (nulo si es el máster), `plazoHasta` | 11a.2 |
+| `DISPUTA_RESPONDIDA` | Responde el otro implicado | `disputaId`, `texto` | 11a.2 |
+| `DISPUTA_ARBITRO_SORTEADO` | Al abrirla con el máster implicado o sin cuenta, o al vencer el plazo | `disputaId`, `arbitroId`, `motivo` (`MASTER_IMPLICADO`, `PLAZO_VENCIDO`), `plazoHasta` | 11a.3 |
+| `DISPUTA_RESUELTA` | Decide el árbitro, la zona es `DENTRO` o se queda sin objeto | `disputaId`, `estado` (`RESUELTA`, `SIN_OBJETO`), `razon` y `resueltaPor` (nulos en `SIN_OBJETO`) | 11a.2 (sin objeto), 11a.3 |
+| `ELIMINACION_ANULADA` | Se anula una eliminación | `eventoEliminacionId`, `anuladas` (ids de sus `JUGADOR_ELIMINADO`, también la disputada), `revividos`, `orden` (el ciclo nuevo) y `misiones` (`[{inscripcionId, misionId}]`, las sustituidas) | 11b.1, 11b.2 |
+
+Al reconstruir el estado, `disputa` tiene que coincidir con estos eventos y `jugador_partida` con el efecto de `ELIMINACION_ANULADA`.
+
+### Quién puede hacer qué
+
+| Operación | Víctima | Cazador | Árbitro actual | Máster que no arbitra | Otro jugador | Otra cuenta |
+|--|--|--|--|--|--|--|
+| Abrir `ELIMINACION` | Sí, en 10 min | — | — | — | No (`ELIMINACION_NO_DISPUTABLE`) | No (404) |
+| Abrir `NEGATIVA` | — | Sí, sobre su objetivo | — | — | — | No (404) |
+| Responder | Sí, en `NEGATIVA` | Sí, en `ELIMINACION` | No (`NO_PUEDE_RESPONDER`) | No (404) | No (404) | No (404) |
+| Decidir | No (`NO_ES_ARBITRO`) | No (`NO_ES_ARBITRO`) | Sí | No (404) | No (404) | No (404) |
+| Ver la disputa | Sí | Sí | Sí, con el resultado de zona | No (404) | No (404) | No (404) |
+
+El máster que no juega no tiene inscripción: abre y responde 404, como con la carta, y decide cuando es el árbitro.
+
+### Quién hace qué
+
+- **11a.2 (servidor):** abrir y responder, ver las disputas, la regla `DisputaAbierta`, `bloqueadoPorDisputa` y `disputarHasta` en la carta, la disputa por negativa sin objeto y el cierre que espera.
+- **11a.3 (servidor):** árbitro (máster o sorteo, vencimiento del plazo), decidir, zona `DENTRO` resuelta sola, el resultado de zona solo al árbitro, `disputasPorArbitrar`, `origen` en `JUGADOR_ELIMINADO` y la eliminación por negativa, y publicar `EliminacionAnulable`.
+- **11a.4 (app):** «Abrir disputa» con la cuenta atrás en «Te han cazado», «No me enseña el código» en «Eliminar» para la disputa por negativa, la pantalla `h-disputa` con los dos bocadillos, la respuesta y los botones del árbitro, el contador en «Tareas de máster», «Eliminar» desactivado con «Tienes una disputa abierta» y la carta del único vivo mientras espera el plazo de disputa.
+- **11a.5 (tests de aceptación):** los cinco criterios. En el 4 se comprueba que la disputa queda resuelta por `ZONA`; que la víctima revive lo comprueba la 11b.4.
+- **11b.1 (servidor):** `anular` (pasos 1-3 y 5) y la escucha de `EliminacionAnulable`.
+- **11b.2 (servidor):** las misiones nuevas (paso 4) y `ANULACION` en el feed.
+- **11b.3 (app):** la anulación en el feed y la carta al revivir.
+- **11b.4 (tests de aceptación):** los dos criterios, con eliminaciones en cadena.
+
+**Orden de subida: la 11b.3 antes que la 11b.2.** La app actual pinta cada entrada del feed como una eliminación, sin mirar `tipo`: si el servidor mandara `ANULACION` antes, en producción saldría «Marta fue eliminada» justo cuando revive. La app nueva funciona con el servidor actual, que todavía no manda `ANULACION`. La PR de la 11b.2 no se fusiona hasta que la 11b.3 esté en `main`.
