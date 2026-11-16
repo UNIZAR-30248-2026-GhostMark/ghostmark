@@ -14,7 +14,7 @@ La posición del jugador nunca sale del móvil. Cuando se introduce un código d
 
 ## Cambios por sprint
 
-<!-- S1: módulos creados, modelo de datos, decisiones (PaaS, proveedor de IA, biblioteca del mapa)… Lo de cada sprint va a N.2 de la memoria. -->
+<!-- S1: módulos creados, modelo de datos, decisiones (PaaS, proveedor de IA, biblioteca del mapa)… Lo de cada sprint va al apartado N.2 del informe. -->
 
 ### Sprint 1
 
