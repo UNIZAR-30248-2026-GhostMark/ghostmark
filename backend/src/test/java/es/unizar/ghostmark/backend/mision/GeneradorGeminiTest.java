@@ -13,6 +13,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +27,8 @@ class GeneradorGeminiTest {
     private HttpServer servidor;
     private final AtomicReference<String> recibido = new AtomicReference<>();
     private final AtomicReference<String> clave = new AtomicReference<>();
+    private final AtomicInteger peticiones = new AtomicInteger();
+    private final Queue<Integer> estados = new ConcurrentLinkedQueue<>();
     private volatile int estado = 200;
     private volatile String respuesta = "";
     private volatile long espera = 0;
@@ -37,9 +42,14 @@ class GeneradorGeminiTest {
                     + new String(intercambio.getRequestBody().readAllBytes(),
                             StandardCharsets.UTF_8));
             clave.set(intercambio.getRequestHeaders().getFirst("x-goog-api-key"));
+            peticiones.incrementAndGet();
             esperar(espera);
-            byte[] cuerpo = respuesta.getBytes(StandardCharsets.UTF_8);
-            intercambio.sendResponseHeaders(estado, cuerpo.length);
+            Integer siguiente = estados.poll();
+            int codigo = siguiente == null ? estado : siguiente;
+            String texto = codigo == 200 ? respuesta : "{\"error\":{\"code\":" + codigo
+                    + ",\"message\":\"The model is overloaded.\"}}";
+            byte[] cuerpo = texto.getBytes(StandardCharsets.UTF_8);
+            intercambio.sendResponseHeaders(codigo, cuerpo.length);
             try (OutputStream salida = intercambio.getResponseBody()) {
                 salida.flush();
                 esperar(esperaCuerpo);
@@ -68,6 +78,19 @@ class GeneradorGeminiTest {
                 limite);
     }
 
+    private GeneradorGemini generadorConReintentos(Duration limite) {
+        return new GeneradorGemini("clave-de-prueba", "modelo-flash",
+                URI.create("http://127.0.0.1:" + servidor.getAddress().getPort() + "/v1beta/"),
+                limite, Duration.ofMillis(50), Duration.ofMillis(500));
+    }
+
+    private static String respuestaValida() {
+        String misiones = "{\"misiones\":[{\"texto\":\"Que te diga la hora\",\"categoria\":"
+                + "\"CONVERSACION\"}]}";
+        return "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":"
+                + JsonMapper.shared().writeValueAsString(misiones) + "}]}}]}";
+    }
+
     @Test
     void unaRespuestaCorrectaSeConvierteEnMisiones() {
         String misiones = "{\"misiones\":[{\"texto\":\"Que te diga la hora\",\"categoria\":"
@@ -93,6 +116,45 @@ class GeneradorGeminiTest {
         respuesta = "{\"error\":{\"code\":429}}";
         assertThrows(GeneradorNoDisponible.class,
                 () -> generador(Duration.ofSeconds(5)).generar(12, "Campus", List.of()));
+    }
+
+    @Test
+    void trasUnFalloPorSaturacionOCuotaSeReintentaYLlegaLaTanda() {
+        respuesta = respuestaValida();
+        for (int codigo : List.of(503, 429)) {
+            peticiones.set(0);
+            estados.add(codigo);
+            assertEquals(List.of(new MisionGenerada("Que te diga la hora", "CONVERSACION")),
+                    generadorConReintentos(Duration.ofSeconds(5)).generar(12, "Campus",
+                            List.of()));
+            assertEquals(2, peticiones.get());
+        }
+    }
+
+    @Test
+    void siGeminiSigueSaturadoSeRindeTrasTresIntentos() {
+        estado = 503;
+        assertThrows(GeneradorNoDisponible.class,
+                () -> generadorConReintentos(Duration.ofSeconds(5)).generar(12, "Campus",
+                        List.of()));
+        assertEquals(GeneradorGemini.MAXIMO_INTENTOS, peticiones.get());
+    }
+
+    @Test
+    void sinTiempoParaOtroIntentoNoSeReintenta() {
+        estado = 503;
+        assertThrows(GeneradorNoDisponible.class,
+                () -> generador(Duration.ofSeconds(1)).generar(12, "Campus", List.of()));
+        assertEquals(1, peticiones.get());
+    }
+
+    @Test
+    void otrosErroresNoSeReintentan() {
+        estado = 400;
+        assertThrows(GeneradorNoDisponible.class,
+                () -> generadorConReintentos(Duration.ofSeconds(5)).generar(12, "Campus",
+                        List.of()));
+        assertEquals(1, peticiones.get());
     }
 
     @Test
