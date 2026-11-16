@@ -498,6 +498,7 @@ paths:
         Solo los del jugador que llama. Nadie obtiene los de otro, tampoco el máster:
         si no juega no tiene carta y recibe 404. Tras una eliminación devuelve el objetivo y la misión
         heredados; si el jugador está eliminado, `estado = ELIMINADO` sin objetivo ni misión.
+        Si el jugador o su objetivo están en su horario lectivo, `noDisponible` dice quién y hasta cuándo.
       responses:
         '200':
           description: Mi carta
@@ -590,12 +591,16 @@ paths:
         '409':
           description: |
             La partida no está en juego (`PARTIDA_NO_EN_JUEGO`), quien llama ya está eliminado
-            (`JUGADOR_ELIMINADO`, también cuando otra eliminación de la cadena llegó antes) o tiene los
-            intentos bloqueados (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`)
+            (`JUGADOR_ELIMINADO`, también cuando otra eliminación de la cadena llegó antes), tiene los
+            intentos bloqueados (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`) o él o su objetivo están en
+            su horario lectivo (`HORARIO_LECTIVO`, con `motivo` y `disponibleEn`). Un rechazo por horario no
+            compara el código ni gasta intentos.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
-              example: { type: about:blank, title: Conflict, status: 409, codigo: INTENTOS_BLOQUEADOS, bloqueadoHasta: '2026-11-05T17:31:00Z' }
+              examples:
+                bloqueado: { value: { type: about:blank, title: Conflict, status: 409, codigo: INTENTOS_BLOQUEADOS, bloqueadoHasta: '2026-11-05T17:31:00Z' } }
+                horario: { value: { type: about:blank, title: Conflict, status: 409, codigo: HORARIO_LECTIVO, motivo: OBJETIVO, disponibleEn: '2026-11-17T10:30:00Z' } }
         '422':
           description: |
             El código no es el de su objetivo: `CODIGO_CADUCADO` si es uno suyo de los últimos 10 minutos,
@@ -673,7 +678,7 @@ components:
   schemas:
     Carta:
       type: object
-      required: [estado, aliasObjetivo, mision, eliminaciones, intentosRestantes, bloqueadoHasta]
+      required: [estado, aliasObjetivo, mision, eliminaciones, intentosRestantes, bloqueadoHasta, noDisponible]
       properties:
         estado: { type: string, enum: [VIVO, ELIMINADO] }
         aliasObjetivo: { type: [string, 'null'], description: 'Nulo si el objetivo borró su cuenta («cuenta eliminada»), si el jugador está eliminado o si es el único vivo' }
@@ -690,6 +695,20 @@ components:
           type: [string, 'null']
           format: date-time
           description: Tras 3 fallos seguidos, hasta cuándo no puede eliminar (el inicio del paso siguiente del código); nulo si no está bloqueado
+        noDisponible:
+          oneOf:
+            - $ref: '#/components/schemas/NoDisponible'
+            - type: 'null'
+          description: Nulo si puede eliminar a su objetivo ahora, si está eliminado o si es el único vivo
+    NoDisponible:
+      type: object
+      description: >-
+        El jugador o su objetivo están en su horario lectivo. Solo dice quién y hasta cuándo: nunca el horario.
+        El estado cambia solo en punto o a y media.
+      required: [motivo, disponibleEn]
+      properties:
+        motivo: { type: string, enum: [CAZADOR, OBJETIVO], description: '`CAZADOR` si quien llama está en clase (aunque también lo esté su objetivo); `OBJETIVO` si solo lo está su objetivo' }
+        disponibleEn: { type: string, format: date-time, description: Primer instante en punto o a y media en que ninguno de los dos está en clase }
     MisionIa:
       type: object
       required: [id, texto, estado, tanda]
@@ -938,9 +957,11 @@ components:
         detail: { type: string }
         codigo:
           type: string
-          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS, MISIONES_DE_BIBLIOTECA, LIMITE_TANDAS, MISION_YA_REVISADA, IA_NO_DISPONIBLE]
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS, HORARIO_LECTIVO, MISIONES_DE_BIBLIOTECA, LIMITE_TANDAS, MISION_YA_REVISADA, IA_NO_DISPONIBLE]
         intentosRestantes: { type: integer, minimum: 1, maximum: 2, description: 'Solo en `CODIGO_INCORRECTO` y `CODIGO_CADUCADO`; nunca vale 0, porque el tercer fallo responde `INTENTOS_BLOQUEADOS`' }
         bloqueadoHasta: { type: string, format: date-time, description: Solo en `INTENTOS_BLOQUEADOS` }
+        motivo: { type: string, enum: [CAZADOR, OBJETIVO], description: Solo en `HORARIO_LECTIVO` }
+        disponibleEn: { type: string, format: date-time, description: Solo en `HORARIO_LECTIVO` }
         errores:
           type: array
           items:

@@ -319,6 +319,7 @@ erDiagram
 
 1. La partida tiene que estar `EN_JUEGO` (`PARTIDA_NO_EN_JUEGO`) y quien llama, ser jugador de ella (si no, 404, también el máster que no juega).
 2. Quien llama tiene que estar `VIVO` (`JUGADOR_ELIMINADO`) y no bloqueado (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`).
+   - Después se aplican las reglas de la eliminación, en orden: horario lectivo (PBI 9) y, con la 11a, disputa abierta. Ver «Horarios seguros» más abajo. Un rechazo por una regla no compara el código ni cuenta como fallo.
 3. Se compara el código con el de su objetivo, con la tolerancia de arriba. Si no coincide, suma un fallo y responde `CODIGO_CADUCADO` si es un código de su objetivo de los últimos 10 minutos, o `CODIGO_INCORRECTO` si no (también si es el código de otro jugador), con `intentosRestantes`. Al tercer fallo seguido, `bloqueado_hasta` pasa a ser el inicio del paso siguiente, `intentos_fallidos` vuelve a 0 y responde `INTENTOS_BLOQUEADOS`. Un código que no tiene 6 dígitos responde 400 `DATOS_NO_VALIDOS` y no cuenta como fallo. El código de una víctima ya eliminada se rechaza como `CODIGO_INCORRECTO`, porque un eliminado no es objetivo de nadie.
 4. Si coincide: se guarda `JUGADOR_ELIMINADO`; la víctima pasa a `ELIMINADO`, con `eliminado_en` y sin objetivo ni misión; el cazador hereda su objetivo y su misión, suma una eliminación y vuelve a 0 fallos sin bloqueo. Si el objetivo heredado es él mismo, es el único vivo: se queda sin objetivo ni misión y la partida se cierra con la PBI 8.
 
@@ -441,4 +442,44 @@ Para probarlo en local, el servidor se arranca con `GENERADOR_SIMULADO=true` y `
 | Operación | Máster (juegue o no) | Jugador inscrito | Otra cuenta |
 |--|--|--|--|
 | Pedir una tanda, ver las misiones de la IA, aprobar y rechazar | Sí | No (`NO_ES_MASTER`) | No (404) |
+
+## Horarios seguros (PBI 9, #9)
+
+Mientras un jugador está en su horario lectivo, no puede eliminar ni ser eliminado (§9.1 de la Descripción). No hace falta tabla nueva: se usa el horario de cada jugador en la partida, `franja_horario_inscripcion`, que se congela al arrancar.
+
+### En clase
+
+Un jugador está **en clase** en el instante `t` si, pasado `t` a `Europe/Madrid` (con el cambio de hora), es de lunes a viernes y la hora cae en `[hora_inicio, hora_inicio + 30 min)` de alguna de sus franjas. Las franjas seguidas forman un solo tramo: con 9:00, 9:30 y 10:00 marcadas, está en clase de 9:00 a 10:30. Un jugador sin franjas nunca está en clase. Como las franjas empiezan a en punto o a y media, el estado solo cambia en esos instantes.
+
+Para el **cazador** que mira su objetivo:
+
+- **Disponible:** ni él ni su objetivo están en clase.
+- **No disponible:** alguno de los dos lo está. `motivo` dice quién: `CAZADOR` si lo está el cazador (aunque también lo esté el objetivo), `OBJETIVO` si solo lo está el objetivo (R12-14).
+- **`disponibleEn`:** el primer instante, en punto o a y media, en que ninguno de los dos está en clase. Se calcula avanzando de 30 en 30 minutos desde el siguiente en punto o y media; como de viernes a las 21:00 a lunes a las 8:00 nadie está en clase, el bucle termina siempre antes de 7 días.
+
+Ejemplo: Imad (cazador) no tiene clase; Pablo (su objetivo) tiene franjas el martes de 10:00 a 11:30. El martes a las 10:10 Imad ve a Pablo no disponible, `motivo = OBJETIVO`, `disponibleEn` las 11:30. A las 11:30 vuelve a estar disponible.
+
+### Reglas de la eliminación
+
+La validación de «eliminar» (paso 2 de «Eliminar», más arriba) aplica una lista de reglas, preparada para que la 11a añada la de la disputa abierta sin tocar las demás:
+
+- Cada regla es una clase del módulo `juego` que implementa `ReglaEliminacion` con un método que recibe el contexto (partida, cazador, víctima e instante) y devuelve el rechazo o nada.
+- Se aplican en orden en `ServicioEliminacion`, después de lo que ya se comprueba (formato del código, partida en juego, cazador vivo y no bloqueado) y de leer a la víctima, y antes de comparar el código. La primera que rechaza corta.
+- Un rechazo por una regla **no compara el código ni cuenta como fallo** (R12-13): los intentos siguen igual.
+- **Horario lectivo (PBI 9):** si el cazador o la víctima están en clase, responde 409 `HORARIO_LECTIVO` con `motivo` y `disponibleEn`, calculados como arriba.
+- **Disputa abierta (PBI 11a):** la añade la 11a.
+
+### En la carta
+
+La carta lleva `noDisponible`: nulo si el cazador puede eliminar a su objetivo ahora; si no, `{ motivo, disponibleEn }`. También es nulo con el jugador eliminado o sin objetivo. Con él, la app enseña la carta dormida (`f-dormido`): «Pablo está en clase» o «Estás en clase», la cuenta atrás «Disponible en 1 h 20 min» y «Eliminar» desactivado con el motivo (R12-14). La carta no avisa antes de que el objetivo entre en clase, ni la API da su horario (R12-15).
+
+**El cambio se ve en el momento:** como el estado solo cambia en punto o a y media, la app vuelve a pedir la carta en el siguiente en punto o y media mientras la tiene abierta (2 s después, por si el reloj del móvil va algo adelantado), y también al llegar a `disponibleEn`. La hora de Madrid se desplaza de la UTC en horas enteras, así que los en punto y y media son los mismos en UTC y la app no necesita saber la zona. Así el cazador lo ve en cuanto cambia (criterio 2) sin que la API diga cuándo empieza la próxima clase de nadie.
+
+La respuesta de «eliminar» también lleva la carta con `noDisponible`: si el objetivo heredado está en clase, el cazador lo ve al instante.
+
+### Quién hace qué
+
+- **9.2 (servidor):** el cálculo de «en clase» y `disponibleEn`, la lista de reglas con la del horario, `HORARIO_LECTIVO` en «eliminar» y `noDisponible` en la carta.
+- **9.3 (app):** la carta dormida, la cuenta atrás, «Eliminar» desactivado, el mensaje del rechazo y la recarga en punto y a y media.
+- **9.4 (tests de aceptación):** con un reloj fijo, los dos criterios: rechazo con el cazador en clase y con el objetivo en clase (con `motivo` y `disponibleEn`), sin gastar intentos ni comparar el código (también con un código incorrecto); aceptación fuera de clase y justo al acabar el tramo; y la carta antes, durante y al acabar la clase, también con dos franjas seguidas y con el cambio de hora de octubre.
 
