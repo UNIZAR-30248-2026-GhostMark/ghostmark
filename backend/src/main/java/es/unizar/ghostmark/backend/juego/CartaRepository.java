@@ -14,9 +14,11 @@ public class CartaRepository {
     private static final int INTENTOS = 3;
 
     private final JdbcTemplate jdbc;
+    private final HorarioLectivo horario;
 
-    public CartaRepository(JdbcTemplate jdbc) {
+    public CartaRepository(JdbcTemplate jdbc, HorarioLectivo horario) {
         this.jdbc = jdbc;
+        this.horario = horario;
     }
 
     public List<UUID> misionesActivas() {
@@ -40,8 +42,8 @@ public class CartaRepository {
                 left join mision m on m.id = jp.mision_id
                 where jp.partida_id = ? and jp.inscripcion_id = ?
                 """, (fila, numero) -> {
-                    boolean caza = "VIVO".equals(fila.getString("estado"))
-                            && fila.getObject("objetivo_id", UUID.class) != null;
+                    UUID objetivoId = fila.getObject("objetivo_id", UUID.class);
+                    boolean caza = "VIVO".equals(fila.getString("estado")) && objetivoId != null;
                     OffsetDateTime bloqueo = fila.getObject("bloqueado_hasta",
                             OffsetDateTime.class);
                     boolean bloqueado = caza && bloqueo != null
@@ -49,7 +51,9 @@ public class CartaRepository {
                     return new Carta(fila.getString("estado"), fila.getString("alias"),
                             fila.getString("texto"), fila.getInt("eliminaciones"),
                             caza ? INTENTOS - fila.getInt("intentos_fallidos") : null,
-                            bloqueado ? bloqueo.toInstant() : null);
+                            bloqueado ? bloqueo.toInstant() : null,
+                            caza ? horario.noDisponible(inscripcionId, objetivoId, ahora)
+                                    .orElse(null) : null);
                 }, partidaId, inscripcionId).stream().findFirst();
     }
 }
