@@ -251,6 +251,7 @@ Los eventos no se modifican ni se borran. Con la PBI 14, al cerrar la partida se
 |--|--|--|--|
 | `PARTIDA_CREADA` | El máster crea la partida | La configuración: `nombre`, `inicioEn`, `finEn`, `tipoMisiones`, `plazoDisputaHoras`, `entradasTardias`, `masterJuega` | 2.2 |
 | `CONFIGURACION_CAMBIADA` | El máster edita antes del arranque | Solo los campos que cambian, con su valor nuevo | 2.6 |
+| `ZONAS_CAMBIADAS` | El máster guarda las zonas seguras antes del arranque | `zonas`: la lista entera tras el cambio, cada una con `id`, `nombre` y `puntos` (`[{lat, lon}]`) | 10a.2 |
 | `JUGADOR_INSCRITO` | Alguien se inscribe, el máster crea la partida jugando (y la migración de la 3.2 para las partidas ya creadas) o activa «Yo también juego» al editar | `inscripcionId` | 3.2; 2.6 al editar |
 | `INSCRIPCION_RETIRADA` | El máster desactiva «Yo también juego» al editar, o un inscrito borra su cuenta con la partida sin arrancar (`EN_INSCRIPCION` o `CANCELADA`) | `inscripcionId`, `motivo` (`MASTER_NO_JUEGA`, `CUENTA_BORRADA`) | 2.6 (`MASTER_NO_JUEGA`); 3.2 (`CUENTA_BORRADA`) |
 | `PARTIDA_ARRANCADA` | Llega `inicio_en` con 3 o más, o «Arrancar ya» | `modo` (`PROGRAMADO`, `ADELANTADO`), `numJugadores` | 4.2 |
@@ -259,10 +260,10 @@ Los eventos no se modifican ni se borran. Con la PBI 14, al cerrar la partida se
 | `MISIONES_REPARTIDAS` | Justo después de `CICLO_FORMADO` | `asignaciones`: lista de `{inscripcionId, misionId}` | 5.2 |
 | `MISIONES_GENERADAS` | El máster pide una tanda a la IA | `tanda` (1-5), `contexto`, `misionIds` (las que llegan al máster), `descartadas` (cuántas quitaron la validación y el filtro) | 6a.2 |
 | `MISION_REVISADA` | El máster aprueba o rechaza una misión de la IA | `misionId`, `decision` (`APROBADA`, `RECHAZADA`) | 6a.2 |
-| `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo); los tres jugadores, por su `inscripcionId` | 7a.3 |
+| `JUGADOR_ELIMINADO` | Un cazador introduce el código de vida correcto de su objetivo | `cazadorId`, `victimaId`, `misionId` (la que cumplió el cazador), `objetivoHeredadoId` y `misionHeredadaId` (nulos si el cazador queda como único vivo); los tres jugadores, por su `inscripcionId`. Desde la 10b, `resultadoZona` (`DENTRO`, `FUERA`, `NO_CONCLUYENTE`) | 7a.3; 10b.1 |
 | `PARTIDA_CERRADA` | Queda un único vivo, llega `fin_en` o el máster pulsa «Cerrar partida» | `motivo` (`ULTIMO_SUPERVIVIENTE`, `FECHA_FIN`, `MASTER`), `resultado` (`SUPERVIVIENTE`, `GANADOR`, `EMPATE`), `ganadores` (lista de `inscripcionId`), `eliminaciones` (las del ganador o de los empatados) | 8.2 |
 
-**Reconstruir el estado** (test de la tarea 4.6): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a), salvo `secreto_codigo`, `intentos_fallidos` y `bloqueado_hasta`, que no salen de eventos, y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (disputa, abandono…) a esta tabla.
+**Reconstruir el estado** (test de la tarea 4.6; desde la 10a.2, `zona_segura` tiene que coincidir con el último `ZONAS_CAMBIADAS`): partiendo de una partida vacía, se aplica cada evento en orden de `secuencia`. El resultado tiene que coincidir con la columna `estado`, con las filas de `jugador_partida` (desde la PBI 7a), salvo `secreto_codigo`, `intentos_fallidos` y `bloqueado_hasta`, que no salen de eventos, y con los objetivos y misiones que devuelve la API. Las PBI siguientes añaden sus tipos (disputa, abandono…) a esta tabla.
 
 ## Código de vida y eliminación (PBI 7a, #7, y PBI 7b, #189)
 
@@ -482,4 +483,87 @@ La respuesta de «eliminar» también lleva la carta con `noDisponible`: si el o
 - **9.2 (servidor):** el cálculo de «en clase» y `disponibleEn`, la lista de reglas con la del horario, `HORARIO_LECTIVO` en «eliminar» y `noDisponible` en la carta.
 - **9.3 (app):** la carta dormida, la cuenta atrás, «Eliminar» desactivado, el mensaje del rechazo y la recarga en punto y a y media.
 - **9.4 (tests de aceptación):** con un reloj fijo, los dos criterios: rechazo con el cazador en clase y con el objetivo en clase (con `motivo` y `disponibleEn`), sin gastar intentos ni comparar el código (también con un código incorrecto); aceptación fuera de clase y justo al acabar el tramo; y la carta antes, durante y al acabar la clase, también con dos franjas seguidas y con el cambio de hora de octubre.
+
+## Zonas seguras (PBI 10a, #10, y PBI 10b, #272)
+
+El máster dibuja zonas seguras en un mapa hasta el arranque y todos los de la partida las ven (10a). Al introducir el código, el móvil del cazador comprueba si está en una y solo se guarda el resultado, nunca la posición (10b). Las zonas no bloquean nada: el resultado de zona solo se mira si hay disputa (PBI 11a). Este diseño es común a las dos partes: desde aquí, la 10a y la 10b se hacen a la vez (R12-2).
+
+```mermaid
+erDiagram
+    partida ||--o{ zona_segura : "zonas seguras"
+    zona_segura {
+        uuid id PK
+        uuid partida_id FK
+        varchar nombre "1-30, único en la partida"
+        geometry poligono "Polygon, EPSG:4326"
+        timestamptz creada_en
+    }
+```
+
+### `zona_segura`
+
+| Columna | Tipo | Restricciones | Regla de producto |
+|--|--|--|--|
+| `id` | `uuid` | clave primaria | |
+| `partida_id` | `uuid` | clave ajena a `partida`, `on delete cascade`; índice | |
+| `nombre` | `varchar(30)` | no nulo; de 1 a 30 caracteres sin contar espacios de los extremos; índice único sobre `(partida_id, lower(nombre))` | «Biblioteca», «Aulario B». Distinto dentro de la partida (R12-17) |
+| `poligono` | `geometry(Polygon, 4326)` | no nulo; `check (ST_IsValid(poligono) and ST_NPoints(poligono) between 4 and 21)` | De 3 a 20 puntos sin lados que se crucen (R12-17). El anillo se guarda cerrado, por eso son de 4 a 21 |
+| `creada_en` | `timestamptz` | no nulo | |
+
+- Migración: `V202611161000__zona_segura.sql` (PostGIS ya está activado desde la 1.4).
+- Hasta 10 zonas por partida (R12-17): lo comprueba el servicio, no la base de datos.
+- **La posición de un jugador no se guarda nunca, en ninguna tabla.** Las coordenadas de esta tabla son las del dibujo del máster.
+- **Borrar la cuenta:** las zonas son de la partida, no de una persona; no cambian. Si el máster borra su cuenta con la partida en inscripción, la partida se cancela y las zonas se quedan con ella.
+
+### Guardar las zonas (10a)
+
+- `PUT /partidas/{id}/zonas` con la lista entera: las que no vienen se borran, las que traen `id` se modifican y las que no, se crean. Así crear, modificar y borrar es una sola operación, y la lista nunca queda a medias.
+- Solo el máster (juegue o no), con la partida `EN_INSCRIPCION` (R12-4): si no, 409 `PARTIDA_NO_EDITABLE`, como al editar la partida. Una lista vacía borra todas.
+- **Orden de las comprobaciones:** quien no es máster ni inscrito, 404; un inscrito que no es el máster, 403 `NO_ES_MASTER`; partida que no está `EN_INSCRIPCION`, 409; lista no válida, 400.
+- En una transacción, con la fila de la partida bloqueada: se valida la lista, se borran todas las filas de la partida y se insertan las de la lista (las que traen `id`, con ese `id` y su `creada_en`), y se guarda `ZONAS_CAMBIADAS` con la lista nueva. Borrar e insertar, en vez de actualizar fila a fila, evita que dos zonas que se intercambian el nombre choquen con el índice único a mitad de la operación.
+- **Validación (400 `DATOS_NO_VALIDOS`, con `errores`):** como mucho 10 zonas; nombre de 1 a 30 caracteres, que se guarda sin los espacios de los extremos y sin repetir (sin distinguir mayúsculas); de 3 a 20 puntos, con latitud de −90 a 90 y longitud de −180 a 180, sin puntos repetidos ni lados que se crucen. Un `id` que no es de una zona de esta partida, o repetido en la lista, también es 400. Los lados que se cruzan se comprueban con PostGIS (`ST_IsValid(ST_MakePolygon(…))`) antes de insertar, para responder 400 y no un 500 por la restricción de la tabla.
+- **Al crear la partida,** el asistente guarda las zonas en el móvil y llama a este `PUT` justo después de `POST /partidas`. Si falla, la partida ya existe sin zonas y el máster las añade desde la ficha. Desde la ficha, mientras está en inscripción, se modifican igual.
+- **Al arrancar** se congelan: el `PUT` responde 409.
+
+### Ver las zonas (10a)
+
+- `GET /partidas/{id}/zonas` devuelve la lista, ordenada por nombre, con `id`, `nombre` y `puntos` (sin repetir el primero al final), en cualquier estado de la partida, al máster y a los inscritos (también a los eliminados). Otra cuenta recibe 404.
+- La pestaña Partida enseña a cada jugador un mapa de solo lectura con las zonas y su nombre (R12-5). No pide la ubicación ni enseña la posición de nadie, tampoco la propia.
+
+### El mapa en la app (10a)
+
+- **Leaflet sobre OpenStreetMap, en un `WebView`** (R12-16), con la versión 1.9.4 cargada de unpkg con su `integrity`. Las teselas vienen de `tile.openstreetmap.org` y el mapa enseña la atribución «© OpenStreetMap».
+- **Riesgo de las teselas:** los servidores de OpenStreetMap rechazan peticiones sin `Referer`, y un `WebView` con HTML en línea no lo manda. El `WebView` se crea con `source={{ html, baseUrl }}` y `baseUrl` la dirección del servidor en Render, y se comprueba en Android lo primero de la 10a.3. Si aun así se rechazan, se cambia de proveedor de teselas en la misma tarea.
+- Un único componente `MapaZonas` con dos modos: **edición** (el máster toca puntos para cerrar un polígono, le pone nombre, lo mueve o lo borra; pantalla `e4-zonas`) y **lectura** (`f-partida-zonas`). La app y el `WebView` se pasan las zonas como JSON con `postMessage`; el `WebView` no llama a la API. El modo edición valida en la app los mismos límites que el servidor, para avisar antes de guardar.
+- El paso de zonas entra en el asistente de crear partida: el test que cuenta sus pasos se actualiza en la 10a.3.
+- **Hace falta un APK nuevo.** `react-native-webview` es un módulo nativo que el APK 0.3.0 no tiene, y la app se publica con actualizaciones de Expo (`runtimeVersion` = versión de la app). La 10a.3 añade la dependencia con `npx expo install react-native-webview`, sube la versión a 0.4.0 en `app.json` y `package.json` y genera el APK nuevo con EAS; los móviles con el 0.3.0 dejan de recibir actualizaciones y hay que instalar el 0.4.0.
+
+### Comprobar la zona al eliminar (10b)
+
+- **Permiso:** «Eliminar» no deja escribir el código sin el permiso de ubicación del sistema concedido (`expo-location`); si no lo está, enseña `f-sin-ubicacion` con el botón para pedirlo o abrir los ajustes. Hace falta también en una partida sin zonas (R12-19).
+- **Al mandar el código,** el móvil del cazador calcula el resultado con las zonas de la partida (las pide con el `GET` de arriba al abrir «Eliminar») y lo manda junto al código:
+  - Pide la posición una vez, con su precisión (radio en metros), y espera como mucho 10 s.
+  - `NO_CONCLUYENTE` si la precisión es peor de 50 m o no hay posición en 10 s (R12-18).
+  - Si no, `DENTRO` si el círculo de la precisión cae entero dentro de alguna zona (aunque toque el borde de otra que se solape); `FUERA` si cae entero fuera de todas; `NO_CONCLUYENTE` en cualquier otro caso, porque cruza un borde.
+  - «Entero dentro» es que el punto está dentro del polígono y su distancia a cada lado es al menos la precisión; «entero fuera», que está fuera y la distancia a cada lado es al menos la precisión.
+  - Sin zonas en la partida no se consulta la posición y se manda `FUERA` (R12-19).
+  - El cálculo es una función pura de la app (punto, precisión, polígonos), con proyección local en metros, y se prueba sin GPS.
+- **La posición no sale del móvil:** se usa para calcular el resultado y se descarta. La API no la acepta: `NuevaEliminacion` solo admite `codigo` y `resultadoZona`, y cualquier otro campo (por ejemplo `latitud`) responde 400 `DATOS_NO_VALIDOS`. Spring Boot ignora por defecto los campos que no conoce, así que el cuerpo lleva un `@JsonAnySetter` que los rechaza. Un test lo comprueba (definición de hecho).
+- **En el servidor (10b.1):** `resultadoZona` es obligatorio (sin él, 400) y se guarda en `datos` de `JUGADOR_ELIMINADO`. La eliminación se acepta igual con cualquier resultado; no se devuelve ni se enseña a nadie hasta que haya una disputa (PBI 11a). Los tests que ya eliminan (7a, 7b y 8) pasan a mandarlo.
+- **Orden de subida: la 10b.2 antes que la 10b.1.** El servidor actual ignora el campo nuevo, así que la app que ya lo manda funciona con él; al revés, un servidor que lo exige rechazaría todas las eliminaciones de la app en producción hasta que llegara la 10b.2. La PR de la 10b.1 no se fusiona hasta que la 10b.2 esté en `main`.
+
+### Quién puede hacer qué
+
+| Operación | Máster (juegue o no) | Jugador inscrito | Otra cuenta |
+|--|--|--|--|
+| Guardar las zonas | Sí, solo en inscripción | No (`NO_ES_MASTER`) | No (404) |
+| Ver las zonas | Sí | Sí | No (404) |
+
+### Quién hace qué
+
+- **10a.2 (servidor):** el `PUT` y el `GET` de las zonas, `ZONAS_CAMBIADAS` y la validación.
+- **10a.3 (app):** `MapaZonas` en modo edición en el asistente y en la ficha del máster, `react-native-webview` y el APK 0.4.0.
+- **10a.4 (app):** el modo lectura en la pestaña Partida.
+- **10b.1 (servidor):** `resultadoZona` en «eliminar», guardado en el evento, y el 400 ante cualquier coordenada.
+- **10b.2 (app):** el permiso en «Eliminar», el cálculo del resultado y su envío.
 
