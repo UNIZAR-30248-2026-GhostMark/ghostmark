@@ -288,6 +288,7 @@ public class ServicioPartida {
         vista.put("numInscritos", inscripciones.contar(partida.getId()));
         vista.put("motivoCancelacion", motivoCancelacion(partida));
         vista.put("resultado", resultado(partida));
+        vista.put("disputasPorArbitrar", contarDisputas(partida.getId(), cuentaId));
         return vista;
     }
 
@@ -316,7 +317,18 @@ public class ServicioPartida {
         vista.put("numInscritos", inscripciones.contar(partida.getId()));
         vista.put("creadaEn", partida.getCreadaEn().toString());
         vista.put("resultado", resultado(partida));
+        vista.put("disputasPorArbitrar", contarDisputas(partida.getId(), partida.getMasterId()));
         return vista;
+    }
+
+    private int contarDisputas(UUID partidaId, UUID cuentaId) {
+        return jdbc.queryForObject("select count(*) from disputa d"
+                        + " left join inscripcion i on i.id = d.arbitro_id"
+                        + " where d.partida_id = ? and d.estado = 'ABIERTA'"
+                        + " and ((d.arbitro_id is null and"
+                        + " ?::uuid = (select master_id from partida where id = ?))"
+                        + " or (d.arbitro_id is not null and i.cuenta_id = ?::uuid))",
+                Integer.class, partidaId, cuentaId, partidaId, cuentaId);
     }
 
     private Map<String, Object> resultado(Partida partida) {

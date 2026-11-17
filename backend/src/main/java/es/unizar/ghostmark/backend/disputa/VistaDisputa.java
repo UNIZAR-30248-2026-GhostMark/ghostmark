@@ -48,7 +48,14 @@ public class VistaDisputa {
                 + " left join evento e on e.id = d.evento_eliminacion_id"
                 + " left join jugador_partida jp on jp.inscripcion_id = d.cazador_id"
                 + " left join mision m on m.id = case when d.tipo = 'ELIMINACION'"
-                + " then (e.datos->>'misionId')::uuid else jp.mision_id end"
+                + " then (e.datos->>'misionId')::uuid else coalesce("
+                // En una negativa ganada por el cazador, la misión con la que la eliminó (11a.3)
+                + " (select (ev.datos->>'misionId')::uuid from evento ev"
+                + " where ev.partida_id = d.partida_id and ev.tipo = 'JUGADOR_ELIMINADO'"
+                + " and ev.datos->>'origen' = 'DISPUTA'"
+                + " and ev.datos->>'cazadorId' = d.cazador_id::text"
+                + " and ev.datos->>'victimaId' = d.victima_id::text"
+                + " order by ev.secuencia desc limit 1), jp.mision_id) end"
                 + " where d.id = ?", disputa.id());
         Map<String, Object> nombres = datos.getFirst();
         Map<String, Object> vista = new LinkedHashMap<>();
