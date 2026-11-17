@@ -260,7 +260,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'CreateGameMissions', 'CreateGameZones', 'ReviewAiMissions', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome', 'GameTab', 'GameEnded', 'Caught', 'OpenDispute', 'Dispute', 'DisputeList', 'Feed']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'CreateGameMissions', 'CreateGameZones', 'ReviewAiMissions', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome', 'GameTab', 'SafeZonesMap', 'GameEnded', 'Caught', 'OpenDispute', 'Dispute', 'DisputeList', 'Feed']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);

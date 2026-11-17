@@ -92,9 +92,10 @@ test('#258: en la pestaña Partida, el máster que no juega solo tiene Feed y Pa
     '@react-navigation/native': { useIsFocused: () => true },
     '../api/client': { ApiError: class ApiError extends Error {} },
     '../api/auth': { getCurrentAccount: () => ({ alias: 'imad' }) },
-    '../api/game': { getMyGames: async () => [game], closeGame: async () => game },
+    '../api/game': { getMyGames: async () => [game], closeGame: async () => game, getSafeZones: async () => ({ zonas: [] }) },
     '../api/inscription': { getPlayers: async () => [{ id: 'i1', alias: 'ana', esMaster: false }] },
     '../components/ConfirmDialog': { ConfirmDialog: 'ConfirmDialog' },
+    '../components/MapZones': { MapZones: 'MapZones' },
   });
   await mount(GameTabScreen, { navigation: { navigate() {}, replace() {} }, route: { params: { gameId: 'p1' } } });
   assert.equal(texts().includes('Misión'), false);
