@@ -90,7 +90,9 @@ export function EliminateScreen({ navigation, route }: Props) {
           setNow(() => Date.now());
           setStateReady(true);
         }
-        setError(requestError.message);
+        setError(requestError.code === "HORARIO_LECTIVO"
+          ? unavailableMessage(requestError.details, route.params.targetAlias)
+          : requestError.message);
       } else {
         setError("No hemos podido comprobar el código. Inténtalo de nuevo.");
       }
@@ -133,6 +135,17 @@ export function EliminateScreen({ navigation, route }: Props) {
       <View style={styles.keypad}>{keypad.map((key, index) => key ? <Pressable accessibilityLabel={key === "←" ? "Borrar último dígito" : `Introducir ${key}`} accessibilityRole="button" disabled={sending || blocked || !stateReady} key={key} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, pressed && !blocked && stateReady && styles.pressed, (sending || blocked || !stateReady) && styles.disabled]}><Text style={styles.keyText}>{key === "←" ? "⌫" : key}</Text></Pressable> : <View key={`empty-${index}`} style={styles.keyPlaceholder} />)}</View>
     </View>
   </View>;
+}
+
+function unavailableMessage(details: Readonly<Record<string, unknown>>, targetAlias?: string | null) {
+  const who = details.motivo === "CAZADOR" ? "Estás" : `${targetAlias ?? "Tu objetivo"} está`;
+  const availableAt = typeof details.disponibleEn === "string" ? Date.parse(details.disponibleEn) : Number.NaN;
+  if (Number.isNaN(availableAt)) return `${who} en clase.`;
+  const minutes = Math.max(1, Math.ceil((availableAt - Date.now()) / 60_000));
+  const remaining = minutes >= 60
+    ? `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ""}`
+    : `${minutes} min`;
+  return `${who} en clase. Disponible en ${remaining}.`;
 }
 
 const styles = StyleSheet.create({

@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { test, afterEach } = require('node:test');
+const { test, afterEach, mock } = require('node:test');
 const ts = require('typescript');
 const React = require('react');
 const { act, create } = require('react-test-renderer');
@@ -124,4 +124,53 @@ test('ELIMINAR abre «Eliminar» con los intentos y el bloqueo de la carta', asy
   const button = tree.root.findAllByType('Pressable').find((node) => node.findAllByType('Text').some((text) => text.props.children === 'ELIMINAR'));
   await act(async () => button.props.onPress());
   assert.deepEqual(destination, ['Eliminate', { gameId: 'partida-propia', targetAlias: 'Pablo', attemptsLeft: 2, blockedUntil: '2026-11-09T10:31:00Z' }]);
+});
+
+test('la carta dormida explica que el objetivo está en clase y desactiva Eliminar', async () => {
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
+    '../api/client': { ApiError: class ApiError extends Error {} },
+    '../api/game': { getMyMissionCard: async () => ({ estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null, noDisponible: { motivo: 'OBJETIVO', disponibleEn: new Date(Date.now() + 80 * 60_000).toISOString() } }) },
+  });
+  await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
+  const shown = JSON.stringify(tree.toJSON());
+  assert.match(shown, /Pablo está en clase/);
+  assert.match(shown, /DISPONIBLE EN/);
+  const button = tree.root.findAllByType('Pressable').find((node) => node.findAllByType('Text').some((text) => text.props.children === 'ELIMINAR'));
+  assert.equal(button.props.disabled, true);
+});
+
+test('la carta dormida dice que estás en clase si el horario es del cazador', async () => {
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
+    '../api/client': { ApiError: class ApiError extends Error {} },
+    '../api/game': { getMyMissionCard: async () => ({ estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null, noDisponible: { motivo: 'CAZADOR', disponibleEn: new Date(Date.now() + 20 * 60_000).toISOString() } }) },
+  });
+  await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
+  assert.match(JSON.stringify(tree.toJSON()), /Estás en clase/);
+});
+
+test('la carta se vuelve a pedir en el siguiente en punto o y media y se duerme si el objetivo entra en clase', async () => {
+  // Martes 17 nov, 17:59:30 en Madrid; Pablo entra en clase a las 18:00.
+  mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: Date.parse('2026-11-17T16:59:30Z') });
+  try {
+    let calls = 0;
+    const base = { estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null };
+    const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
+      '../api/client': { ApiError: class ApiError extends Error {} },
+      '../api/game': { getMyMissionCard: async () => { calls += 1; return calls === 1 ? { ...base, noDisponible: null } : { ...base, noDisponible: { motivo: 'OBJETIVO', disponibleEn: '2026-11-17T19:30:00Z' } }; } },
+    });
+    await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
+    assert.equal(calls, 1);
+    assert.equal(JSON.stringify(tree.toJSON()).includes('está en clase'), false);
+    await act(async () => mock.timers.tick(31_999));
+    assert.equal(calls, 1, 'no se pide antes de las 18:00:02');
+    await act(async () => mock.timers.tick(1));
+    assert.equal(calls, 2, 'se pide a las 18:00:02');
+    const shown = JSON.stringify(tree.toJSON());
+    assert.equal(shown.includes('Pablo está en clase'), true);
+    assert.equal(shown.includes('Pablo está en clase. Disponible en 2 H 30 MIN'), true, 'cuenta atrás hasta las 20:30');
+  } finally {
+    if (tree) await act(async () => tree.unmount());
+    tree = undefined;
+    mock.timers.reset();
+  }
 });
