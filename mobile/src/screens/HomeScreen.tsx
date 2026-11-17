@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -40,8 +41,11 @@ export function HomeScreen({ navigation, route }: Props) {
   const [attempt, setAttempt] = useState(0);
   const { featuredGame, otherGames } = selectHomeGames(games);
   const showServerWakeupNotice = useServerWakeupNotice(gamesState === "loading", attempt);
+  const isFocused = useIsFocused();
 
+  // Se recarga cada vez que se vuelve a Inicio, por ejemplo tras inscribirse por QR (R11-39).
   useEffect(() => {
+    if (!isFocused) return undefined;
     let mounted = true;
     void getMyGames().then((saved) => {
       if (mounted) {
@@ -52,7 +56,7 @@ export function HomeScreen({ navigation, route }: Props) {
       if (mounted && !route.params?.createdGame) setGamesState("error");
     });
     return () => { mounted = false; };
-  }, [attempt, route.params?.createdGame]);
+  }, [attempt, isFocused, route.params?.createdGame]);
 
   function retryGames() {
     setGamesState("loading");

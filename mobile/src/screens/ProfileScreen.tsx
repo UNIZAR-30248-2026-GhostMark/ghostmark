@@ -3,10 +3,11 @@ import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { useCallback, useState } from "react";
-import { Alert, AppState, Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { AppState, Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { deleteAccount } from "../api/account";
 import { clearSession, getCurrentAccount, signOut as closeSession } from "../api/auth";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import { bangers } from "../theme/bangers";
@@ -20,6 +21,7 @@ export function ProfileScreen({ navigation }: Props) {
   const aliasFontSize = alias.length >= 14 ? Math.max(14, Math.floor(240 / alias.length)) : 25;
   const [error, setError] = useState<string>();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [locationGranted, setLocationGranted] = useState<boolean>();
 
   const refreshLocationPermission = useCallback(async () => {
@@ -40,14 +42,7 @@ export function ProfileScreen({ navigation }: Props) {
   }, [refreshLocationPermission]));
 
   function removeAccount() {
-    Alert.alert(
-      "¿Borrar tu cuenta?",
-      "Se eliminarán tu alias, datos de acceso, horario y amistades. Esta acción no se puede deshacer.",
-      [
-        { style: "cancel", text: "Cancelar" },
-        { style: "destructive", text: "Borrar cuenta", onPress: confirmDelete },
-      ],
-    );
+    setConfirmingDelete(true);
   }
 
   async function confirmDelete() {
@@ -128,6 +123,7 @@ export function ProfileScreen({ navigation }: Props) {
           <View style={[styles.navItem, styles.navItemActive]}><Ionicons color={colors.ink} name="person-circle-outline" size={20} /><Text style={[styles.navText, styles.navTextActive]}>Perfil</Text></View>
         </View>
       </View>
+      <ConfirmDialog confirmLabel="Borrar cuenta" destructive message="Se eliminarán tu alias, datos de acceso, horario y amistades. Esta acción no se puede deshacer." onCancel={() => setConfirmingDelete(false)} onConfirm={() => { setConfirmingDelete(false); void confirmDelete(); }} title="¿Borrar tu cuenta?" visible={confirmingDelete} />
     </Screen>
   );
 }

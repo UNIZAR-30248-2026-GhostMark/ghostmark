@@ -318,6 +318,6 @@ test('el máster que no juega no puede ir a una carta que no tiene', async () =>
   const { FeedScreen } = feed(() => []);
   await mount(FeedScreen, { navigation: navigationMock(), route: { params: { gameId: 'p7', isPlayer: false } } });
   assert.equal(byLabel('Ir a mi misión') === undefined, true);
-  assert.equal(hasText('Misión'), true);
+  assert.equal(hasText('Misión'), false, 'su barra es Feed y Partida (R11-36)');
   assert.equal(byLabel('Ir a la pestaña Partida') !== undefined, true);
 });

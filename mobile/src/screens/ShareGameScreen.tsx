@@ -38,14 +38,15 @@ export function ShareGameScreen({ navigation, route }: Props) {
         <Text style={styles.heading}>¡PARTIDA CREADA!</Text>
         <View style={styles.card}>
           <View accessible accessibilityLabel={`QR de invitación a ${game.nombre}. Enlace: ${link}`} accessibilityRole="image">
-            <QRCode value={link} size={Math.min(240, Math.max(120, width - 130))} quietZone={16} color="#000000" backgroundColor="#FFFFFF" />
+            <QRCode value={link} size={Math.min(210, Math.max(120, width - 150))} quietZone={16} color="#000000" backgroundColor="#FFFFFF" />
           </View>
+          {/* El código va junto al QR, visible sin desplazar (R11-35). */}
+          <Text accessibilityLabel={`Código de la partida: ${game.codigoInvitacion}`} selectable style={styles.cardCode}>{game.codigoInvitacion}</Text>
           <View style={styles.cardFooter}>
             <Text style={styles.gameName}>{game.nombre}</Text>
             <Image accessible={false} source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.ghost} />
           </View>
         </View>
-        <Text style={styles.code}>Código: {game.codigoInvitacion}</Text>
         <Text selectable style={styles.link}>{link}</Text>
         {message ? <Text accessibilityLiveRegion="polite" style={styles.message}>{message}</Text> : null}
       </ScrollView>
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   cardFooter: { alignItems: "center", flexDirection: "row", width: "100%" },
   gameName: { flex: 1, color: colors.ink, ...bangers(25), maxWidth: "100%", paddingHorizontal: 12, paddingBottom: 12, textAlign: "center" },
   ghost: { height: 60, resizeMode: "contain", width: 60 },
-  code: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 16, marginTop: 20, textAlign: "center" },
+  cardCode: { color: colors.ink, ...bangers(30), letterSpacing: 2, marginTop: 4, textAlign: "center" },
   link: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, marginTop: 8, textAlign: "center" },
   message: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 13, textAlign: "center" },
   actions: { gap: 14, paddingTop: 12, paddingBottom: 4 },

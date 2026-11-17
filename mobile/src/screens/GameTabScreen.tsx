@@ -1,11 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
 import { getCurrentAccount } from "../api/auth";
 import { closeGame, getMyGames } from "../api/game";
 import { getPlayers } from "../api/inscription";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { bangers } from "../theme/bangers";
@@ -42,12 +43,11 @@ export function GameTabScreen({ navigation, route }: Props) {
     return () => { active = false; };
   }, [attempt, navigation, route.params.gameId]);
 
+  const [confirmingClose, setConfirmingClose] = useState(false);
+
   function confirmFinish() {
     // Cerrar no se puede deshacer y termina la partida para todos (R11-24).
-    Alert.alert("¿Cerrar la partida?", "Termina para todos y no se puede deshacer.", [
-      { style: "cancel", text: "Cancelar" },
-      { style: "destructive", text: "Cerrar", onPress: () => void finishGame() },
-    ]);
+    setConfirmingClose(true);
   }
 
   async function finishGame() {
@@ -71,12 +71,14 @@ export function GameTabScreen({ navigation, route }: Props) {
           : <>{game.soyMaster ? <MasterTasks /> : null}<View style={styles.playersHeading}><Text style={styles.sectionTitle}>JUGADORES</Text>{players.every((player) => player.estado) ? <Text style={styles.count}>{players.filter((player) => player.estado === "VIVO").length} vivos de {players.length}</Text> : null}</View><View style={styles.players}>{players.map((player) => <PlayerRow currentAlias={getCurrentAccount()?.alias} key={player.id} player={player} />)}</View></>}
     </ScrollView>
     {game ? <Actions isClosing={isClosing} isMaster={game?.soyMaster ?? false} onClose={confirmFinish} /> : null}
+    <ConfirmDialog confirmLabel="Cerrar" destructive message="Termina para todos y no se puede deshacer." onCancel={() => setConfirmingClose(false)} onConfirm={() => { setConfirmingClose(false); void finishGame(); }} title="¿Cerrar la partida?" visible={confirmingClose} />
   </View></Screen>;
 }
 
 function Tabs({ game, navigation }: { game?: GameSummary; navigation: Props["navigation"] }) {
   return <View style={styles.tabs}>
-    {game?.soyJugador ? <Pressable accessibilityLabel="Ir a mi misión" accessibilityRole="button" onPress={() => navigation.navigate("MissionCard", { gameId: game.id })} style={styles.tab}><Text style={styles.tabText}>Misión</Text></Pressable> : <View style={styles.tab}><Text style={styles.tabText}>Misión</Text></View>}
+    {/* El máster que no juega no tiene misión: su barra es Feed y Partida (R11-36). */}
+    {game?.soyJugador ? <Pressable accessibilityLabel="Ir a mi misión" accessibilityRole="button" onPress={() => navigation.navigate("MissionCard", { gameId: game.id })} style={styles.tab}><Text style={styles.tabText}>Misión</Text></Pressable> : !game ? <View style={styles.tab}><Text style={styles.tabText}>Misión</Text></View> : null}
     {game ? <Pressable accessibilityLabel="Ir al feed" accessibilityRole="button" onPress={() => navigation.navigate("Feed", { gameId: game.id, isPlayer: game.soyJugador })} style={styles.tab}><Text style={styles.tabText}>Feed</Text></Pressable> : <View style={styles.tab}><Text style={styles.tabText}>Feed</Text></View>}
     <View style={styles.tabOn}><Text style={styles.tabOnText}>PARTIDA</Text></View>
   </View>;

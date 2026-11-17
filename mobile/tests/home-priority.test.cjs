@@ -11,6 +11,7 @@ function loadHome() {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', code)((id) => {
     if (id === '@expo/vector-icons') return { Ionicons: 'Ionicons' };
+    if (id === '@react-navigation/native') return { useIsFocused: () => true };
     if (id === 'react-native') return { ActivityIndicator: 'ActivityIndicator', Image: 'Image', Pressable: 'Pressable', ScrollView: 'ScrollView', StyleSheet: { create: (styles) => styles }, Text: 'Text', View: 'View' };
     if (id === '../api/game') return { getMyGames: async () => [] };
     if (id === '../components/PrimaryButton') return { PrimaryButton: 'PrimaryButton' };

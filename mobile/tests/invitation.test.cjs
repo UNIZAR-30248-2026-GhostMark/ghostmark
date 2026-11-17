@@ -32,6 +32,7 @@ const native = {
   StyleSheet: { create: (styles) => styles }, useWindowDimensions: () => ({ width: 390, height: 844 }),
 };
 const common = {
+  '../components/ConfirmDialog': { ConfirmDialog: 'ConfirmDialog' },
   'react-native': native,
   '../components/Screen': { Screen: 'Screen' },
   '../components/PrimaryButton': { PrimaryButton: 'PrimaryButton' },
@@ -311,7 +312,7 @@ test('desde el alta, «¿Ya tienes cuenta? Inicia sesión» vuelve a «Iniciar s
 test('cerrar sesión y borrar la cuenta llevan a «Iniciar sesión»', async () => {
   const resets = [];
   const { ProfileScreen } = load('screens/ProfileScreen.tsx', { ...common,
-    'react-native': { ...native, Alert: { alert: (_title, _message, buttons) => buttons[1].onPress() }, AppState: { addEventListener: () => ({ remove() {} }) }, Linking: { openSettings: async () => undefined } },
+    'react-native': { ...native, Alert: { alert() { throw new Error('sin aviso del sistema (R11-40)'); } }, AppState: { addEventListener: () => ({ remove() {} }) }, Linking: { openSettings: async () => undefined } },
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
     '@react-navigation/native': { useFocusEffect: (effect) => React.useEffect(effect, [effect]) },
     'expo-location': { getForegroundPermissionsAsync: async () => ({ granted: true, canAskAgain: true }) },
@@ -322,6 +323,11 @@ test('cerrar sesión y borrar la cuenta llevan a «Iniciar sesión»', async () 
   const pressable = (label) => tree.root.findAll((node) => node.type === 'Pressable' && node.findAllByType('Text').some((text) => text.props.children === label))[0];
   await act(async () => pressable('Cerrar sesión').props.onPress());
   await act(async () => pressable('BORRAR MI CUENTA').props.onPress());
+  assert.deepEqual(resets, ['SignIn'], 'no borra sin confirmar');
+  const dialog = tree.root.findByType('ConfirmDialog');
+  assert.equal(dialog.props.title, '¿Borrar tu cuenta?');
+  assert.equal(dialog.props.visible, true);
+  await act(async () => tree.root.findByType('ConfirmDialog').props.onConfirm());
   assert.deepEqual(resets, ['SignIn', 'SignIn']);
 });
 
@@ -416,6 +422,7 @@ test('Unirse desde Inicio abre el escáner', async () => {
   const destinations = [];
   const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '@react-navigation/native': { useIsFocused: () => true },
     '../api/game': { getMyGames: async () => [] },
   });
   await mount(HomeScreen, { navigation: { navigate: (name) => destinations.push(name) }, route: { params: undefined } });
@@ -429,6 +436,7 @@ test('Inicio solo ofrece «VER MISIÓN» en una partida en juego si la cuenta ju
   for (const soyJugador of [true, false]) {
     const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
       '@expo/vector-icons': { Ionicons: 'Ionicons' },
+      '@react-navigation/native': { useIsFocused: () => true },
       '../api/game': { getMyGames: async () => [{ ...game, estado: 'EN_JUEGO', soyMaster: !soyJugador, soyJugador }] },
     });
     await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
@@ -443,6 +451,7 @@ test('Inicio abre la carta del jugador o la pestaña Partida del máster', async
     const destinations = [];
     const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
       '@expo/vector-icons': { Ionicons: 'Ionicons' },
+      '@react-navigation/native': { useIsFocused: () => true },
       '../api/game': { getMyGames: async () => [{ ...game, estado: 'EN_JUEGO', soyMaster: !soyJugador, soyJugador }] },
     });
     await mount(HomeScreen, { navigation: { navigate: (...args) => destinations.push(args) }, route: { params: undefined } });
@@ -458,6 +467,7 @@ test('Inicio abre la carta del jugador o la pestaña Partida del máster', async
 test('Inicio desplaza las partidas y mantiene las acciones fuera de la lista', async () => {
   const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '@react-navigation/native': { useIsFocused: () => true },
     '../api/game': { getMyGames: async () => [game, { ...game, id: 'otra', nombre: 'Otra partida' }] },
   });
   await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
@@ -472,6 +482,7 @@ test('Inicio muestra carga antes que el estado vacío y solo lo muestra tras una
   let resolveGames;
   const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '@react-navigation/native': { useIsFocused: () => true },
     '../api/game': { getMyGames: () => new Promise((resolve) => { resolveGames = resolve; }) },
   });
   await mount(HomeScreen, { navigation: { navigate() {} }, route: { params: undefined } });
@@ -485,6 +496,7 @@ test('Inicio ofrece reintentar si cargar las partidas falla', async () => {
   let calls = 0;
   const { HomeScreen } = load('screens/HomeScreen.tsx', { ...common,
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
+    '@react-navigation/native': { useIsFocused: () => true },
     '../api/game': { getMyGames: async () => {
       calls += 1;
       if (calls === 1) throw new Error('sin conexión');
