@@ -39,7 +39,7 @@ const common = {
   '../components/ConfirmDialog': { ConfirmDialog: 'ConfirmDialog' },
   '../api/client': { ApiError },
   '../components/PrimaryButton': { PrimaryButton: 'PrimaryButton' },
-  '../utils/caughtSeen': { hasSeenCaught: async () => true },
+  '../utils/caughtSeen': { hasSeenCaught: async () => true, clearCaughtSeen: async () => {} },
   '../components/Screen': { Screen: 'Screen' },
   '../theme/bangers': { bangers: () => ({}) },
   '../theme/colors': { colors: {} },

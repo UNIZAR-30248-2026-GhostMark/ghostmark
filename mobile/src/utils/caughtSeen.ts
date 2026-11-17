@@ -20,3 +20,12 @@ export async function markCaughtSeen(gameId: string) {
     // Si no se puede guardar, la pantalla se vuelve a ver la próxima vez: no se pierde nada.
   }
 }
+
+/** Al revivir por una anulación (11b) se olvida, para que una eliminación nueva vuelva a avisar. */
+export async function clearCaughtSeen(gameId: string) {
+  try {
+    await SecureStore.deleteItemAsync(key(gameId));
+  } catch {
+    // Si no se puede borrar, como mucho no se avisa de una segunda eliminación: la carta lo dice igual.
+  }
+}
