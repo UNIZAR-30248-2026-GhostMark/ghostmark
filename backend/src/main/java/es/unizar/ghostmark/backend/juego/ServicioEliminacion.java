@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,12 +31,14 @@ public class ServicioEliminacion {
     private final CartaRepository cartas;
     private final ServicioEvento eventos;
     private final ServicioCierre cierre;
+    private final List<ReglaEliminacion> reglas;
     private final Clock reloj;
     private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     public ServicioEliminacion(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, JugadorPartidaRepository jugadores,
-            CartaRepository cartas, ServicioEvento eventos, ServicioCierre cierre, Clock reloj) {
+            CartaRepository cartas, ServicioEvento eventos, ServicioCierre cierre,
+            List<ReglaEliminacion> reglas, Clock reloj) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
@@ -43,6 +46,7 @@ public class ServicioEliminacion {
         this.cartas = cartas;
         this.eventos = eventos;
         this.cierre = cierre;
+        this.reglas = reglas;
         this.reloj = reloj;
     }
 
@@ -80,6 +84,14 @@ public class ServicioEliminacion {
         }
         JugadorPartidaRepository.EstadoJugador victima = jugadores.obtener(partidaId, victimaId)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene a la víctima"));
+        ContextoEliminacion contexto = new ContextoEliminacion(partidaId, inscripcionId,
+                victimaId, ahora);
+        for (ReglaEliminacion regla : reglas) {
+            Optional<ErrorJuego> rechazo = regla.comprobar(contexto);
+            if (rechazo.isPresent()) {
+                throw rechazo.get();
+            }
+        }
 
         if ("VIVO".equals(victima.estado()) && coincide(victima.secreto(), codigo, ahora)) {
             return eliminar(partidaId, inscripcionId, victimaId, cazador, victima, ahora);

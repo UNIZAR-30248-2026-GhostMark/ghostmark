@@ -71,7 +71,7 @@ class CartaTest {
                     .body("aliasObjetivo", equalTo(aliasObjetivo)).body("mision", equalTo(mision))
                     .extract().response();
             assertEquals(Set.of("estado", "aliasObjetivo", "mision", "eliminaciones",
-                    "intentosRestantes", "bloqueadoHasta"),
+                    "intentosRestantes", "bloqueadoHasta", "noDisponible"),
                     respuesta.jsonPath().getMap("").keySet());
             assertEquals(respuesta.asString(), carta(jugador, mesa.juego()).asString());
         }
