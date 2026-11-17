@@ -15,7 +15,7 @@ Se escribe a medida que se terminan PBI: cada *pull request* que cambia lo que v
 
 ### 1.2 Tu horario lectivo
 
-En las horas en que tienes clase nadie puede cazarte, y tú tampoco puedes cazar.
+En las horas en que tienes clase nadie puede cazarte, y tú tampoco puedes cazar (apartado 8).
 
 1. Toca la letra de un día: L, M, X, J o V.
 2. Pulsa «+ Añadir franja», ajusta la hora de inicio y la de fin, entre las 08:00 y las 21:00 y en tramos de media hora, y pulsa «Guardar día».
@@ -279,3 +279,29 @@ Todos, jugadores y máster, ven «La partida ha terminado» con el resultado. En
 En la lista de tus partidas, una cerrada sale con su resultado: «Cerrada · Gana Sara_93 con 1 eliminación». Solo ocupa la tarjeta grande de arriba si no tienes ninguna en juego ni en inscripción; entonces pone «Cerrada el» y la fecha del cierre. Al pulsarla vuelves a su pantalla de fin.
 
 <img src="img/cierre-inicio-cerradas.png" alt="Inicio con partidas cerradas y su resultado" width="250">
+
+## 8. Horarios seguros
+
+Mientras estás en clase, nadie puede eliminarte y tú tampoco puedes eliminar. Cuenta el horario lectivo que tienes en la partida (apartados 1.2 y 3.4), que queda fijo cuando la partida empieza.
+
+### 8.1 Cuándo estás en clase
+
+Estás en clase de lunes a viernes, en las franjas de tu horario, con la hora de España. Las franjas seguidas cuentan como un solo tramo: si tienes marcadas 9:00, 9:30 y 10:00, estás en clase de 9:00 a 10:30. Los fines de semana y fuera de tus franjas no lo estás, y si no tienes ninguna franja, nunca.
+
+### 8.2 La carta dormida
+
+Si tu objetivo está en clase, tu carta se duerme: sale el fantasma dormido con «Pablo_23 está en clase» y la cuenta atrás «DISPONIBLE EN 1 H 15 MIN». «Eliminar» queda desactivado y debajo pone «Tu objetivo está en horario lectivo».
+
+Si el que está en clase eres tú, la carta dice «Estás en clase» y debajo «Estás en horario lectivo». Si lo estáis los dos, la carta dice lo tuyo. La cuenta atrás llega hasta el momento en que ninguno de los dos está en clase.
+
+La carta cambia sola cuando empieza o acaba una clase, aunque la tengas abierta. Como las franjas empiezan a en punto o a y media, los cambios llegan a esas horas.
+
+GhostMark no avisa antes de que tu objetivo entre en clase ni enseña el horario de nadie: solo ves que no está disponible y cuándo vuelve a estarlo.
+
+<img src="img/horario-carta-objetivo.png" alt="Carta dormida con «Pablo_23 está en clase» y la cuenta atrás" width="250"> <img src="img/horario-carta-yo.png" alt="Carta dormida con «Estás en clase»" width="250">
+
+### 8.3 Si la clase empieza mientras escribes el código
+
+Si estás en «Eliminar» y en ese momento empieza tu clase o la de tu objetivo, al escribir el sexto dígito la app dice «Tu objetivo está en clase. Disponible en 1 h 15 min.» o «Estás en clase. Disponible en 45 min.». El código no se comprueba y el intento no cuenta como fallo: te quedan los mismos intentos. Vuelve a probar cuando acabe la clase.
+
+<img src="img/horario-eliminar-rechazo.png" alt="«Eliminar» con «Tu objetivo está en clase. Disponible en 1 h 15 min.»" width="250">
