@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ServicioCierre {
 
     private static final String ULTIMO_SUPERVIVIENTE = "ULTIMO_SUPERVIVIENTE";
+    private static final String FECHA_FIN = "FECHA_FIN";
     private static final String POR_MASTER = "MASTER";
 
     private final CuentaRepository cuentas;
@@ -40,25 +41,27 @@ public class ServicioCierre {
         this.servicioPartida = servicioPartida;
     }
 
+    /**
+     * Cierra la partida si le toca (un único vivo o la fecha de fin pasada) y no queda ninguna
+     * disputa abierta ni eliminación que aún se pueda disputar. Se vuelve a comprobar con la fila
+     * bloqueada, porque entre la consulta y el bloqueo alguien ha podido abrir una disputa.
+     */
     @Transactional
-    public boolean aplicarCierre(UUID partidaId, String motivo, Instant ahora) {
+    public boolean aplicarCierre(UUID partidaId, Instant ahora) {
         Partida partida = partidas.bloquearPorId(partidaId).orElse(null);
-        if (partida == null || !"EN_JUEGO".equals(partida.getEstado())) {
+        if (partida == null || !"EN_JUEGO".equals(partida.getEstado())
+                || partidas.conCierrePendiente(partidaId, ahora)) {
             return false;
-        }
-        cerrar(partida, motivo, ahora);
-        return true;
-    }
-
-    @Transactional
-    public void cerrarSiUltimoVivo(UUID partidaId, Instant ahora) {
-        Partida partida = partidas.bloquearPorId(partidaId).orElse(null);
-        if (partida == null || !"EN_JUEGO".equals(partida.getEstado())) {
-            return;
         }
         if (jugadores.vivos(partidaId).size() == 1) {
             cerrar(partida, ULTIMO_SUPERVIVIENTE, ahora);
+            return true;
         }
+        if (!ahora.isBefore(partida.getFinEn())) {
+            cerrar(partida, FECHA_FIN, ahora);
+            return true;
+        }
+        return false;
     }
 
     @Transactional
@@ -79,6 +82,10 @@ public class ServicioCierre {
         if (!"EN_JUEGO".equals(partida.getEstado())) {
             throw new ErrorJuego(HttpStatus.CONFLICT, "PARTIDA_NO_EN_JUEGO",
                     "La partida no está en juego");
+        }
+        if (partidas.conCierrePendiente(partidaId, ahora)) {
+            throw new ErrorJuego(HttpStatus.CONFLICT, "DISPUTAS_PENDIENTES",
+                    "Hay una disputa abierta o una eliminación que aún se puede disputar");
         }
         cerrar(partida, POR_MASTER, ahora);
         return servicioPartida.vistaResumen(partida, cuentaId);

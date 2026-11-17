@@ -80,6 +80,7 @@ class CierreTest {
         UUID cazadorId = inscripcion(cazador, mesa.juego());
         eliminarDosVeces(cazador, mesa.juego(), cazadorId);
         String alias = alias(cazadorId);
+        pasarPlazoDeDisputa();
 
         cerrar(mesa.master(), mesa.juego()).then().statusCode(200)
                 .body("estado", equalTo("CERRADA"))
@@ -103,13 +104,16 @@ class CierreTest {
     }
 
     @Test
-    void elUltimoVivoCierraLaPartidaAlEliminar() {
+    void elUltimoVivoCierraLaPartidaAlAcabarElPlazoDeDisputa() {
         Mesa mesa = conJugadores(3, false);
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
         UUID cazadorId = inscripcion(cazador, mesa.juego());
         eliminarDosVeces(cazador, mesa.juego(), cazadorId);
 
+        // La última eliminación todavía se puede disputar durante 10 minutos (11a, R12-25)
+        assertEquals("EN_JUEGO", estado(mesa.juego()));
+        pasarPlazoDeDisputa();
         assertEquals("CERRADA", estado(mesa.juego()));
         assertEquals("SUPERVIVIENTE|ULTIMO_SUPERVIVIENTE|2", cierre(mesa.juego()));
         given().port(puerto).auth().oauth2(mesa.master().token())
@@ -277,6 +281,7 @@ class CierreTest {
         assertEquals(1, antes.size());
         assertEquals("ELIMINACION", antes.get(0).get("tipo"));
         assertEquals(alias(victimaId), antes.get(0).get("alias"));
+        pasarPlazoDeDisputa();
 
         cerrar(mesa.master(), juego).then().statusCode(200)
                 .body("estado", equalTo("CERRADA"));
@@ -354,6 +359,7 @@ class CierreTest {
                 .then().statusCode(200);
         jdbc.update("update jugador_partida set eliminaciones = 99"
                 + " where partida_id = ? and estado = 'ELIMINADO'", mesa.juego().id());
+        pasarPlazoDeDisputa();
 
         cerrar(mesa.master(), mesa.juego()).then().statusCode(200)
                 .body("resultado.tipo", equalTo("GANADOR"))
@@ -391,6 +397,7 @@ class CierreTest {
         Persona cazador = mesa.jugadores().get(0);
         UUID cazadorId = inscripcion(cazador, mesa.juego());
         eliminarDosVeces(cazador, mesa.juego(), cazadorId);
+        pasarPlazoDeDisputa();
 
         given().port(puerto).auth().oauth2(cazador.token()).delete("/api/v1/cuentas/yo")
                 .then().statusCode(204);
@@ -444,6 +451,13 @@ class CierreTest {
     private int contarEventosDeCierre(Juego juego) {
         return jdbc.queryForObject("select count(*) from evento where partida_id = ?"
                 + " and tipo = 'PARTIDA_CERRADA'", Integer.class, juego.id());
+    }
+
+    /** Adelanta el reloj los 10 minutos para disputar y lanza la revisión del cierre (11a.2). */
+    private void pasarPlazoDeDisputa() {
+        Instant despues = reloj.instant().plus(Duration.ofMinutes(10));
+        when(reloj.instant()).thenReturn(despues);
+        tarea.revisar(despues);
     }
 
     private void eliminarDosVeces(Persona cazador, Juego juego, UUID cazadorId) {

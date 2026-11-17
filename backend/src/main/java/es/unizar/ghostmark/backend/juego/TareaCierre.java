@@ -27,7 +27,7 @@ public class TareaCierre {
 
     public void revisar(Instant ahora) {
         for (UUID partidaId : partidas.pendientesDeCerrar(ahora)) {
-            cierre.aplicarCierre(partidaId, "FECHA_FIN", ahora);
+            cierre.aplicarCierre(partidaId, ahora);
         }
     }
 }

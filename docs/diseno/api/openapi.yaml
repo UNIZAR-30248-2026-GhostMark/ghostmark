@@ -658,7 +658,8 @@ paths:
             su horario lectivo (`HORARIO_LECTIVO`, con `motivo` y `disponibleEn`) o tiene abierta una disputa
             sobre una eliminación suya (`DISPUTA_ABIERTA`). Un rechazo por horario o por disputa no compara el
             código ni gasta intentos. Desde la fecha de fin no se puede eliminar (`PARTIDA_NO_EN_JUEGO`), aunque
-            la partida espere a sus disputas para cerrarse.
+            la partida espere a sus disputas para cerrarse; tampoco el único vivo, que ya no tiene objetivo
+            mientras corren los 10 minutos para disputar (`PARTIDA_NO_EN_JUEGO`).
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }

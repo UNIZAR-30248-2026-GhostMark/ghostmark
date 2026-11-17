@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
 import es.unizar.ghostmark.backend.juego.GeneradorCodigoVida;
+import es.unizar.ghostmark.backend.juego.TareaCierre;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Clock;
@@ -42,6 +43,9 @@ class DisputaTest {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    TareaCierre tareaCierre;
 
     @MockitoBean
     Clock reloj;
@@ -209,6 +213,90 @@ class DisputaTest {
         obtener(cazador, mesa, UUID.randomUUID().toString()).then().statusCode(404);
     }
 
+    @Test
+    void laUltimaEliminacionCierraLaPartidaAlVencerLosDiezMinutos() {
+        Mesa mesa = preparar(3);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa);
+        Instant ahora = reloj.instant();
+        eliminar(cazador, mesa, codigoDe(objetivo(cazadorId), ahora)).then().statusCode(200);
+        eliminar(cazador, mesa, codigoDe(objetivo(cazadorId), ahora)).then().statusCode(200);
+
+        assertEquals("EN_JUEGO", estado(mesa));
+        carta(cazador, mesa).then().statusCode(200)
+                .body("estado", equalTo("VIVO"))
+                .body("aliasObjetivo", nullValue())
+                .body("mision", nullValue());
+        eliminar(cazador, mesa, "000000").then().statusCode(409)
+                .body("codigo", equalTo("PARTIDA_NO_EN_JUEGO"));
+        cerrar(mesa).then().statusCode(409).body("codigo", equalTo("DISPUTAS_PENDIENTES"));
+
+        revisarCierre(ahora.plus(Duration.ofMinutes(10)).minusSeconds(1));
+        assertEquals("EN_JUEGO", estado(mesa));
+        revisarCierre(ahora.plus(Duration.ofMinutes(10)));
+        assertEquals("CERRADA", estado(mesa));
+        assertEquals("ULTIMO_SUPERVIVIENTE", motivoDeCierre(mesa));
+    }
+
+    @Test
+    void conUnaDisputaAbiertaLaPartidaNoSeCierra() {
+        Mesa mesa = preparar(3);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa);
+        Instant ahora = reloj.instant();
+        eliminar(cazador, mesa, codigoDe(objetivo(cazadorId), ahora)).then().statusCode(200);
+        UUID ultimaId = objetivo(cazadorId);
+        eliminar(cazador, mesa, codigoDe(ultimaId, ahora)).then().statusCode(200);
+        String disputaId = abrir(persona(mesa, ultimaId), mesa, "ELIMINACION", "No fue así.")
+                .then().statusCode(201).extract().path("id");
+
+        revisarCierre(ahora.plus(Duration.ofHours(1)));
+        assertEquals("EN_JUEGO", estado(mesa));
+        cerrar(mesa).then().statusCode(409).body("codigo", equalTo("DISPUTAS_PENDIENTES"));
+
+        // La decisión llega con la 11a.3: aquí se resuelve a mano para ver que entonces cierra
+        jdbc.update("update disputa set estado = 'RESUELTA', razon = 'CAZADOR',"
+                + " resuelta_por = 'MASTER', cerrada_en = now() where id = ?::uuid", disputaId);
+        revisarCierre(ahora.plus(Duration.ofHours(1)));
+        assertEquals("CERRADA", estado(mesa));
+        assertEquals("ULTIMO_SUPERVIVIENTE", motivoDeCierre(mesa));
+    }
+
+    @Test
+    void desdeLaFechaDeFinSoloSeDisputaYLaPartidaEsperaParaCerrar() {
+        Mesa mesa = preparar(4);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa);
+        UUID victimaId = objetivo(cazadorId);
+        Instant ahora = reloj.instant();
+        eliminar(cazador, mesa, codigoDe(victimaId, ahora)).then().statusCode(200);
+        jdbc.update("update partida set fin_en = ?::timestamptz where id = ?",
+                ahora.plusSeconds(60).toString(), mesa.partida());
+        Instant despuesDelFin = ahora.plusSeconds(120);
+        when(reloj.instant()).thenReturn(despuesDelFin);
+        revisarCierre(despuesDelFin);
+        assertEquals("EN_JUEGO", estado(mesa));
+
+        UUID otroId = objetivo(cazadorId);
+        Persona otro = persona(mesa, otroId);
+        eliminar(otro, mesa, codigoDe(objetivo(otroId), despuesDelFin)).then().statusCode(409)
+                .body("codigo", equalTo("PARTIDA_NO_EN_JUEGO"));
+        abrir(otro, mesa, "NEGATIVA", "No me enseña el código.").then().statusCode(409)
+                .body("codigo", equalTo("PARTIDA_NO_EN_JUEGO"));
+        String disputaId = abrir(persona(mesa, victimaId), mesa, "ELIMINACION", "No fue así.")
+                .then().statusCode(201).extract().path("id");
+        responder(cazador, mesa, disputaId).then().statusCode(200);
+        cerrar(mesa).then().statusCode(409).body("codigo", equalTo("DISPUTAS_PENDIENTES"));
+
+        revisarCierre(ahora.plus(Duration.ofMinutes(30)));
+        assertEquals("EN_JUEGO", estado(mesa));
+        jdbc.update("update disputa set estado = 'RESUELTA', razon = 'CAZADOR',"
+                + " resuelta_por = 'MASTER', cerrada_en = now() where id = ?::uuid", disputaId);
+        revisarCierre(ahora.plus(Duration.ofMinutes(30)));
+        assertEquals("CERRADA", estado(mesa));
+        assertEquals("FECHA_FIN", motivoDeCierre(mesa));
+    }
+
     private Mesa preparar(int numero) {
         Persona master = registrar();
         Instant inicio = Instant.now().plus(Duration.ofDays(1));
@@ -303,6 +391,26 @@ class DisputaTest {
         byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
                 + " where inscripcion_id = ?", byte[].class, inscripcionId);
         return generador.generar(secreto, cuando).codigo();
+    }
+
+    private Response cerrar(Mesa mesa) {
+        return given().port(puerto).auth().oauth2(mesa.master().token())
+                .post("/api/v1/partidas/{id}/cierre", mesa.partida());
+    }
+
+    private void revisarCierre(Instant cuando) {
+        when(reloj.instant()).thenReturn(cuando);
+        tareaCierre.revisar(cuando);
+    }
+
+    private String estado(Mesa mesa) {
+        return jdbc.queryForObject("select estado from partida where id = ?", String.class,
+                mesa.partida());
+    }
+
+    private String motivoDeCierre(Mesa mesa) {
+        return jdbc.queryForObject("select datos->>'motivo' from evento where partida_id = ?"
+                + " and tipo = 'PARTIDA_CERRADA'", String.class, mesa.partida());
     }
 
     private int eventos(Mesa mesa, String tipo) {
