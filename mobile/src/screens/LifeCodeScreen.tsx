@@ -4,7 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
 import { ApiError } from "../api/client";
-import { getMyLifeCode, type LifeCode } from "../api/game";
+import { getMyLifeCode, getMyMissionCard, type LifeCode } from "../api/game";
 import { Screen } from "../components/Screen";
 import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
@@ -14,6 +14,7 @@ import { lifeCodeSecondsRemaining } from "../utils/lifeCode";
 type Props = NativeStackScreenProps<RootStackParamList, "LifeCode">;
 const RING_RADIUS = 122;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const ELIMINATION_CHECK_MS = 5_000;
 
 export function LifeCodeScreen({ navigation, route }: Props) {
   const [lifeCode, setLifeCode] = useState<LifeCode>();
@@ -29,10 +30,28 @@ export function LifeCodeScreen({ navigation, route }: Props) {
       setRemaining(lifeCodeSecondsRemaining(result.caducaEn));
     }).catch((requestError: unknown) => {
       if (!active) return;
+      if (requestError instanceof ApiError && requestError.code === "JUGADOR_ELIMINADO") {
+        navigation.replace("Caught", { gameId: route.params.gameId });
+        return;
+      }
       setError(requestError instanceof ApiError ? requestError.message : "No hemos podido cargar tu código. Comprueba la conexión e inténtalo de nuevo.");
     });
     return () => { active = false; };
-  }, [attempt, route.params.gameId]);
+  }, [attempt, navigation, route.params.gameId]);
+
+  // Mientras muestra un código, consulta la carta para saber si han eliminado a la víctima y
+  // llevarla a «Te han cazado» (R11-37). Se pregunta a la carta y no al código para no pedir
+  // códigos nuevos cada pocos segundos: con el #261 el código se emite al abrir la pantalla.
+  useEffect(() => {
+    if (!lifeCode || error) return undefined;
+    let active = true;
+    const timer = setInterval(() => {
+      getMyMissionCard(route.params.gameId).then((card) => {
+        if (active && card.estado === "ELIMINADO") navigation.replace("Caught", { gameId: route.params.gameId });
+      }).catch(() => undefined);
+    }, ELIMINATION_CHECK_MS);
+    return () => { active = false; clearInterval(timer); };
+  }, [error, lifeCode, navigation, route.params.gameId]);
 
   useEffect(() => {
     if (!lifeCode) return undefined;

@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { G, Path, Rect } from "react-native-svg";
@@ -7,6 +7,8 @@ import Svg, { G, Path, Rect } from "react-native-svg";
 import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
 import type { RootStackParamList } from "../types/navigation";
+import { getMyGames } from "../api/game";
+import type { GameSummary } from "../types/game";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EliminationSuccess">;
 
@@ -30,8 +32,20 @@ export function confettiPieces(count = 46) {
 
 export function EliminationSuccessScreen({ navigation, route }: Props) {
   const { gameId, result } = route.params;
-  const inherited = Boolean(result.carta.aliasObjetivo);
+  const [closedGame, setClosedGame] = useState<GameSummary>();
+  const inherited = !closedGame && Boolean(result.carta.aliasObjetivo);
   const confetti = useMemo(() => confettiPieces(), []);
+
+  // Al eliminar al último rival, el cierre puede llegar al mismo tiempo que la respuesta de
+  // eliminación. Consultarlo aquí evita enseñar una misión heredada que ya no existe.
+  useEffect(() => {
+    let active = true;
+    getMyGames().then((games) => {
+      const game = games.find((candidate) => candidate.id === gameId && candidate.estado === "CERRADA");
+      if (active && game) setClosedGame(game);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [gameId]);
 
   return <View style={styles.screen}>
     <Svg pointerEvents="none" preserveAspectRatio="xMidYMin slice" style={StyleSheet.absoluteFill} viewBox="0 0 360 780">
@@ -50,7 +64,7 @@ export function EliminationSuccessScreen({ navigation, route }: Props) {
         <Text style={styles.inherit}>{inherited ? "Heredas su objetivo y su misión" : "Ya no tienes objetivo. ¡Eres la última persona en juego!"}</Text>
       </View>
       <View style={styles.footer}>
-        <Pressable accessibilityRole="button" onPress={() => navigation.popTo("MissionCard", { gameId, revealOnce: inherited })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" onPress={() => closedGame ? navigation.replace("GameEnded", { game: closedGame }) : navigation.popTo("MissionCard", { gameId, revealOnce: inherited })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
           <Text style={styles.buttonText}>{inherited ? "VER MI NUEVA CARTA" : "VER MI CARTA"}</Text>
         </Pressable>
       </View>

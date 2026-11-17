@@ -22,7 +22,10 @@ export function kills(count: number) {
 export function resultParts(result: GameResult): { title: string; detail: string } {
   const names = winnerNames(result);
   const first = names[0] ?? "";
-  if (result.tipo === "EMPATE") return { title: "Empate", detail: `entre ${joinNames(names)}` };
+  if (result.tipo === "EMPATE") {
+    const visibleNames = names.length > 3 ? `${names.slice(0, 3).join(", ")} y ${names.length - 3} más` : joinNames(names);
+    return { title: "Empate", detail: `entre ${visibleNames}` };
+  }
   if (result.tipo === "SUPERVIVIENTE") return { title: first, detail: "último superviviente" };
   return { title: `Gana ${first}`, detail: `con ${kills(result.eliminaciones)}` };
 }
