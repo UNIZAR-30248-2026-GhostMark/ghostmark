@@ -160,6 +160,7 @@ test('el árbitro de una eliminación ve la zona y puede anularla', async () => 
   const { DisputeScreen, calls } = disputeScreen(base({ soyArbitro: true, resultadoZona: 'FUERA' }));
   await mount(DisputeScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', disputeId: 'd1' } } });
   assert.equal(hasText('Fuera'), true);
+  assert.equal(tree.root.findAll((node) => node.props.accessibilityLabel === 'Fantasma pensativo' && node.type === 'Image').length, 1, 'fantasma pensativo de UI19');
   assert.equal(buttonWith('CONFIRMAR ELIMINACIÓN') !== undefined, true);
   await act(async () => buttonWith('ANULAR').props.onPress());
   await flush();
