@@ -274,6 +274,13 @@ test('el feed enseña cada eliminación con su hora y nunca quién la hizo', asy
   assert.doesNotMatch(shown, /eliminó a Pablo|cazó|por /);
 });
 
+test('el feed pinta una anulación en verde y dice que la víctima vuelve al juego', async () => {
+  const { FeedScreen } = feed(() => [{ tipo: 'ANULACION', alias: 'Marta', ocurridoEn: '2026-11-04T11:00:00Z' }]);
+  await mount(FeedScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', isPlayer: true } } });
+  assert.equal(hasText('Eliminación de Marta anulada'), true);
+  assert.match(texts(), /vuelve al juego/);
+});
+
 test('el pie del feed no promete el Wrapped (R11-27)', async () => {
   const { FeedScreen } = feed(() => []);
   await mount(FeedScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', isPlayer: true } } });
@@ -281,10 +288,10 @@ test('el pie del feed no promete el Wrapped (R11-27)', async () => {
   assert.doesNotMatch(texts(), /Wrapped/);
 });
 
-test('sin eliminaciones el feed lo dice en vez de quedarse en blanco', async () => {
+test('sin novedades el feed lo dice en vez de quedarse en blanco', async () => {
   const { FeedScreen } = feed(() => []);
   await mount(FeedScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', isPlayer: true } } });
-  assert.equal(hasText('Aún no hay eliminaciones.'), true);
+  assert.equal(hasText('Aún no hay novedades.'), true);
   assert.equal(hasText('CARGANDO FEED…'), false);
 });
 

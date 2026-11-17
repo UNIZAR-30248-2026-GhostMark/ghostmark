@@ -52,13 +52,13 @@ export function FeedScreen({ navigation, route }: Props) {
         <ActivityIndicator color={colors.lime} size="large" />
         <Text style={styles.loadingText}>CARGANDO FEED…</Text>
       </View> : entries.length === 0 ? <View style={styles.state}>
-        <Text style={styles.empty}>Aún no hay eliminaciones.</Text>
+        <Text style={styles.empty}>Aún no hay novedades.</Text>
       </View> : <View style={styles.entries}>
-        {entries.map((entry, index) => <View key={`${entry.ocurridoEn}-${index}`} style={styles.entry}>
-          <Image source={require("../../assets/ghosts/fantasma-ko.png")} style={styles.entryGhost} />
+        {entries.map((entry, index) => <View key={`${entry.ocurridoEn}-${index}`} style={[styles.entry, entry.tipo === "ANULACION" && styles.annulmentEntry]}>
+          <Image source={entry.tipo === "ANULACION" ? require("../../assets/ghosts/fantasma-chao.png") : require("../../assets/ghosts/fantasma-ko.png")} style={styles.entryGhost} />
           <View style={styles.entryText}>
-            <Text numberOfLines={2} style={styles.entryTitle}>{feedText(entry.alias)}</Text>
-            <Text style={styles.entryTime}>{feedTime(entry.ocurridoEn, now)}</Text>
+            <Text numberOfLines={2} style={styles.entryTitle}>{feedText(entry.alias, entry.tipo)}</Text>
+            <Text style={styles.entryTime}>{feedTime(entry.ocurridoEn, now)}{entry.tipo === "ANULACION" ? " · vuelve al juego" : ""}</Text>
           </View>
         </View>)}
       </View>}
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13 },
   tabOnText: { color: colors.ink, ...bangers(18) },
   entries: { gap: 12, marginTop: 18, paddingBottom: 20 },
-  entry: { alignItems: "center", backgroundColor: colors.coral, borderColor: colors.ink, borderRadius: 8, borderWidth: 3, boxShadow: `4px 4px 0px ${colors.border}`, flexDirection: "row", gap: 12, minHeight: 70, paddingHorizontal: 14, paddingVertical: 10 },
+  entry: { alignItems: "center", backgroundColor: colors.coral, borderColor: colors.ink, borderRadius: 8, borderWidth: 3, boxShadow: `4px 4px 0px ${colors.border}`, flexDirection: "row", gap: 12, minHeight: 70, paddingHorizontal: 14, paddingVertical: 10 }, annulmentEntry: { backgroundColor: colors.lime },
   entryGhost: { height: 58, marginLeft: -6, resizeMode: "contain", transform: [{ rotate: "-5deg" }], width: 62 },
   entryText: { flex: 1 },
   entryTitle: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 16 },
