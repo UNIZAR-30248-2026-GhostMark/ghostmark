@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,13 +37,14 @@ public class ServicioEliminacion {
     private final ServicioEvento eventos;
     private final ServicioCierre cierre;
     private final List<ReglaEliminacion> reglas;
+    private final ApplicationEventPublisher publicador;
     private final Clock reloj;
     private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     public ServicioEliminacion(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, JugadorPartidaRepository jugadores,
             CartaRepository cartas, ServicioEvento eventos, ServicioCierre cierre,
-            List<ReglaEliminacion> reglas, Clock reloj) {
+            List<ReglaEliminacion> reglas, ApplicationEventPublisher publicador, Clock reloj) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
@@ -51,6 +53,7 @@ public class ServicioEliminacion {
         this.eventos = eventos;
         this.cierre = cierre;
         this.reglas = reglas;
+        this.publicador = publicador;
         this.reloj = reloj;
     }
 
@@ -116,6 +119,7 @@ public class ServicioEliminacion {
         eventos.guardar(partidaId, "JUGADOR_ELIMINADO",
                 datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada,
                         resultadoZona), ahora);
+        publicador.publishEvent(new EliminacionHecha(partidaId, ahora));
         cierre.cerrarSiUltimoVivo(partidaId, ahora);
         Carta carta = cartas.obtener(partidaId, cazadorId, ahora)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
