@@ -97,7 +97,7 @@ test('el QR y copiar usan el enlace del servidor; ir a la partida abre la sala',
   });
   await mount(ShareGameScreen, { navigation: { replace: (...args) => { destination = args; } }, route: { params: { game: { ...game, enlace: serverLink } } } });
   assert.equal(tree.root.findByType('QRCode').props.value, serverLink);
-  assert.equal(tree.root.findByType('GameWizardHeader').props.step, 4);
+  assert.equal(tree.root.findByType('GameWizardHeader').props.step, 5);
   const buttons = tree.root.findAllByType('Pressable');
   assert.equal(buttons.length, 1, 'sin «Compartir invitación» (R9-5)');
   await act(async () => buttons[0].props.onPress());
@@ -260,7 +260,7 @@ async function mountNavigator({ initialURL = null, signedIn = true, consentRoute
       setSessionExpiredHandler() {},
     },
   };
-  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'CreateGameMissions', 'ReviewAiMissions', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome', 'GameTab', 'GameEnded', 'Caught', 'Feed']) {
+  for (const screen of ['ApiStatus', 'AvailabilityConsent', 'CreateGameData', 'CreateGameRules', 'CreateGameMissions', 'CreateGameZones', 'ReviewAiMissions', 'GameInvitation', 'GameNorms', 'WaitingRoom', 'GameStarted', 'MissionCard', 'LifeCode', 'Eliminate', 'EliminationSuccess', 'GameCancelled', 'ShareGame', 'ScanInvitation', 'Home', 'LocationConsent', 'Profile', 'SignIn', 'Schedule', 'Welcome', 'GameTab', 'GameEnded', 'Caught', 'Feed']) {
     imports[`../screens/${screen}Screen`] = { [`${screen}Screen`]: () => null };
   }
   const { RootNavigator } = load('navigation/RootNavigator.tsx', imports);

@@ -56,6 +56,15 @@ export type GameSummary = Pick<Game, "id" | "nombre" | "estado" | "inicioEn" | "
 };
 export type GameDraft = Pick<GameConfiguration, "nombre" | "inicioEn" | "finEn">;
 
+/** Coordenadas del dibujo del máster; nunca representan la ubicación de un jugador. */
+export type ZonePoint = { lat: number; lon: number };
+
+export type SafeZone = {
+  id?: string;
+  nombre: string;
+  puntos: ZonePoint[];
+};
+
 export type PublicGame = Pick<Game, "nombre" | "estado" | "inicioEn" | "finEn" | "numInscritos"> & {
   aliasMaster: string | null;
 };

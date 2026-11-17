@@ -53,7 +53,7 @@ const pressable = (label) => tree.root.findAll((node) => node.type === 'Pressabl
 const press = async (node) => act(async () => node.props.onPress());
 
 function missionsStep(api) {
-  const navigation = { goBacks: 0, resets: [], goBack() { this.goBacks += 1; }, reset(value) { this.resets.push(value); } };
+  const navigation = { destinations: [], goBacks: 0, resets: [], goBack() { this.goBacks += 1; }, navigate(...value) { this.destinations.push(value); }, reset(value) { this.resets.push(value); } };
   const { CreateGameMissionsScreen } = load('screens/CreateGameMissionsScreen.tsx', { ...common, '../api/game': api });
   return { CreateGameMissionsScreen, navigation };
 }
@@ -98,19 +98,15 @@ test('«Otro…» manda el contexto escrito sin los espacios de los lados', asyn
   assert.equal(navigation.resets[0].routes[1].params.contexto, 'Erasmus');
 });
 
-test('Inicio recibe la partida creada debajo de la pantalla siguiente, también si el máster no juega', async () => {
+test('Inicio recibe debajo la partida de IA creada, también si el máster no juega', async () => {
   const solo = { ...configuration, masterJuega: false };
-  for (const [tipo, nextScreen] of [['IA', 'ReviewAiMissions'], ['BIBLIOTECA', 'ShareGame']]) {
-    const created = { ...game, ...solo, tipoMisiones: tipo };
-    const { CreateGameMissionsScreen, navigation } = missionsStep({ createGame: async () => created, requestAiMissionBatch: async () => batch([mission('m1', 'Una misión')]) });
-    await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration: solo } } })); });
-    if (tipo === 'BIBLIOTECA') await press(pressable('BIBLIOTECA'));
-    await press(tree.root.findByType('PrimaryButton'));
-    assert.equal(navigation.resets[0].index, 1);
-    assert.equal(navigation.resets[0].routes[1].name, nextScreen);
-    assert.deepEqual(navigation.resets[0].routes[0], { name: 'Home', params: { createdGame: { finEn: created.finEn, id: 'p1', inicioEn: created.inicioEn, nombre: created.nombre, estado: 'EN_INSCRIPCION', motivoCancelacion: null, numInscritos: 1, soyJugador: false, soyMaster: true } } });
-    await act(async () => tree.unmount()); tree = undefined;
-  }
+  const created = { ...game, ...solo };
+  const { CreateGameMissionsScreen, navigation } = missionsStep({ createGame: async () => created, requestAiMissionBatch: async () => batch([mission('m1', 'Una misión')]) });
+  await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration: solo } } })); });
+  await press(tree.root.findByType('PrimaryButton'));
+  assert.equal(navigation.resets[0].index, 1);
+  assert.equal(navigation.resets[0].routes[1].name, 'ReviewAiMissions');
+  assert.deepEqual(navigation.resets[0].routes[0], { name: 'Home', params: { createdGame: { finEn: created.finEn, id: 'p1', inicioEn: created.inicioEn, nombre: created.nombre, estado: 'EN_INSCRIPCION', motivoCancelacion: null, numInscritos: 1, soyJugador: false, soyMaster: true } } });
 });
 
 test('si falla la tanda, reintentar no crea otra partida y pasar a Biblioteca cambia la misma (R11-19)', async () => {
@@ -132,23 +128,23 @@ test('si falla la tanda, reintentar no crea otra partida y pasar a Biblioteca ca
   await press(tree.root.findByType('PrimaryButton'));
   assert.equal(created, 1);
   assert.deepEqual(changes, [['p1', 'BIBLIOTECA']]);
-  assert.equal(navigation.resets.at(-1).routes[1].name, 'ShareGame');
-  assert.equal(navigation.resets.at(-1).routes[1].params.game.id, 'p1');
-  assert.equal(navigation.resets.at(-1).routes[1].params.game.tipoMisiones, 'BIBLIOTECA');
+  assert.equal(navigation.destinations.at(-1)[0], 'CreateGameZones');
+  assert.equal(navigation.destinations.at(-1)[1].game.id, 'p1');
+  assert.equal(navigation.destinations.at(-1)[1].game.tipoMisiones, 'BIBLIOTECA');
   // Volver atrás con la partida creada lleva a Inicio, no a Reglas.
   tree.root.findByType('GameWizardHeader').props.onBack();
   assert.equal(navigation.goBacks, 0);
   assert.equal(navigation.resets.at(-1).routes[0].name, 'Home');
 });
 
-test('Biblioteca crea la partida con las misiones de la biblioteca y abre Compartir', async () => {
+test('Biblioteca lleva a Zonas y deja crear la partida para el paso final', async () => {
   const created = [];
   const { CreateGameMissionsScreen, navigation } = missionsStep({ createGame: async (value) => { created.push(value); return { ...game, tipoMisiones: 'BIBLIOTECA' }; }, changeMissionType: async () => assert.fail('no cambia el tipo'), requestAiMissionBatch: async () => assert.fail('no pide tanda') });
   await act(async () => { tree = create(React.createElement(CreateGameMissionsScreen, { navigation, route: { params: { configuration } } })); });
   await press(pressable('BIBLIOTECA'));
   await press(tree.root.findByType('PrimaryButton'));
-  assert.deepEqual(created, [{ ...configuration, tipoMisiones: 'BIBLIOTECA' }]);
-  assert.equal(navigation.resets[0].routes[1].name, 'ShareGame');
+  assert.deepEqual(created, []);
+  assert.deepEqual(navigation.destinations, [['CreateGameZones', { configuration: { ...configuration, tipoMisiones: 'BIBLIOTECA' } }]]);
 });
 
 test('si la IA no está disponible, Misiones avisa y permite continuar con la biblioteca', async () => {
@@ -173,7 +169,7 @@ test('si la IA no está disponible, Misiones avisa y permite continuar con la bi
   await press(continueButton);
   assert.deepEqual(created, [{ ...configuration, tipoMisiones: 'IA' }]);
   assert.deepEqual(changes, [['p1', 'BIBLIOTECA']]);
-  assert.deepEqual(navigation.resets[0].routes[1], { name: 'ShareGame', params: { game: libraryGame } });
+  assert.deepEqual(navigation.destinations, [['CreateGameZones', { configuration: { ...configuration, tipoMisiones: 'BIBLIOTECA' }, game: libraryGame }]]);
 });
 
 function reviewScreen(initial, api, contexto = 'Campus') {
@@ -199,7 +195,8 @@ test('si falla otra tanda, avisa y deja continuar con las misiones ya aprobadas'
   assert.equal(pressable('PEDIR OTRA TANDA (2)').props.disabled, false);
   await press(pressable('CONTINUAR'));
   assert.deepEqual(decisions, [['p1', 'm1', 'APROBADA']]);
-  assert.deepEqual(navigation.destinations, [['ShareGame', { game }]]);
+  assert.equal(navigation.destinations[0][0], 'CreateGameZones');
+  assert.equal(navigation.destinations[0][1].game, game);
 });
 
 const unavailable = async () => { throw new (common['../api/client'].ApiError)('Servicio no disponible', 503, [], 'IA_NO_DISPONIBLE'); };
@@ -301,7 +298,7 @@ test('una tanda vacía avisa de que no hay misiones válidas y deja pedir otra o
   assert.ok(pressable('CONTINUAR'), 'debería poder continuar');
 });
 
-test('al acabar la tanda se puede pedir otra mientras queden y continuar a Compartir', async () => {
+test('al acabar la tanda se puede pedir otra mientras queden y continuar a Zonas', async () => {
   const asked = [];
   const { element, navigation } = reviewScreen(batch([mission('m1', 'Primera misión')], 1), {
     reviewAiMission: async () => ({}),
@@ -315,7 +312,8 @@ test('al acabar la tanda se puede pedir otra mientras queden y continuar a Compa
   await press(pressable('Aprobar misión'));
   assert.ok(pressable('PEDIR OTRA TANDA') === undefined, 'no debería aparecer PEDIR OTRA TANDA');
   await press(pressable('CONTINUAR'));
-  assert.deepEqual(navigation.destinations, [['ShareGame', { game }]]);
+  assert.equal(navigation.destinations[0][0], 'CreateGameZones');
+  assert.equal(navigation.destinations[0][1].game, game);
 });
 
 test('el cliente usa las rutas de misiones de la IA y del cambio de tipo del contrato', async () => {
