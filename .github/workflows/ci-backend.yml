@@ -11,5 +11,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: 21, cache: maven}
+      # Despertar Render antes de HttpsTest para evitar fallos por arranque en frio.
+      - name: Esperar a que Render este disponible
+        run: |
+          for intento in $(seq 1 18); do
+            if curl -fsS --connect-timeout 10 --max-time 20 \
+                "https://$URL_PRODUCCION/api/v1/health" > /dev/null; then
+              echo "Render disponible (intento $intento)"
+              exit 0
+            fi
+            echo "Render aun no disponible (intento $intento/18)"
+            if [ "$intento" -lt 18 ]; then
+              sleep 10
+            fi
+          done
+          echo "::error::Render no respondio tras los reintentos"
+          exit 1
       - run: chmod +x ./mvnw && ./mvnw -B verify
         working-directory: backend
