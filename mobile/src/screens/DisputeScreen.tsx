@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ApiError } from "../api/client";
@@ -10,13 +10,13 @@ import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
 import type { Dispute } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
+import { decisionLabels, disputeBubbles, disputeHeader, disputeOutcome, disputeWaiting } from "../utils/dispute";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Dispute">;
 function remaining(until: string, now: number) {
   const seconds = Math.max(0, Math.ceil((Date.parse(until) - now) / 1000));
   return Math.floor(seconds / 3600) + " h " + String(Math.floor(seconds / 60) % 60).padStart(2, "0") + " min";
 }
-function alias(value: string | null) { return value ?? "Cuenta eliminada"; }
 function zoneResult(result: Dispute["resultadoZona"]) { return result === "FUERA" ? "Fuera" : result === "DENTRO" ? "Dentro" : "No concluyente"; }
 
 export function DisputeScreen({ navigation, route }: Props) {
@@ -54,21 +54,20 @@ export function DisputeScreen({ navigation, route }: Props) {
     try { setDispute(await decideDispute(route.params.gameId, dispute.id, razon)); }
     catch (reason) { setError(reason instanceof ApiError ? reason.message : "No hemos podido resolver la disputa."); } finally { setSending(false); }
   }
-  const openedLabel = useMemo(() => dispute ? alias(dispute.aliasCazador) + " eliminó a " + alias(dispute.aliasVictima) + " · hoy" : "", [dispute]);
-  const waitingForReply = dispute && !dispute.puedoResponder && !dispute.textoRespuesta && !dispute.soyArbitro;
-  const waitingForDecision = dispute && !dispute.puedoResponder && Boolean(dispute.textoRespuesta) && !dispute.soyArbitro;
+  const open = dispute?.estado === "ABIERTA";
+  const labels = dispute ? decisionLabels(dispute) : undefined;
+  const waiting = dispute ? disputeWaiting(dispute) : null;
+  const outcome = dispute ? disputeOutcome(dispute) : null;
   return <Screen padded={false}><KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.screen}>
-    <View style={styles.header}><Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={leaveToCard} style={styles.back}><Ionicons color={colors.text} name="arrow-back" size={23} /></Pressable><Text style={styles.headerTitle}>DISPUTA</Text>{dispute ? <View style={styles.timer}><Text numberOfLines={1} style={styles.timerText}>⚖ Quedan {remaining(dispute.plazoHasta, now)}</Text></View> : null}</View>
+    <View style={styles.header}><Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={leaveToCard} style={styles.back}><Ionicons color={colors.text} name="arrow-back" size={23} /></Pressable><Text style={styles.headerTitle}>DISPUTA</Text>{dispute && open ? <View style={styles.timer}><Text numberOfLines={1} style={styles.timerText}>⚖ Quedan {remaining(dispute.plazoHasta, now)}</Text></View> : null}</View>
     {error ? <View style={styles.loading}><Text style={styles.error}>{error}</Text></View> : !dispute ? <View style={styles.loading}><ActivityIndicator color={colors.lime} size="large" /></View> : <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.mission}><Text adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={2} style={styles.missionTitle}>{dispute.mision.toUpperCase()}</Text><Text style={styles.meta}>{openedLabel}</Text></View>
-      <Bubble align="left" author={alias(dispute.aliasVictima) + " · víctima"} text={dispute.textoApertura} />
-      {dispute.textoRespuesta ? <Bubble align="right" author={alias(dispute.aliasCazador) + " · cazador"} text={dispute.textoRespuesta} /> : null}
+      <View style={styles.mission}><Text adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={2} style={styles.missionTitle}>{dispute.mision.toUpperCase()}</Text><Text style={styles.meta}>{disputeHeader(dispute, new Date(now))}</Text></View>
+      {disputeBubbles(dispute).map((bubble) => <Bubble align={bubble.align} author={bubble.author} key={bubble.align} text={bubble.text} />)}
       {dispute.puedoResponder ? <View style={styles.response}><TextInput accessibilityLabel="Tu respuesta" maxLength={280} multiline onChangeText={setAnswer} placeholder="Escribe tu versión…" placeholderTextColor={colors.textMuted} style={styles.responseInput} textAlignVertical="top" value={answer} /><Pressable accessibilityRole="button" disabled={sending || !answer.trim()} onPress={() => void respond()} style={[styles.reply, (!answer.trim() || sending) && styles.dim]}><Text style={styles.replyText}>RESPONDER</Text></Pressable></View> : null}
-      {waitingForReply ? <Text style={styles.waiting}>Esperando la respuesta de la otra persona.</Text> : null}
-      {waitingForDecision ? <Text style={styles.waiting}>Esperando la decisión del máster.</Text> : null}
+      {waiting ? <Text style={styles.waiting}>{waiting}</Text> : null}
       {dispute.soyArbitro && dispute.resultadoZona ? <View style={styles.zone}><Text style={styles.zoneIcon}>⌾</Text><Text style={styles.zoneText}>Resultado de zona</Text><Text style={styles.zoneResult}>{zoneResult(dispute.resultadoZona)}</Text></View> : null}
-      {dispute.estado === "ABIERTA" && dispute.soyArbitro ? <View style={styles.decisions}><Pressable accessibilityRole="button" disabled={sending} onPress={() => void decide("CAZADOR")} style={({ pressed }) => [styles.confirmDecision, (pressed || sending) && styles.dim]}><Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.confirmDecisionText}>CONFIRMAR ELIMINACIÓN</Text></Pressable><Pressable accessibilityRole="button" disabled={sending} onPress={() => void decide("VICTIMA")} style={({ pressed }) => [styles.cancelDecision, (pressed || sending) && styles.dim]}><Text style={styles.cancelDecisionText}>ANULAR</Text></Pressable></View> : null}
-      {dispute.estado !== "ABIERTA" ? <Text style={styles.resolved}>DISPUTA RESUELTA: GANA {dispute.razon === "CAZADOR" ? "EL CAZADOR" : "LA VÍCTIMA"}</Text> : null}
+      {open && dispute.soyArbitro && labels ? <View style={styles.decisions}><Pressable accessibilityRole="button" disabled={sending} onPress={() => void decide("CAZADOR")} style={({ pressed }) => [styles.confirmDecision, (pressed || sending) && styles.dim]}><Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.confirmDecisionText}>{labels.hunter}</Text></Pressable><Pressable accessibilityRole="button" disabled={sending} onPress={() => void decide("VICTIMA")} style={({ pressed }) => [styles.cancelDecision, (pressed || sending) && styles.dim]}><Text style={styles.cancelDecisionText}>{labels.victim}</Text></Pressable></View> : null}
+      {outcome ? <><Text style={styles.resolved}>{outcome.title}</Text>{outcome.detail ? <Text style={styles.waiting}>{outcome.detail}</Text> : null}</> : null}
     </ScrollView>}
   </KeyboardAvoidingView></Screen>;
 }

@@ -10,6 +10,7 @@ import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
 import type { Dispute } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
+import { disputeListMeta } from "../utils/dispute";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DisputeList">;
 
@@ -23,7 +24,7 @@ export function DisputeListScreen({ navigation, route }: Props) {
   return <Screen><View style={styles.screen}>
     <View style={styles.header}><Pressable accessibilityLabel="Volver" accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.back}><Ionicons color={colors.text} name="arrow-back" size={23} /></Pressable><Text style={styles.title}>MIS DISPUTAS</Text></View>
     <Text style={styles.hint}>Solo aparecen las disputas en las que participas o arbitras.</Text>
-    {error ? <Text style={styles.error}>{error}</Text> : !items ? <ActivityIndicator color={colors.lime} size="large" style={styles.loading} /> : items.length === 0 ? <Text style={styles.empty}>No tienes disputas pendientes.</Text> : items.map((item) => <Pressable accessibilityRole="button" key={item.id} onPress={() => navigation.navigate("Dispute", { gameId: route.params.gameId, disputeId: item.id })} style={styles.item}><Text style={styles.itemTitle}>{item.mision.toUpperCase()}</Text><Text style={styles.itemMeta}>{item.estado === "ABIERTA" ? "ABIERTA · VER Y ACTUAR" : "RESUELTA · VER DETALLE"}</Text></Pressable>)}
+    {error ? <Text style={styles.error}>{error}</Text> : !items ? <ActivityIndicator color={colors.lime} size="large" style={styles.loading} /> : items.length === 0 ? <Text style={styles.empty}>No tienes disputas pendientes.</Text> : items.map((item) => <Pressable accessibilityRole="button" key={item.id} onPress={() => navigation.navigate("Dispute", { gameId: route.params.gameId, disputeId: item.id })} style={styles.item}><Text style={styles.itemTitle}>{item.mision.toUpperCase()}</Text><Text style={styles.itemMeta}>{disputeListMeta(item)}</Text></Pressable>)}
   </View></Screen>;
 }
 const styles = StyleSheet.create({

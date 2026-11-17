@@ -92,6 +92,14 @@ export function MissionCardScreen({ navigation, route }: Props) {
     return () => clearTimeout(timer);
   }, [card, hunting]);
 
+  // Mientras corre el plazo de disputa de la última eliminación, la partida sigue en juego
+  // (R12-25, R12-30): se vuelve a pedir la carta cada minuto y, al cerrarse, va a la pantalla de fin.
+  useEffect(() => {
+    if (!lastAlive) return undefined;
+    const timer = setInterval(() => setAttempt((value) => value + 1), 60_000);
+    return () => clearInterval(timer);
+  }, [lastAlive]);
+
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.content}>
       <Tabs gameId={gameId} navigation={navigation} spectator={spectator} />
@@ -155,7 +163,8 @@ function SpectatorCard({ showHint = true }: { showHint?: boolean }) {
 function LastAliveCard() {
   return <View style={[styles.card, styles.cardFace, styles.cardFront, styles.lastAliveCard]}>
     <View style={styles.objectiveTag}><Text style={styles.objectiveTagText}>Objetivo</Text></View>
-    <Text style={styles.lastAliveText}>Ya no tienes objetivo: eres la última persona en juego</Text>
+    <Text style={styles.lastAliveTitle}>ESPERANDO EL PLAZO DE DISPUTA</Text>
+    <Text style={styles.lastAliveText}>Eres la última persona en juego. Si nadie disputa, la partida se cierra en unos minutos.</Text>
   </View>;
 }
 
@@ -220,7 +229,8 @@ const styles = StyleSheet.create({
   spectatorOutline: { color: colors.ink, left: 0, position: "absolute", right: 0, top: 0 },
   spectatorHint: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 16, lineHeight: 22, marginTop: 28, paddingHorizontal: 12, textAlign: "center" },
   lastAliveCard: { position: "relative" },
-  lastAliveText: { color: colors.ink, ...bangers(34), letterSpacing: 0.4, lineHeight: 38, marginTop: 24 },
+  lastAliveTitle: { color: colors.ink, ...bangers(34), letterSpacing: 0.4, lineHeight: 38, marginTop: 24 },
+  lastAliveText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 15, lineHeight: 21, marginTop: 12 },
   dormantCard: { backgroundColor: "#453566", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, boxShadow: `0px 8px 0px ${colors.ink}`, height: 348, overflow: "hidden", transform: [{ rotate: "2deg" }] },
   dormantInner: { alignItems: "center", borderColor: "#A69AC5", borderRadius: 21, borderStyle: "dashed", borderWidth: 3, flex: 1, margin: 11, paddingHorizontal: 16, paddingTop: 20 },
   dormantGhost: { height: 182, resizeMode: "contain", width: 194 },

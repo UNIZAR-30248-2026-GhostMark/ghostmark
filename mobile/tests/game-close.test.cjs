@@ -254,3 +254,13 @@ test('la pestaña Feed de Partida abre el feed y dice si quien mira juega', asyn
     tree = undefined;
   }
 });
+
+test('«Tareas de máster» cuenta las disputas que arbitra y abre su lista (11a.4)', async () => {
+  const { GameTabScreen, navigation } = gameTab({ games: [{ ...inPlay, disputasPorArbitrar: 2 }] });
+  await mount(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } });
+  const card = byLabel('Ver disputas');
+  const numbers = card.findAllByType('Text').map((node) => [node.props.children].flat().join(''));
+  assert.deepEqual(numbers, ['2', 'Disputas']);
+  await act(async () => card.props.onPress());
+  assert.deepEqual(navigation.destinations, [['DisputeList', { gameId: 'p1' }]]);
+});

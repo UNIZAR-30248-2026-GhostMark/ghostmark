@@ -186,7 +186,7 @@ test('el jugador vivo no consulta la marca de «Te han cazado»', async () => {
 test('el último vivo no tiene a quién eliminar, pero conserva su código (R11-26)', async () => {
   const { MissionCardScreen } = missionCard({ estado: 'VIVO', aliasObjetivo: null, mision: null, eliminaciones: 3 });
   await mount(MissionCardScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1' } } });
-  assert.equal(hasText('Ya no tienes objetivo: eres la última persona en juego'), true);
+  assert.equal(hasText('ESPERANDO EL PLAZO DE DISPUTA'), true, 'R12-30 y R12-36');
   assert.equal(buttonWith('ELIMINAR'), undefined);
   assert.equal(buttonWith('MI CÓDIGO') !== undefined, true);
   assert.doesNotMatch(texts(), /CUENTA ELIMINADA|SIN MISIÓN/);
@@ -253,7 +253,7 @@ test('el último vivo que acaba de acertar no gira una carta vacía', async () =
   const navigation = navigationMock();
   await mount(MissionCardScreen, { navigation, route: { params: { gameId: 'p1', revealOnce: true } } });
   assert.equal(tree.root.findAllByType('AnimatedView').length, 0);
-  assert.equal(hasText('Ya no tienes objetivo: eres la última persona en juego'), true);
+  assert.equal(hasText('ESPERANDO EL PLAZO DE DISPUTA'), true, 'R12-30 y R12-36');
 });
 
 // ---------- FeedScreen ----------
