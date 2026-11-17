@@ -1,9 +1,9 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { createGame, saveSafeZones } from "../api/game";
+import { createGame, getSafeZones, saveSafeZones } from "../api/game";
 import { MapZones } from "../components/MapZones";
 import { GameWizardHeader } from "../components/GameWizardHeader";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -15,6 +15,9 @@ import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateGameZones">;
 
+const MAX_ZONES = 10;
+const MAX_POINTS = 20;
+
 export function CreateGameZonesScreen({ navigation, route }: Props) {
   const [zones, setZones] = useState<SafeZone[]>([]);
   const [draftPoints, setDraftPoints] = useState<ZonePoint[]>([]);
@@ -25,11 +28,36 @@ export function CreateGameZonesScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   // Si el PUT falla después del POST, reintentar guarda sobre la misma partida.
-  const [createdGame, setCreatedGame] = useState(route.params.game);
+  const [createdGame, setCreatedGame] = useState("configuration" in route.params ? route.params.game : undefined);
+  // Desde la sala de espera (R12-32) se editan las zonas de una partida ya creada.
+  const editGameId = "editGameId" in route.params ? route.params.editGameId : undefined;
+  const [loading, setLoading] = useState(Boolean(editGameId));
+
+  useEffect(() => {
+    if (!editGameId) return undefined;
+    let active = true;
+    getSafeZones(editGameId).then((result) => { if (active) setZones(result.zonas); })
+      .catch(() => { if (active) setError("No hemos podido cargar las zonas. Vuelve atrás e inténtalo de nuevo."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [editGameId]);
 
   function addPoint(point: ZonePoint) {
+    // El servidor rechaza los puntos repetidos y más de 20 por zona: se avisa antes de guardar.
+    if (draftPoints.some((item) => item.lat === point.lat && item.lon === point.lon)) { setError("Ese punto ya está marcado."); return; }
+    if (draftPoints.length >= MAX_POINTS) { setError(`Una zona tiene como máximo ${MAX_POINTS} puntos.`); return; }
+    if (!editing && draftPoints.length === 0 && zones.length >= MAX_ZONES) { setError(`Como máximo hay ${MAX_ZONES} zonas por partida.`); return; }
     setError(undefined);
-    setDraftPoints((points) => points.length >= 20 ? points : [...points, point]);
+    setDraftPoints((points) => [...points, point]);
+  }
+
+  function undoPoint() {
+    // Si se deshacen todos los puntos de una zona que se editaba, vuelve tal como estaba.
+    if (editing && draftPoints.length === 1) {
+      setZones((items) => [...items, editing]);
+      setEditing(undefined);
+    }
+    setDraftPoints((points) => points.slice(0, -1));
   }
 
   function openName() {
@@ -56,10 +84,24 @@ export function CreateGameZonesScreen({ navigation, route }: Props) {
     setDeleteCandidate(zone);
   }
 
-  async function continueToShare() {
+  async function saveEdited(gameId: string) {
     setSaving(true); setError(undefined);
     try {
-      const game = createdGame ?? await createGame(route.params.configuration);
+      await saveSafeZones(gameId, zones);
+      navigation.goBack();
+    } catch (requestError) {
+      setError(requestError instanceof ApiError && requestError.code === "PARTIDA_NO_EDITABLE"
+        ? "La partida ya ha arrancado: las zonas no se pueden cambiar."
+        : requestError instanceof ApiError ? requestError.message : "No hemos podido guardar las zonas. Comprueba la conexión e inténtalo de nuevo.");
+    } finally { setSaving(false); }
+  }
+
+  async function continueToShare() {
+    if (!("configuration" in route.params)) return;
+    const { configuration } = route.params;
+    setSaving(true); setError(undefined);
+    try {
+      const game = createdGame ?? await createGame(configuration);
       setCreatedGame(game);
       await saveSafeZones(game.id, zones);
       navigation.reset({ index: 1, routes: [homeRoute(game), { name: "ShareGame", params: { game } }] });
@@ -69,18 +111,20 @@ export function CreateGameZonesScreen({ navigation, route }: Props) {
   }
 
   return <Screen><View style={styles.screen}>
-    <GameWizardHeader label="Zonas seguras" onBack={() => navigation.goBack()} step={4} />
+    {editGameId
+      ? <View style={styles.editHeader}><Pressable accessibilityLabel="Volver a la sala de espera" accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.editBack}><Text style={styles.editBackText}>‹</Text></Pressable><Text style={styles.editTitle}>ZONAS SEGURAS</Text></View>
+      : <GameWizardHeader label="Zonas seguras" onBack={() => navigation.goBack()} step={4} />}
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <MapZones draftPoints={draftPoints} editable onAddPoint={addPoint} zones={zones} />
       <View style={styles.mapActions}>
-        <Pressable accessibilityLabel="Deshacer último punto" accessibilityRole="button" disabled={draftPoints.length === 0} onPress={() => setDraftPoints((points) => points.slice(0, -1))} style={[styles.undo, draftPoints.length === 0 && styles.dimmed]}><Text adjustsFontSizeToFit minimumFontScale={0.68} numberOfLines={1} style={styles.undoText}>DESHACER PUNTO</Text></Pressable>
+        <Pressable accessibilityLabel="Deshacer último punto" accessibilityRole="button" disabled={draftPoints.length === 0} onPress={undoPoint} style={[styles.undo, draftPoints.length === 0 && styles.dimmed]}><Text adjustsFontSizeToFit minimumFontScale={0.68} numberOfLines={1} style={styles.undoText}>DESHACER PUNTO</Text></Pressable>
         <Pressable accessibilityLabel="Terminar zona" accessibilityRole="button" disabled={draftPoints.length < 3} onPress={openName} style={[styles.finish, draftPoints.length < 3 && styles.dimmed]}><Text adjustsFontSizeToFit minimumFontScale={0.68} numberOfLines={1} style={styles.finishText}>TERMINAR</Text></Pressable>
       </View>
       <Text style={styles.help}>{draftPoints.length ? `${draftPoints.length} puntos marcados${editing ? " · editando zona" : ""}` : "Toca el mapa para marcar los vértices de una zona."}</Text>
       <View style={styles.list}>{zones.map((zone) => <View key={`${zone.id ?? "nueva"}-${zone.nombre}`} style={styles.zoneRow}><View style={styles.zoneInfo}><Text style={styles.shield}>⌾</Text><View><Text style={styles.zoneName}>{zone.nombre}</Text><Text style={styles.zonePoints}>{zone.puntos.length} puntos</Text></View></View><View style={styles.rowActions}><Pressable accessibilityLabel={`Editar ${zone.nombre}`} accessibilityRole="button" onPress={() => edit(zone)} style={styles.smallButton}><Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.smallText}>EDITAR</Text></Pressable><Pressable accessibilityLabel={`Borrar ${zone.nombre}`} accessibilityRole="button" onPress={() => remove(zone)} style={[styles.smallButton, styles.deleteButton]}><Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.smallText}>ELIMINAR</Text></Pressable></View></View>)}</View>
       {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
     </ScrollView>
-    <PrimaryButton disabled={saving || draftPoints.length > 0} onPress={() => void continueToShare()}>{saving ? "GUARDANDO…" : "SIGUIENTE"}</PrimaryButton>
+    <PrimaryButton disabled={saving || loading || draftPoints.length > 0} onPress={() => void (editGameId ? saveEdited(editGameId) : continueToShare())}>{saving ? "GUARDANDO…" : editGameId ? "GUARDAR" : "SIGUIENTE"}</PrimaryButton>
     <Modal animationType="fade" onRequestClose={() => setNameOpen(false)} transparent visible={nameOpen}><View style={styles.overlay}><View style={styles.modal}><Text style={styles.modalTitle}>NOMBRA LA ZONA</Text><TextInput accessibilityLabel="Nombre de la zona" autoFocus maxLength={30} onChangeText={setName} placeholder="Biblioteca" placeholderTextColor={colors.textMuted} style={styles.input} value={name} /><View style={styles.modalActions}><Pressable accessibilityRole="button" onPress={() => setNameOpen(false)} style={styles.cancel}><Text style={styles.cancelText}>CANCELAR</Text></Pressable><Pressable accessibilityRole="button" onPress={finishZone} style={styles.confirm}><Text style={styles.confirmText}>GUARDAR</Text></Pressable></View></View></View></Modal>
     <Modal animationType="fade" onRequestClose={() => setDeleteCandidate(undefined)} transparent visible={Boolean(deleteCandidate)}><View style={styles.overlay}><View style={styles.modal}><Text style={styles.modalTitle}>¿BORRAR ZONA?</Text><Text style={styles.deleteDescription}>Se borrará «{deleteCandidate?.nombre}».</Text><View style={styles.modalActions}><Pressable accessibilityRole="button" onPress={() => setDeleteCandidate(undefined)} style={styles.cancel}><Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={styles.cancelText}>CANCELAR</Text></Pressable><Pressable accessibilityRole="button" onPress={() => { if (deleteCandidate) setZones((items) => items.filter((item) => item !== deleteCandidate)); setDeleteCandidate(undefined); }} style={styles.deleteConfirm}><Text adjustsFontSizeToFit minimumFontScale={0.7} numberOfLines={1} style={styles.confirmText}>BORRAR</Text></Pressable></View></View></View></Modal>
   </View></Screen>;
@@ -92,6 +136,7 @@ function homeRoute(game: import("../types/game").Game) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 }, content: { flexGrow: 1, paddingTop: 13 },
+  editHeader: { alignItems: "center", flexDirection: "row", gap: 12, paddingTop: 6 }, editBack: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 12, borderWidth: 2, height: 42, justifyContent: "center", width: 42 }, editBackText: { color: colors.text, fontSize: 26, lineHeight: 28 }, editTitle: { color: colors.text, flex: 1, ...bangers(32) },
   mapActions: { flexDirection: "row", gap: 10, marginTop: -49, paddingHorizontal: 13, zIndex: 2 },
   undo: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 10, borderWidth: 3, boxShadow: `0px 4px 0px ${colors.ink}`, flex: 1.2, justifyContent: "center", minHeight: 43, paddingHorizontal: 7, paddingVertical: 3 },
   finish: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 10, borderWidth: 3, boxShadow: `0px 4px 0px ${colors.ink}`, flex: 1, justifyContent: "center", minHeight: 43, paddingHorizontal: 7, paddingVertical: 3 },

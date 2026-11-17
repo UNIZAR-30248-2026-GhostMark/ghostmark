@@ -9,7 +9,7 @@ export type RootStackParamList = {
   CreateGameData: undefined;
   CreateGameRules: { game: import("./game").GameDraft; startLabel: string; endLabel: string };
   CreateGameMissions: { configuration: Omit<import("./game").GameConfiguration, "tipoMisiones"> };
-  CreateGameZones: { configuration: import("./game").GameConfiguration; game?: import("./game").Game };
+  CreateGameZones: { configuration: import("./game").GameConfiguration; game?: import("./game").Game } | { editGameId: string };
   ReviewAiMissions: { game: import("./game").Game; batch: import("./game").MissionBatch; contexto: string };
   ShareGame: { game: import("./game").Game };
   GameInvitation: { code: string };

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 
+import { getConfiguredApiUrl } from "../api/client";
 import { colors } from "../theme/colors";
 import type { SafeZone, ZonePoint } from "../types/game";
 
@@ -43,7 +44,8 @@ export function MapZones({ zones, draftPoints = [], editable = false, height = 3
       pointerEvents={interactive ? "auto" : "none"}
       ref={webview}
       renderLoading={() => <View style={styles.loading}><ActivityIndicator color={colors.lime} /></View>}
-      source={{ baseUrl: "https://ghostmark.onrender.com", html }}
+      // Las teselas de OpenStreetMap exigen Referer: el del servidor de GhostMark (diseño 10a.1).
+      source={{ baseUrl: getConfiguredApiUrl(), html }}
       startInLoadingState
       style={styles.map}
     />
@@ -65,7 +67,7 @@ function mapHtml(initial: string) {
     function points(xs){return xs.map(function(p){return [p.lat,p.lon]})}
     function draw(){
       layer.clearLayers(); var all=[];
-      data.zones.forEach(function(zone,index){var latlngs=points(zone.puntos); all=all.concat(latlngs); var color=index%2?'#9B65BC':'#C3ADF3'; var polygon=L.polygon(latlngs,{color:'#12061f',weight:3,fillColor:color,fillOpacity:.53}).addTo(layer); zone.puntos.forEach(function(p){L.circleMarker([p.lat,p.lon],{radius:8,color:'#12061f',weight:3,fillColor:'#B8F24A',fillOpacity:1}).addTo(layer)}); polygon.bindTooltip(zone.nombre,{permanent:true,direction:'center',className:'zone-label'});});
+      data.zones.forEach(function(zone,index){var latlngs=points(zone.puntos); all=all.concat(latlngs); var color=index%2?'#9B65BC':'#C3ADF3'; var polygon=L.polygon(latlngs,{color:'#12061f',weight:3,fillColor:color,fillOpacity:.53}).addTo(layer); zone.puntos.forEach(function(p){L.circleMarker([p.lat,p.lon],{radius:8,color:'#12061f',weight:3,fillColor:'#B8F24A',fillOpacity:1}).addTo(layer)}); var label=document.createElement('span');label.textContent=zone.nombre;polygon.bindTooltip(label,{permanent:true,direction:'center',className:'zone-label'});});
       if(data.editable && data.draftPoints.length){var draft=points(data.draftPoints); all=all.concat(draft); if(draft.length>=3){L.polygon(draft,{className:'draft-preview',color:'#12061F',dashArray:'8 7',fillColor:'#12061F',fillOpacity:.09,weight:3}).addTo(layer)}else{L.polyline(draft,{color:'#12061F',weight:3,dashArray:'5 5'}).addTo(layer)} draft.forEach(function(p){L.circleMarker(p,{radius:8,color:'#12061f',weight:3,fillColor:'#B8F24A',fillOpacity:1}).addTo(layer)});}
       if(!data.editable&&!hasFitted&&all.length){map.fitBounds(L.latLngBounds(all),{padding:[25,25],maxZoom:17});hasFitted=true;}
     }

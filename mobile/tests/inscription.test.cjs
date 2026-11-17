@@ -125,11 +125,12 @@ test('si el servidor rechaza la inscripción no entra en la sala', async () => {
   assert.equal(replaced, false);
 });
 
-function waitingRoom(players, isMaster = false) {
+function waitingRoom(players, isMaster = false, zones = []) {
   return load('screens/WaitingRoomScreen.tsx', { ...common,
     '../api/inscription': { getPlayers: async (value) => { assert.equal(value, 'p1'); return players; } },
     '../api/game': {
       getMyGames: async () => [{ id: 'p1', ...game, soyMaster: isMaster }],
+      getSafeZones: async (value) => { assert.equal(value, 'p1'); return { zonas: zones }; },
       startGame: async () => ({ id: 'p1', ...game, estado: 'EN_JUEGO', soyMaster: isMaster }),
     },
   }).WaitingRoomScreen;
@@ -166,6 +167,20 @@ test('el máster que no juega no ve «Revisar mi horario»', async () => {
   assert.equal(button('REVISAR MI HORARIO'), undefined);
 });
 
+test('el máster ve en la sala cuántas zonas hay y las cambia desde allí; un jugador no (R12-32)', async () => {
+  const zone = { id: 'z1', nombre: 'Biblioteca', puntos: [{ lat: 41.683, lon: -0.888 }, { lat: 41.684, lon: -0.888 }, { lat: 41.684, lon: -0.887 }] };
+  const destinations = [];
+  await mount(waitingRoom([{ id: 'i1', alias: 'ana', esMaster: true }], true, [zone, { ...zone, id: 'z2', nombre: 'Aulario B' }]), { navigation: { navigate: (...args) => destinations.push(args) }, route: { params: { gameId: 'p1', game } } });
+  const zones = tree.root.findAll((node) => node.props.accessibilityLabel === 'Cambiar las zonas seguras' && typeof node.props.onPress === 'function')[0];
+  assert.match(shown(), /ZONAS SEGURAS · 2/);
+  await act(async () => zones.props.onPress());
+  assert.deepEqual(destinations, [['CreateGameZones', { editGameId: 'p1' }]]);
+  await act(async () => tree.unmount());
+  tree = undefined;
+  await mount(waitingRoom([{ id: 'i1', alias: 'ana', esMaster: true }, { id: 'i2', alias: 'bea', esMaster: false }], false), { navigation: {}, route: { params: { gameId: 'p1', game } } });
+  assert.equal(shown().includes('ZONAS SEGURAS'), false);
+});
+
 test('volver desde la sala abre Partidas con la partida ya disponible', async () => {
   let reset;
   await mount(waitingRoom([{ id: 'i1', alias: 'ana', esMaster: true }], true), {
@@ -184,6 +199,7 @@ test('arrancar ya abre la partida iniciada y avisa si faltan jugadores', async (
     '../api/inscription': { getPlayers: async () => players },
     '../api/game': {
       getMyGames: async () => [{ id: 'p1', ...game, soyMaster: true }],
+      getSafeZones: async () => ({ zonas: [] }),
       startGame: async () => ({ id: 'p1', ...game, estado: 'EN_JUEGO', soyMaster: true }),
     },
   }).WaitingRoomScreen;
