@@ -143,7 +143,7 @@ function missionCard(card, { seen = false, store } = {}) {
     ? { hasSeenCaught: async (gameId) => { asked.push(gameId); return store.has(gameId); }, clearCaughtSeen: async (gameId) => { store.delete(gameId); } }
     : { hasSeenCaught: async (gameId) => { asked.push(gameId); return seen; }, clearCaughtSeen: async () => {} };
   const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
-    '../api/game': { getMyMissionCard: async () => (typeof card === 'function' ? card() : card), getMyGames: async () => [] },
+    '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => (typeof card === 'function' ? card() : card), getMyGames: async () => [] },
     '../utils/caughtSeen': caughtSeen,
   });
   return { MissionCardScreen, asked };

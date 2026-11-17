@@ -22,6 +22,9 @@ import { LifeCodeScreen } from "../screens/LifeCodeScreen";
 import { EliminateScreen } from "../screens/EliminateScreen";
 import { EliminationSuccessScreen } from "../screens/EliminationSuccessScreen";
 import { CaughtScreen } from "../screens/CaughtScreen";
+import { OpenDisputeScreen } from "../screens/OpenDisputeScreen";
+import { DisputeScreen } from "../screens/DisputeScreen";
+import { DisputeListScreen } from "../screens/DisputeListScreen";
 import { FeedScreen } from "../screens/FeedScreen";
 import { ShareGameScreen } from "../screens/ShareGameScreen";
 import { ScanInvitationScreen } from "../screens/ScanInvitationScreen";
@@ -140,6 +143,9 @@ export function RootNavigator() {
         <Stack.Screen name="Eliminate" component={EliminateScreen} />
         <Stack.Screen name="EliminationSuccess" component={EliminationSuccessScreen} />
         <Stack.Screen name="Caught" component={CaughtScreen} />
+        <Stack.Screen name="OpenDispute" component={OpenDisputeScreen} />
+        <Stack.Screen name="Dispute" component={DisputeScreen} />
+        <Stack.Screen name="DisputeList" component={DisputeListScreen} />
         <Stack.Screen name="Feed" component={FeedScreen} />
         <Stack.Screen name="GameCancelled" component={GameCancelledScreen} />
         <Stack.Screen name="ScanInvitation" component={ScanInvitationScreen} />

@@ -218,7 +218,7 @@ test('la tarjeta grande de una partida cerrada dice cuándo se cerró realmente'
 
 function missionCard(error, games) {
   const navigation = { replaced: [], navigate() {}, replace(...args) { this.replaced.push(args); } };
-  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getMyMissionCard: async () => { throw error; }, getMyGames: async () => games } });
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => { throw error; }, getMyGames: async () => games } });
   return { MissionCardScreen, navigation };
 }
 
@@ -238,7 +238,7 @@ test('si la partida aún no ha arrancado, la carta enseña el error', async () =
 
 test('la pestaña Partida de la carta abre la de esa partida', async () => {
   const navigation = { destinations: [], navigate(...args) { this.destinations.push(args); }, replace() {} };
-  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getMyMissionCard: async () => ({ aliasObjetivo: 'Pablo', mision: 'Di compilador' }), getMyGames: async () => [] } });
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => ({ aliasObjetivo: 'Pablo', mision: 'Di compilador' }), getMyGames: async () => [] } });
   await mount(MissionCardScreen, { navigation, route: { params: { gameId: 'p7' } } });
   await act(async () => byLabel('Ir a la pestaña Partida').props.onPress());
   assert.deepEqual(navigation.destinations, [['GameTab', { gameId: 'p7' }]]);

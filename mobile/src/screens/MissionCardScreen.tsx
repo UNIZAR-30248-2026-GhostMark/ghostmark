@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { getMyGames, getMyMissionCard, type MissionCard } from "../api/game";
+import { getDisputes, getMyGames, getMyMissionCard, type MissionCard } from "../api/game";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
@@ -17,6 +17,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "MissionCard">;
 export function MissionCardScreen({ navigation, route }: Props) {
   const { gameId, revealOnce } = route.params;
   const [card, setCard] = useState<MissionCard>();
+  const [hasOpenDispute, setHasOpenDispute] = useState(false);
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   const flip = useMemo(() => new Animated.Value(0), []);
@@ -26,11 +27,16 @@ export function MissionCardScreen({ navigation, route }: Props) {
     getMyMissionCard(gameId).then(async (result) => {
       // El eliminado ve «Te han cazado» la primera vez que abre la carta (R11-25).
       if (result.estado === "ELIMINADO" && !(await hasSeenCaught(gameId))) {
-        if (active) navigation.navigate("Caught", { gameId });
+        if (active) navigation.navigate("Caught", { gameId, ...(result.disputarHasta ? { disputarHasta: result.disputarHasta } : {}) });
       }
       // Vivo otra vez tras una anulación (11b.3): si lo vuelven a eliminar, «Te han cazado» sale de nuevo.
       if (result.estado === "VIVO") void clearCaughtSeen(gameId);
       if (active) setCard(result);
+      // La lista es la fuente de verdad también para una negativa: esa disputa se puede consultar,
+      // pero solo una disputa de eliminación activa bloquea según «bloqueadoPorDisputa».
+      void getDisputes(gameId).then((disputes) => {
+        if (active) setHasOpenDispute(disputes.some((dispute) => dispute.estado === "ABIERTA"));
+      }).catch(() => undefined);
     }).catch(async (requestError: unknown) => {
       if (!active) return;
       // Si la partida se ha cerrado mientras tanto, se lleva al jugador a la pantalla de fin.
@@ -93,7 +99,7 @@ export function MissionCardScreen({ navigation, route }: Props) {
       {error ? <View style={styles.errorState}>
         <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
         <PrimaryButton onPress={() => { setError(undefined); setAttempt((value) => value + 1); }}>REINTENTAR</PrimaryButton>
-      </View> : card && spectator ? <SpectatorCard /> : card && lastAlive ? <LastAliveCard /> : card && unavailable ? <DormantCard card={card} /> : card ? <Pressable
+      </View> : card && spectator ? <SpectatorCard showHint={!card.bloqueadoPorDisputa} /> : card && lastAlive ? <LastAliveCard /> : card && unavailable ? <DormantCard card={card} /> : card ? <Pressable
         accessibilityHint="Mantén pulsada la carta para ver el objetivo y la misión"
         accessibilityLabel="Carta de misión"
         accessibilityRole="button"
@@ -110,10 +116,10 @@ export function MissionCardScreen({ navigation, route }: Props) {
       </Pressable> : <View style={styles.loadingCard}><Text style={styles.loading}>CARGANDO TU CARTA…</Text></View>}
     </View>
     {/* El espectador ya no tiene código ni objetivo; el último vivo, nadie a quien eliminar (R11-26). */}
-    {spectator ? null : <View style={styles.footer}>
+    {spectator ? (hasOpenDispute ? <View style={styles.footer}><Pressable accessibilityRole="button" onPress={() => navigation.navigate("DisputeList", { gameId })} style={styles.disputesButton}><Text style={styles.disputesText}>VER MIS DISPUTAS</Text></Pressable><Text style={styles.disputeBlocked}>Sigues como espectador hasta que se resuelva la disputa.</Text></View> : null) : <View style={styles.footer}>
+      {hasOpenDispute ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("DisputeList", { gameId })} style={styles.disputesButton}><Text style={styles.disputesText}>VER MIS DISPUTAS</Text></Pressable> : null}
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate("LifeCode", { gameId })} style={styles.codeButton}><Text style={styles.codeText}>MI CÓDIGO</Text></Pressable>
-      {lastAlive ? null : <Pressable accessibilityLabel="Eliminar objetivo" accessibilityRole="button" disabled={Boolean(unavailable)} onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo, attemptsLeft: card?.intentosRestantes, blockedUntil: card?.bloqueadoHasta })} style={[styles.removeButton, unavailable && styles.removeDisabled]}><Text style={[styles.removeText, unavailable && styles.removeDisabledText]}>ELIMINAR</Text></Pressable>}
-      {unavailable ? <Text accessibilityLiveRegion="polite" style={styles.unavailableHint}>{unavailable.motivo === "CAZADOR" ? "Estás en horario lectivo" : "Tu objetivo está en horario lectivo"}</Text> : null}
+      {lastAlive ? null : <><Pressable accessibilityLabel="Eliminar objetivo" accessibilityRole="button" disabled={Boolean(unavailable) || card?.bloqueadoPorDisputa} onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo, attemptsLeft: card?.intentosRestantes, ...(card?.bloqueadoPorDisputa ? { blockedByDispute: true } : {}), blockedUntil: card?.bloqueadoHasta })} style={[styles.removeButton, unavailable && styles.removeDisabled, card?.bloqueadoPorDisputa && styles.removeBlocked]}><Text style={[styles.removeText, unavailable && styles.removeDisabledText]}>{card?.bloqueadoPorDisputa ? "DISPUTA ABIERTA" : "ELIMINAR"}</Text></Pressable>{card?.bloqueadoPorDisputa ? <Text style={styles.disputeBlocked}>Tienes una disputa abierta</Text> : null}{unavailable ? <Text accessibilityLiveRegion="polite" style={styles.unavailableHint}>{unavailable.motivo === "CAZADOR" ? "Estás en horario lectivo" : "Tu objetivo está en horario lectivo"}</Text> : null}</>}
     </View>}
   </View></Screen>;
 }
@@ -133,7 +139,7 @@ function Tabs({ gameId, navigation, spectator }: { gameId: string; navigation: P
 
 const OUTLINE = [[-3, 0], [3, 0], [0, -3], [0, 3], [-2, -2], [2, -2], [-2, 2], [2, 2], [0, 5]] as const;
 
-function SpectatorCard() {
+function SpectatorCard({ showHint = true }: { showHint?: boolean }) {
   return <>
     <View accessibilityLabel="Eres espectador" style={[styles.card, styles.spectatorCard]}>
       <Image source={require("../../assets/ghosts/fantasma-ko-gris.png")} style={styles.spectatorGhost} />
@@ -142,7 +148,7 @@ function SpectatorCard() {
         <Text style={styles.spectatorTitle}>ERES ESPECTADOR</Text>
       </View>
     </View>
-    <Text style={styles.spectatorHint}>Sigue la partida en Feed y en Partida hasta el final.</Text>
+    {showHint ? <Text style={styles.spectatorHint}>Sigue la partida en Feed y en Partida hasta el final.</Text> : null}
   </>;
 }
 
@@ -240,12 +246,13 @@ const styles = StyleSheet.create({
   missionTag: { alignSelf: "flex-start", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, marginTop: 17, paddingHorizontal: 12, paddingVertical: 5 },
   missionTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
   missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 34, marginTop: 12 },
-  footer: { gap: 12, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 16 },
-  codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 10 },
+  footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 }, disputesButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, justifyContent: "center", paddingVertical: 12 }, disputesText: { alignSelf: "stretch", color: colors.ink, ...bangers(21), lineHeight: 28, paddingTop: 3, textAlign: "center" },
+  codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 12 },
   codeText: { alignSelf: "stretch", color: colors.text, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
   removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, paddingVertical: 10 },
   removeText: { alignSelf: "stretch", color: colors.ink, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
   removeDisabled: { backgroundColor: "#5C4D78", boxShadow: `0px 5px 0px ${colors.ink}` },
   removeDisabledText: { color: "#C1B8D4" },
   unavailableHint: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 12, paddingTop: 4, textAlign: "center" },
+  removeBlocked: { backgroundColor: "#7A6A91", opacity: 0.8 }, disputeBlocked: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 12, marginTop: -5, textAlign: "center" },
 });

@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { AiMission, AiMissionStatus, Game, GameConfiguration, GameSummary, MissionBatch, MissionType, PublicGame, SafeZone } from "../types/game";
+import type { AiMission, AiMissionStatus, Dispute, DisputeType, Game, GameConfiguration, GameSummary, MissionBatch, MissionType, PublicGame, SafeZone } from "../types/game";
 import type { ZoneResult } from "../utils/zoneCheck";
 
 export type MissionCard = {
@@ -13,6 +13,8 @@ export type MissionCard = {
   bloqueadoHasta: string | null;
   /** El horario lectivo impide eliminar temporalmente, sin revelar el horario de nadie. */
   noDisponible?: { motivo: "CAZADOR" | "OBJETIVO"; disponibleEn: string } | null;
+  bloqueadoPorDisputa: boolean;
+  disputarHasta: string | null;
 };
 
 export type LifeCode = {
@@ -69,6 +71,26 @@ export function eliminateTarget(gameId: string, codigo: string, resultadoZona: Z
     body: { codigo, resultadoZona },
     method: "POST",
   });
+}
+
+export function getDisputes(gameId: string) {
+  return request<Dispute[]>(`/api/v1/partidas/${encodeURIComponent(gameId)}/disputas`);
+}
+
+export function getDispute(gameId: string, disputeId: string) {
+  return request<Dispute>(`/api/v1/partidas/${encodeURIComponent(gameId)}/disputas/${encodeURIComponent(disputeId)}`);
+}
+
+export function openDispute(gameId: string, tipo: DisputeType, texto: string) {
+  return request<Dispute>(`/api/v1/partidas/${encodeURIComponent(gameId)}/disputas`, { body: { tipo, texto }, method: "POST" });
+}
+
+export function answerDispute(gameId: string, disputeId: string, texto: string) {
+  return request<Dispute>(`/api/v1/partidas/${encodeURIComponent(gameId)}/disputas/${encodeURIComponent(disputeId)}/respuesta`, { body: { texto }, method: "POST" });
+}
+
+export function decideDispute(gameId: string, disputeId: string, razon: "CAZADOR" | "VICTIMA") {
+  return request<Dispute>(`/api/v1/partidas/${encodeURIComponent(gameId)}/disputas/${encodeURIComponent(disputeId)}/decision`, { body: { razon }, method: "POST" });
 }
 
 export function requestAiMissionBatch(gameId: string, contexto: string) {

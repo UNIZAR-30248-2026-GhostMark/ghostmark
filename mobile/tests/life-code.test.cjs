@@ -37,5 +37,7 @@ test('la cuenta atrás del código no baja de cero', () => {
 test('la carta abre Mi código y Eliminar para su propia partida', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/screens/MissionCardScreen.tsx'), 'utf8');
   assert.match(source, /navigation\.navigate\("LifeCode", \{ gameId \}\)/);
-  assert.match(source, /navigation\.navigate\("Eliminate", \{ gameId, targetAlias: card\?\.aliasObjetivo, attemptsLeft: card\?\.intentosRestantes, blockedUntil: card\?\.bloqueadoHasta \}\)/);
+  assert.match(source, /navigation\.navigate\("Eliminate", \{ gameId, targetAlias: card\?\.aliasObjetivo, attemptsLeft: card\?\.intentosRestantes,/);
+  assert.match(source, /blockedByDispute/);
+  assert.match(source, /blockedUntil: card\?\.bloqueadoHasta/);
 });
