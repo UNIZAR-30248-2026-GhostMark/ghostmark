@@ -55,7 +55,7 @@ export function FeedScreen({ navigation, route }: Props) {
         <Text style={styles.empty}>Aún no hay novedades.</Text>
       </View> : <View style={styles.entries}>
         {entries.map((entry, index) => <View key={`${entry.ocurridoEn}-${index}`} style={[styles.entry, entry.tipo === "ANULACION" && styles.annulmentEntry]}>
-          <Image source={entry.tipo === "ANULACION" ? require("../../assets/ghosts/fantasma-chao.png") : require("../../assets/ghosts/fantasma-ko.png")} style={styles.entryGhost} />
+          <Image source={entry.tipo === "ANULACION" ? require("../../assets/ghosts/fantasma-vuelve.png") : require("../../assets/ghosts/fantasma-ko.png")} style={styles.entryGhost} />
           <View style={styles.entryText}>
             <Text numberOfLines={2} style={styles.entryTitle}>{feedText(entry.alias, entry.tipo)}</Text>
             <Text style={styles.entryTime}>{feedTime(entry.ocurridoEn, now)}{entry.tipo === "ANULACION" ? " · vuelve al juego" : ""}</Text>
