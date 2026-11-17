@@ -13,6 +13,8 @@ function load(file, imports = {}) {
   const source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
   const module = { exports: {} };
+  // «Eliminar» pide las zonas desde la 10b.2: los tests de antes juegan en una partida sin zonas.
+  if (imports['../api/game'] && !imports['../api/game'].getSafeZones) imports = { ...imports, '../api/game': { ...imports['../api/game'], getSafeZones: async () => ({ zonas: [] }) } };
   new Function('require', 'module', 'exports', code)((id) => {
     if (id in imports) return imports[id];
     if (id.endsWith('.png')) return 1;
@@ -22,7 +24,8 @@ function load(file, imports = {}) {
 }
 
 const native = {
-  Image: 'Image', Pressable: 'Pressable', StyleSheet: { create: (styles) => styles }, Text: 'Text', View: 'View',
+  AppState: { addEventListener: () => ({ remove() {} }) }, Image: 'Image', Linking: { openSettings: async () => {} },
+  Pressable: 'Pressable', StyleSheet: { create: (styles) => styles }, Text: 'Text', View: 'View',
 };
 const lifeCode = load('utils/lifeCode.ts');
 const common = {
@@ -35,6 +38,9 @@ const common = {
   '@expo/vector-icons': { Ionicons: 'Ionicons' },
   '../api/client': { ApiError: class ApiError extends Error {} },
   '../utils/lifeCode': lifeCode,
+  // Permiso de ubicación concedido (10b.2); sin zonas no se consulta la posición.
+  'expo-location': { getForegroundPermissionsAsync: async () => ({ granted: true, canAskAgain: true }) },
+  '../utils/zoneLocation': { measureZone: async (zones) => (zones && zones.length === 0 ? 'FUERA' : 'NO_CONCLUYENTE') },
   'react-native-svg': {
     __esModule: true,
     default: (props) => React.createElement('Svg', props),
@@ -137,7 +143,7 @@ test('Eliminar envía seis dígitos y abre la pantalla de acierto', async () => 
     const key = tree.root.findAllByType('Pressable').find((node) => node.props.accessibilityLabel === `Introducir ${digit}`);
     await act(async () => key.props.onPress());
   }
-  assert.deepEqual(calls, [['p1', '482913']]);
+  assert.deepEqual(calls, [['p1', '482913', 'FUERA']]);
   assert.deepEqual(destinations, [['EliminationSuccess', { gameId: 'p1', result: { aliasVictima: 'Pablo', carta: { aliasObjetivo: 'Marta', mision: 'Saluda', estado: 'VIVO', eliminaciones: 1 } } }]]);
   tree.unmount();
 });

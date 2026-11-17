@@ -20,11 +20,11 @@ test('la app usa las rutas privadas de mi código y eliminar de la partida', asy
   });
 
   await game.getMyLifeCode('partida con espacio');
-  await game.eliminateTarget('partida con espacio', '482913');
+  await game.eliminateTarget('partida con espacio', '482913', 'DENTRO');
 
   assert.deepEqual(calls, [
     ['/api/v1/partidas/partida%20con%20espacio/yo/codigo', undefined],
-    ['/api/v1/partidas/partida%20con%20espacio/eliminaciones', { body: { codigo: '482913' }, method: 'POST' }],
+    ['/api/v1/partidas/partida%20con%20espacio/eliminaciones', { body: { codigo: '482913', resultadoZona: 'DENTRO' }, method: 'POST' }],
   ]);
 });
 

@@ -1,5 +1,6 @@
 import { request } from "./client";
 import type { AiMission, AiMissionStatus, Game, GameConfiguration, GameSummary, MissionBatch, MissionType, PublicGame, SafeZone } from "../types/game";
+import type { ZoneResult } from "../utils/zoneCheck";
 
 export type MissionCard = {
   estado: "VIVO" | "ELIMINADO";
@@ -62,9 +63,10 @@ export function getMyLifeCode(gameId: string) {
   return request<LifeCode>(`/api/v1/partidas/${encodeURIComponent(gameId)}/yo/codigo`);
 }
 
-export function eliminateTarget(gameId: string, codigo: string) {
+// Solo viaja el resultado de zona, nunca la posición (diseño de la 10b).
+export function eliminateTarget(gameId: string, codigo: string, resultadoZona: ZoneResult) {
   return request<EliminationResult>(`/api/v1/partidas/${encodeURIComponent(gameId)}/eliminaciones`, {
-    body: { codigo },
+    body: { codigo, resultadoZona },
     method: "POST",
   });
 }
