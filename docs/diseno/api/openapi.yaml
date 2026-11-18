@@ -36,6 +36,11 @@ tags:
     description: |
       Zonas seguras de la partida (PBI 10a, #10) y resultado de zona al eliminar (PBI 10b, #272).
       La posición del jugador no sale del móvil: el servidor solo recibe `DENTRO`, `FUERA` o `NO_CONCLUYENTE`.
+  - name: disputas
+    description: |
+      Abrir, responder y arbitrar una disputa (PBI 11a, #11) y anular una eliminación (PBI 11b, #273).
+      La víctima disputa su eliminación en los 10 minutos siguientes; el cazador abre una disputa por negativa
+      a enseñar el código, hasta el cierre. Las disputas solo las ven los implicados y el árbitro.
 security:
   - bearerAuth: []
 paths:
@@ -574,6 +579,8 @@ paths:
       description: |
         Cierra la partida con el mismo resultado que en la fecha de fin: entre los vivos, gana quien más
         eliminaciones tiene, un empate en cabeza es empate de partida y, si solo queda uno, es el último superviviente.
+        Ninguna vía cierra mientras quede algo por disputar: con el último superviviente o la fecha de fin, la
+        partida se cierra sola en cuanto no queda nada pendiente.
       responses:
         '200':
           description: Partida cerrada, con su resultado
@@ -584,7 +591,10 @@ paths:
         '403': { $ref: '#/components/responses/NoEsMaster' }
         '404': { $ref: '#/components/responses/NoEncontrada' }
         '409':
-          description: La partida no está en juego (`PARTIDA_NO_EN_JUEGO`), también si ya se ha cerrado por otra vía
+          description: |
+            La partida no está en juego (`PARTIDA_NO_EN_JUEGO`), también si ya se ha cerrado por otra vía, o tiene
+            una disputa abierta o una eliminación de hace menos de 10 minutos que aún se puede disputar
+            (`DISPUTAS_PENDIENTES`)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -644,9 +654,11 @@ paths:
           description: |
             La partida no está en juego (`PARTIDA_NO_EN_JUEGO`), quien llama ya está eliminado
             (`JUGADOR_ELIMINADO`, también cuando otra eliminación de la cadena llegó antes), tiene los
-            intentos bloqueados (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`) o él o su objetivo están en
-            su horario lectivo (`HORARIO_LECTIVO`, con `motivo` y `disponibleEn`). Un rechazo por horario no
-            compara el código ni gasta intentos.
+            intentos bloqueados (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`), él o su objetivo están en
+            su horario lectivo (`HORARIO_LECTIVO`, con `motivo` y `disponibleEn`) o tiene abierta una disputa
+            sobre una eliminación suya (`DISPUTA_ABIERTA`). Un rechazo por horario o por disputa no compara el
+            código ni gasta intentos. Desde la fecha de fin no se puede eliminar (`PARTIDA_NO_EN_JUEGO`), aunque
+            la partida espere a sus disputas para cerrarse.
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -670,7 +682,8 @@ paths:
       operationId: obtenerFeed
       summary: Feed de la partida
       description: |
-        Las eliminaciones, de la más reciente a la más antigua, sin decir quién eliminó a quién.
+        Las eliminaciones y las anulaciones, de la más reciente a la más antigua, sin decir quién eliminó a quién.
+        Las disputas no salen en el feed.
         Lo ven el máster, juegue o no, y todos los jugadores, vivos o eliminados.
       responses:
         '200':
@@ -687,6 +700,145 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/disputas:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+    get:
+      tags: [disputas]
+      operationId: listarDisputas
+      summary: Las disputas en las que soy implicado o árbitro
+      description: |
+        De la más reciente a la más antigua. Solo las que tienen a quien llama como cazador, víctima o árbitro
+        actual; el máster solo ve las que arbitra. El resultado de zona solo se devuelve al árbitro.
+      responses:
+        '200':
+          description: Mis disputas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Disputa' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+    post:
+      tags: [disputas]
+      operationId: abrirDisputa
+      summary: Abrir una disputa
+      description: |
+        `ELIMINACION`: la víctima disputa su eliminación, en los 10 minutos siguientes y una sola vez. Si la
+        eliminación se guardó con resultado de zona `DENTRO`, la disputa se resuelve sola a favor de la víctima y la
+        eliminación se anula. `NEGATIVA`: el cazador disputa que su objetivo no le enseña el código; no tiene
+        límite de 10 minutos, pero no se puede abrir desde la fecha de fin. Arbitra el máster, salvo que esté
+        implicado o haya borrado su cuenta: entonces se sortea un jugador no implicado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuevaDisputa' }
+      responses:
+        '201':
+          description: Disputa abierta (o ya resuelta por la zona)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Disputa' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: |
+            La partida no está en juego, o ya ha pasado la fecha de fin en `NEGATIVA` (`PARTIDA_NO_EN_JUEGO`).
+            En `ELIMINACION`: quien llama no tiene una eliminación que disputar, porque está vivo, ya la ha disputado
+            o fue eliminado por una disputa (`ELIMINACION_NO_DISPUTABLE`), o han pasado los 10 minutos
+            (`PLAZO_DISPUTA_VENCIDO`). En `NEGATIVA`: quien llama está eliminado o no tiene objetivo
+            (`JUGADOR_ELIMINADO`) o ya tiene una disputa por negativa abierta (`DISPUTA_YA_ABIERTA`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/disputas/{disputaId}:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+      - $ref: '#/components/parameters/DisputaId'
+    get:
+      tags: [disputas]
+      operationId: obtenerDisputa
+      summary: Una disputa (pantalla `h-disputa`)
+      description: Solo para los dos implicados y el árbitro actual; los demás reciben 404.
+      responses:
+        '200':
+          description: La disputa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Disputa' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+  /api/v1/partidas/{partidaId}/disputas/{disputaId}/respuesta:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+      - $ref: '#/components/parameters/DisputaId'
+    post:
+      tags: [disputas]
+      operationId: responderDisputa
+      summary: Responder a una disputa (el otro implicado, una vez)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TextoDisputa' }
+      responses:
+        '200':
+          description: Disputa con la respuesta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Disputa' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: Quien llama abrió la disputa o es el árbitro (`NO_PUEDE_RESPONDER`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: Ya está resuelta o sin objeto (`DISPUTA_NO_ABIERTA`) o ya se respondió (`YA_RESPONDIDA`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/partidas/{partidaId}/disputas/{disputaId}/decision:
+    parameters:
+      - $ref: '#/components/parameters/PartidaId'
+      - $ref: '#/components/parameters/DisputaId'
+    post:
+      tags: [disputas]
+      operationId: decidirDisputa
+      summary: Decidir una disputa (solo el árbitro actual)
+      description: |
+        `VICTIMA` en `ELIMINACION` anula la eliminación y las que el mismo cazador hizo después; `CAZADOR` la confirma.
+        `CAZADOR` en `NEGATIVA` elimina a la víctima como si hubiera dado el código (sin resultado de zona ni disputa
+        posterior); `VICTIMA` no cambia nada. Se puede decidir sin esperar la respuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DecisionDisputa' }
+      responses:
+        '200':
+          description: Disputa resuelta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Disputa' }
+        '400': { $ref: '#/components/responses/DatosNoValidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: Quien llama es implicado pero no el árbitro (`NO_ES_ARBITRO`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NoEncontrada' }
+        '409':
+          description: Ya está resuelta o sin objeto (`DISPUTA_NO_ABIERTA`)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Error' }
 components:
   securitySchemes:
     bearerAuth:
@@ -697,6 +849,11 @@ components:
   parameters:
     PartidaId:
       name: partidaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DisputaId:
+      name: disputaId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -730,7 +887,7 @@ components:
   schemas:
     Carta:
       type: object
-      required: [estado, aliasObjetivo, mision, eliminaciones, intentosRestantes, bloqueadoHasta, noDisponible]
+      required: [estado, aliasObjetivo, mision, eliminaciones, intentosRestantes, bloqueadoHasta, noDisponible, bloqueadoPorDisputa, disputarHasta]
       properties:
         estado: { type: string, enum: [VIVO, ELIMINADO] }
         aliasObjetivo: { type: [string, 'null'], description: 'Nulo si el objetivo borró su cuenta («cuenta eliminada»), si el jugador está eliminado o si es el único vivo' }
@@ -752,6 +909,15 @@ components:
             - $ref: '#/components/schemas/NoDisponible'
             - type: 'null'
           description: Nulo si puede eliminar a su objetivo ahora, si está eliminado o si es el único vivo
+        bloqueadoPorDisputa:
+          type: boolean
+          description: Verdadero mientras tiene abierta una disputa sobre una eliminación suya; «Eliminar» sale desactivado
+        disputarHasta:
+          type: [string, 'null']
+          format: date-time
+          description: >-
+            Solo con el jugador eliminado: hasta cuándo puede disputar su eliminación (10 minutos desde ella). Nulo si ya
+            ha vencido, si ya la ha disputado, si la eliminación fue por una disputa o si el jugador está vivo
     NoDisponible:
       type: object
       description: >-
@@ -845,12 +1011,55 @@ components:
       properties:
         aliasVictima: { type: [string, 'null'], description: Nulo si la víctima borró su cuenta }
         carta: { $ref: '#/components/schemas/Carta' }
+    DisputasPorArbitrar:
+      type: integer
+      minimum: 0
+      description: Disputas abiertas de esta partida cuyo árbitro actual es quien llama (contador de «Tareas de máster» o aviso al sorteado)
+    NuevaDisputa:
+      type: object
+      required: [tipo, texto]
+      properties:
+        tipo: { type: string, enum: [ELIMINACION, NEGATIVA], description: '`ELIMINACION` la abre la víctima; `NEGATIVA`, el cazador sobre su objetivo actual' }
+        texto: { type: string, minLength: 1, maxLength: 280, example: 'No me pidió un boli, me pidió un lápiz.' }
+    TextoDisputa:
+      type: object
+      required: [texto]
+      properties:
+        texto: { type: string, minLength: 1, maxLength: 280, example: Le pedí un boli en la biblioteca y me lo dejó. }
+    DecisionDisputa:
+      type: object
+      required: [razon]
+      properties:
+        razon: { type: string, enum: [CAZADOR, VICTIMA], description: A quién da la razón el árbitro }
+    Disputa:
+      type: object
+      required: [id, tipo, estado, aliasCazador, aliasVictima, mision, textoApertura, textoRespuesta, abiertaEn, plazoHasta, soyArbitro, puedoResponder, resultadoZona, razon, resueltaPor, cerradaEn]
+      properties:
+        id: { type: string, format: uuid }
+        tipo: { type: string, enum: [ELIMINACION, NEGATIVA] }
+        estado: { type: string, enum: [ABIERTA, RESUELTA, SIN_OBJETO], description: '`SIN_OBJETO`: una disputa por negativa cuyo cazador ya no tiene a esa víctima, o una sobre una eliminación anulada en cadena' }
+        aliasCazador: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
+        aliasVictima: { type: [string, 'null'], description: Nulo si borró su cuenta («cuenta eliminada») }
+        mision: { type: string, example: Que te pida prestado un boli, description: 'La que cumplió el cazador (`ELIMINACION`) o su misión al abrirla (`NEGATIVA`)' }
+        textoApertura: { type: string, description: 'La versión de quien abre: la víctima en `ELIMINACION`, el cazador en `NEGATIVA`' }
+        textoRespuesta: { type: [string, 'null'], description: La versión del otro implicado; nula hasta que responde }
+        abiertaEn: { type: string, format: date-time }
+        plazoHasta: { type: string, format: date-time, description: 'Hasta cuándo puede decidir el árbitro actual; si vence, se sortea otro' }
+        soyArbitro: { type: boolean }
+        puedoResponder: { type: boolean, description: 'Quien llama es el otro implicado, no ha respondido y la disputa está abierta' }
+        resultadoZona:
+          type: [string, 'null']
+          enum: [DENTRO, FUERA, NO_CONCLUYENTE, null]
+          description: Solo para el árbitro y en `ELIMINACION`; nulo para los implicados y en `NEGATIVA`
+        razon: { type: [string, 'null'], enum: [CAZADOR, VICTIMA, null], description: Nula mientras no está resuelta }
+        resueltaPor: { type: [string, 'null'], enum: [MASTER, SORTEADO, ZONA, null], description: '`ZONA`: anulada sola por un resultado `DENTRO`' }
+        cerradaEn: { type: [string, 'null'], format: date-time }
     EntradaFeed:
       type: object
       required: [tipo, alias, ocurridoEn]
       properties:
-        tipo: { type: string, enum: [ELIMINACION], description: 'Las anulaciones, abandonos y expulsiones llegan con sus PBI' }
-        alias: { type: [string, 'null'], description: Alias del eliminado; nulo si borró su cuenta («cuenta eliminada») }
+        tipo: { type: string, enum: [ELIMINACION, ANULACION], description: '`ANULACION`, una por cada jugador que revive (PBI 11b). Los abandonos y expulsiones llegan con la PBI 12' }
+        alias: { type: [string, 'null'], description: Alias del eliminado o del que revive; nulo si borró su cuenta («cuenta eliminada») }
         ocurridoEn: { type: string, format: date-time }
     NuevaInscripcion:
       type: object
@@ -912,7 +1121,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ConfiguracionPartida'
         - type: object
-          required: [id, estado, codigoInvitacion, enlace, numInscritos, creadaEn, resultado]
+          required: [id, estado, codigoInvitacion, enlace, numInscritos, creadaEn, resultado, disputasPorArbitrar]
           properties:
             id: { type: string, format: uuid }
             estado: { $ref: '#/components/schemas/EstadoPartida' }
@@ -921,10 +1130,11 @@ components:
             numInscritos: { type: integer, minimum: 0 }
             creadaEn: { type: string, format: date-time }
             resultado: { $ref: '#/components/schemas/ResultadoPartida' }
+            disputasPorArbitrar: { $ref: '#/components/schemas/DisputasPorArbitrar' }
     PartidaResumen:
       description: Tarjeta de la pestaña «Partidas»
       type: object
-      required: [id, nombre, estado, inicioEn, finEn, soyMaster, soyJugador, numInscritos, motivoCancelacion, resultado]
+      required: [id, nombre, estado, inicioEn, finEn, soyMaster, soyJugador, numInscritos, motivoCancelacion, resultado, disputasPorArbitrar]
       properties:
         id: { type: string, format: uuid }
         nombre: { type: string }
@@ -939,6 +1149,7 @@ components:
           enum: [POCOS_JUGADORES, MASTER_SIN_CUENTA, null]
           description: Solo en una partida `CANCELADA`, el motivo de su evento `PARTIDA_CANCELADA`; nulo en los demás estados
         resultado: { $ref: '#/components/schemas/ResultadoPartida' }
+        disputasPorArbitrar: { $ref: '#/components/schemas/DisputasPorArbitrar' }
     ResultadoPartida:
       description: Solo en una partida `CERRADA`, el resultado de su evento `PARTIDA_CERRADA`; nulo en los demás estados
       type: [object, 'null']
@@ -1044,7 +1255,7 @@ components:
         detail: { type: string }
         codigo:
           type: string
-          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS, HORARIO_LECTIVO, MISIONES_DE_BIBLIOTECA, LIMITE_TANDAS, MISION_YA_REVISADA, IA_NO_DISPONIBLE]
+          enum: [DATOS_NO_VALIDOS, ALIAS_OCUPADO, EMAIL_OCUPADO, CREDENCIALES_INCORRECTAS, NO_AUTENTICADO, TOKEN_NO_VALIDO, NO_ENCONTRADA, NO_ES_MASTER, PARTIDA_NO_EDITABLE, NORMAS_NO_ACEPTADAS, YA_INSCRITO, ES_MASTER, PARTIDA_NO_ABIERTA, POCOS_JUGADORES, PARTIDA_NO_EN_JUEGO, JUGADOR_ELIMINADO, CODIGO_INCORRECTO, CODIGO_CADUCADO, INTENTOS_BLOQUEADOS, HORARIO_LECTIVO, MISIONES_DE_BIBLIOTECA, LIMITE_TANDAS, MISION_YA_REVISADA, IA_NO_DISPONIBLE, DISPUTA_ABIERTA, DISPUTAS_PENDIENTES, ELIMINACION_NO_DISPUTABLE, PLAZO_DISPUTA_VENCIDO, DISPUTA_YA_ABIERTA, DISPUTA_NO_ABIERTA, YA_RESPONDIDA, NO_PUEDE_RESPONDER, NO_ES_ARBITRO]
         intentosRestantes: { type: integer, minimum: 1, maximum: 2, description: 'Solo en `CODIGO_INCORRECTO` y `CODIGO_CADUCADO`; nunca vale 0, porque el tercer fallo responde `INTENTOS_BLOQUEADOS`' }
         bloqueadoHasta: { type: string, format: date-time, description: Solo en `INTENTOS_BLOQUEADOS` }
         motivo: { type: string, enum: [CAZADOR, OBJETIVO], description: Solo en `HORARIO_LECTIVO` }
