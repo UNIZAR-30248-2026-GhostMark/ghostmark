@@ -40,7 +40,8 @@ export function FeedScreen({ navigation, route }: Props) {
   return <Screen padded={false}><View style={styles.screen}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.tabs}>
-        {isPlayer ? <Pressable accessibilityLabel="Ir a mi misión" accessibilityRole="button" onPress={() => navigation.navigate("MissionCard", { gameId })} style={styles.tab}><Text style={styles.tabText}>Misión</Text></Pressable> : <View style={styles.tab}><Text style={styles.tabText}>Misión</Text></View>}
+        {/* El máster que no juega no tiene misión: su barra es Feed y Partida (R11-36). */}
+        {isPlayer ? <Pressable accessibilityLabel="Ir a mi misión" accessibilityRole="button" onPress={() => navigation.navigate("MissionCard", { gameId })} style={styles.tab}><Text style={styles.tabText}>Misión</Text></Pressable> : null}
         <View style={styles.tabOn}><Text style={styles.tabOnText}>FEED</Text></View>
         <Pressable accessibilityLabel="Ir a la pestaña Partida" accessibilityRole="button" onPress={() => navigation.navigate("GameTab", { gameId })} style={styles.tab}><Text style={styles.tabText}>Partida</Text></Pressable>
       </View>

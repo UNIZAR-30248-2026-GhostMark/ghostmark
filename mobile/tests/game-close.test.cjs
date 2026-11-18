@@ -35,7 +35,8 @@ const gameResult = load('utils/gameResult.ts');
 const common = {
   'react-native': native,
   '@expo/vector-icons': { Ionicons: 'Ionicons' },
-  '@react-navigation/native': { useFocusEffect: (effect) => React.useEffect(effect, [effect]) },
+  '@react-navigation/native': { useFocusEffect: (effect) => React.useEffect(effect, [effect]), useIsFocused: () => true },
+  '../components/ConfirmDialog': { ConfirmDialog: 'ConfirmDialog' },
   '../api/client': { ApiError },
   '../components/PrimaryButton': { PrimaryButton: 'PrimaryButton' },
   '../utils/caughtSeen': { hasSeenCaught: async () => true },
@@ -126,14 +127,20 @@ test('el máster cierra desde la pestaña Partida tras confirmar y se abre el fi
   const { GameTabScreen, navigation, calls } = gameTab();
   await mount(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } });
   assert.match(shown(), /TAREAS DE MÁSTER/);
+  const dialog = () => tree.root.findByType('ConfirmDialog');
+  assert.equal(dialog().props.visible, false);
   await act(async () => byLabel('Cerrar partida').props.onPress());
   assert.equal(calls.length, 0, 'no cierra sin confirmar');
-  const [title, message, buttons] = alerts[0];
-  assert.equal(title, '¿Cerrar la partida?');
-  assert.match(message, /no se puede deshacer/);
-  await act(async () => buttons.find((button) => button.style === 'cancel').onPress?.());
+  assert.equal(alerts.length, 0, 'no usa el aviso del sistema (R11-40)');
+  assert.equal(dialog().props.visible, true);
+  assert.equal(dialog().props.title, '¿Cerrar la partida?');
+  assert.match(dialog().props.message, /no se puede deshacer/);
+  assert.equal(dialog().props.destructive, true);
+  await act(async () => dialog().props.onCancel());
   assert.equal(calls.length, 0, 'cancelar no cierra');
-  await act(async () => buttons.find((button) => button.style === 'destructive').onPress());
+  assert.equal(dialog().props.visible, false);
+  await act(async () => byLabel('Cerrar partida').props.onPress());
+  await act(async () => dialog().props.onConfirm());
   assert.deepEqual(calls, [['p1']]);
   assert.deepEqual(navigation.replaced, [['GameEnded', { game: closedGame(result('GANADOR', ['Marta'], 4, 'MASTER')) }]]);
 });
@@ -143,7 +150,7 @@ test('mientras se cierra, «Cerrar partida» no se puede volver a pulsar', async
   const { GameTabScreen, navigation, calls } = gameTab({ close: () => new Promise((resolve) => { finish = resolve; }) });
   await mount(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } });
   await act(async () => byLabel('Cerrar partida').props.onPress());
-  await act(async () => alerts[0][2].find((button) => button.style === 'destructive').onPress());
+  await act(async () => tree.root.findByType('ConfirmDialog').props.onConfirm());
   const button = tree.root.findAll((node) => node.props.accessibilityLabel === 'Cerrar partida' && node.type === 'Pressable')[0];
   assert.equal(button.props.disabled, true);
   assert.match(shown(), /CERRANDO…/);

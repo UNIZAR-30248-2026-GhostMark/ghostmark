@@ -21,7 +21,7 @@ export function GameCancelledScreen({ navigation, route }: Props) {
         <Text style={styles.title}>NO HAY JUGADORES{"\n"}SUFICIENTES</Text>
         <Text numberOfLines={2} style={styles.gameName}>{game.nombre}</Text>
         <View style={styles.counts}>
-          <View style={styles.count}><Text style={[styles.countValue, styles.countValueWide, styles.countMissing]}>{game.numInscritos}</Text><Text style={styles.countLabel}>inscritos</Text></View>
+          <View style={styles.count}><Text style={[styles.countValue, styles.countValueWide, styles.countMissing]}>{game.numInscritos}</Text><Text style={styles.countLabel}>{game.numInscritos === 1 ? "inscrito" : "inscritos"}</Text></View>
           <View style={styles.count}><Text style={[styles.countValue, styles.countValueWide, styles.countNeeded]}>{MIN_PLAYERS}</Text><Text style={styles.countLabel}>hacen falta</Text></View>
         </View>
       </> : <>

@@ -25,6 +25,7 @@ function setupProfile({ granted, canAskAgain = false, alias = 'fantasmilla' }) {
   const { ProfileScreen } = load('screens/ProfileScreen.tsx', {
     '@expo/vector-icons': { Ionicons: 'Ionicons' },
     '@react-navigation/native': { useFocusEffect: (effect) => React.useEffect(effect, [effect]) },
+    '../components/ConfirmDialog': { ConfirmDialog: 'ConfirmDialog' },
     'expo-location': {
       getForegroundPermissionsAsync: async () => ({ granted: granted.value, canAskAgain }),
       requestForegroundPermissionsAsync: async () => ({ granted: granted.value, canAskAgain }),

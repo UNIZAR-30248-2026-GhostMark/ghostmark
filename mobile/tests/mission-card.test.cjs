@@ -74,16 +74,17 @@ test('el botón de la partida iniciada abre la carta de su propia partida', asyn
   assert.deepEqual(destination, ['MissionCard', { gameId: 'partida-propia' }]);
 });
 
-test('el máster que no juega no ve «VER MI CARTA» y vuelve a sus partidas', async () => {
+test('el máster que no juega no ve «VER MI CARTA» y va a la pestaña Partida (R11-38)', async () => {
   let destination;
   const { GameStartedScreen } = load('screens/GameStartedScreen.tsx', { ...common });
   await mount(GameStartedScreen, {
-    navigation: { reset: (...args) => { destination = args; } },
+    navigation: { replace: (...args) => { destination = args; }, reset() { throw new Error('no vuelve a Inicio'); } },
     route: { params: { game: { id: 'partida-propia', nombre: 'Killer EINA', inicioEn: '2026-10-28T10:00:00Z', numInscritos: 3, soyJugador: false } } },
   });
   assert.doesNotMatch(JSON.stringify(tree.toJSON()), /VER MI CARTA/);
   await act(async () => tree.root.findByType('PrimaryButton').props.onPress());
-  assert.deepEqual(destination, [{ index: 0, routes: [{ name: 'Home' }] }]);
+  assert.equal(tree.root.findByType('PrimaryButton').props.children, 'IR A LA PARTIDA');
+  assert.deepEqual(destination, ['GameTab', { gameId: 'partida-propia' }]);
 });
 
 test('la carta no falla si el objetivo borró su cuenta', async () => {
