@@ -70,6 +70,19 @@ export function MissionCardScreen({ navigation, route }: Props) {
 
   const spectator = card?.estado === "ELIMINADO";
   const lastAlive = card ? isLastAlive(card) : false;
+  const unavailable = card?.noDisponible ?? null;
+  const hunting = Boolean(card) && !spectator && !lastAlive;
+
+  // El servidor solo cambia la disponibilidad en punto o a y media, también cuando el objetivo
+  // entra en clase. Mientras la carta tenga objetivo se vuelve a pedir 2 s después del siguiente,
+  // por si el reloj del móvil va algo adelantado; disponibleEn siempre cae en uno de ellos.
+  useEffect(() => {
+    if (!hunting) return undefined;
+    const now = Date.now();
+    const refreshAt = (Math.floor(now / 1_800_000) + 1) * 1_800_000 + 2_000;
+    const timer = setTimeout(() => setAttempt((value) => value + 1), refreshAt - now);
+    return () => clearTimeout(timer);
+  }, [card, hunting]);
 
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.content}>
@@ -78,7 +91,7 @@ export function MissionCardScreen({ navigation, route }: Props) {
       {error ? <View style={styles.errorState}>
         <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
         <PrimaryButton onPress={() => { setError(undefined); setAttempt((value) => value + 1); }}>REINTENTAR</PrimaryButton>
-      </View> : card && spectator ? <SpectatorCard /> : card && lastAlive ? <LastAliveCard /> : card ? <Pressable
+      </View> : card && spectator ? <SpectatorCard /> : card && lastAlive ? <LastAliveCard /> : card && unavailable ? <DormantCard card={card} /> : card ? <Pressable
         accessibilityHint="Mantén pulsada la carta para ver el objetivo y la misión"
         accessibilityLabel="Carta de misión"
         accessibilityRole="button"
@@ -97,7 +110,8 @@ export function MissionCardScreen({ navigation, route }: Props) {
     {/* El espectador ya no tiene código ni objetivo; el último vivo, nadie a quien eliminar (R11-26). */}
     {spectator ? null : <View style={styles.footer}>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate("LifeCode", { gameId })} style={styles.codeButton}><Text style={styles.codeText}>MI CÓDIGO</Text></Pressable>
-      {lastAlive ? null : <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo, attemptsLeft: card?.intentosRestantes, blockedUntil: card?.bloqueadoHasta })} style={styles.removeButton}><Text style={styles.removeText}>ELIMINAR</Text></Pressable>}
+      {lastAlive ? null : <Pressable accessibilityLabel="Eliminar objetivo" accessibilityRole="button" disabled={Boolean(unavailable)} onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo, attemptsLeft: card?.intentosRestantes, blockedUntil: card?.bloqueadoHasta })} style={[styles.removeButton, unavailable && styles.removeDisabled]}><Text style={[styles.removeText, unavailable && styles.removeDisabledText]}>ELIMINAR</Text></Pressable>}
+      {unavailable ? <Text accessibilityLiveRegion="polite" style={styles.unavailableHint}>{unavailable.motivo === "CAZADOR" ? "Estás en horario lectivo" : "Tu objetivo está en horario lectivo"}</Text> : null}
     </View>}
   </View></Screen>;
 }
@@ -134,6 +148,27 @@ function LastAliveCard() {
   return <View style={[styles.card, styles.cardFace, styles.cardFront, styles.lastAliveCard]}>
     <View style={styles.objectiveTag}><Text style={styles.objectiveTagText}>Objetivo</Text></View>
     <Text style={styles.lastAliveText}>Ya no tienes objetivo: eres la última persona en juego</Text>
+  </View>;
+}
+
+function DormantCard({ card }: { card: MissionCard }) {
+  const unavailable = card.noDisponible!;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(timer);
+  }, []);
+  const minutes = Math.max(0, Math.ceil((Date.parse(unavailable.disponibleEn) - now) / 60_000));
+  const remaining = minutes >= 60
+    ? `${Math.floor(minutes / 60)} H ${minutes % 60 === 0 ? "" : `${minutes % 60} `}MIN`
+    : `${minutes} MIN`;
+  const title = unavailable.motivo === "CAZADOR" ? "Estás en clase" : `${card.aliasObjetivo ?? "Tu objetivo"} está en clase`;
+  return <View accessibilityLabel={`${title}. Disponible en ${remaining}`} style={[styles.card, styles.dormantCard]}>
+    <View style={styles.dormantInner}>
+      <Image accessibilityLabel="Fantasma dormido" source={require("../../assets/ghosts/fantasma-dormido.png")} style={styles.dormantGhost} />
+      <Text style={styles.dormantTitle}>{title}</Text>
+      <Text adjustsFontSizeToFit minimumFontScale={0.65} numberOfLines={2} style={styles.dormantCountdown}>DISPONIBLE EN {remaining}</Text>
+    </View>
   </View>;
 }
 
@@ -178,6 +213,11 @@ const styles = StyleSheet.create({
   spectatorHint: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 16, lineHeight: 22, marginTop: 28, paddingHorizontal: 12, textAlign: "center" },
   lastAliveCard: { position: "relative" },
   lastAliveText: { color: colors.ink, ...bangers(34), letterSpacing: 0.4, lineHeight: 38, marginTop: 24 },
+  dormantCard: { backgroundColor: "#453566", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, boxShadow: `0px 8px 0px ${colors.ink}`, height: 348, overflow: "hidden", transform: [{ rotate: "2deg" }] },
+  dormantInner: { alignItems: "center", borderColor: "#A69AC5", borderRadius: 21, borderStyle: "dashed", borderWidth: 3, flex: 1, margin: 11, paddingHorizontal: 16, paddingTop: 20 },
+  dormantGhost: { height: 182, resizeMode: "contain", width: 194 },
+  dormantTitle: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 15, marginTop: 8, textAlign: "center" },
+  dormantCountdown: { color: colors.white, ...bangers(29), letterSpacing: 0.3, lineHeight: 31, marginTop: 8, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 2, width: 1 }, textShadowRadius: 0 },
   loadingCard: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 28, borderWidth: 3, height: 392, justifyContent: "center", marginTop: 12, width: 286 },
   loading: { color: colors.lime, ...bangers(25) },
   errorState: { flex: 1, gap: 20, justifyContent: "center", width: "100%" },
@@ -198,9 +238,12 @@ const styles = StyleSheet.create({
   missionTag: { alignSelf: "flex-start", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, marginTop: 17, paddingHorizontal: 12, paddingVertical: 5 },
   missionTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
   missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 34, marginTop: 12 },
-  footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
-  codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 12 },
+  footer: { gap: 12, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 16 },
+  codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 10 },
   codeText: { alignSelf: "stretch", color: colors.text, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
-  removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, paddingVertical: 12 },
+  removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, paddingVertical: 10 },
   removeText: { alignSelf: "stretch", color: colors.ink, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
+  removeDisabled: { backgroundColor: "#5C4D78", boxShadow: `0px 5px 0px ${colors.ink}` },
+  removeDisabledText: { color: "#C1B8D4" },
+  unavailableHint: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 12, paddingTop: 4, textAlign: "center" },
 });

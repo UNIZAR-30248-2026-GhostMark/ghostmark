@@ -287,6 +287,24 @@ test('Eliminar muestra el rechazo y los intentos que devuelve el servidor', asyn
   await act(async () => tree.unmount());
 });
 
+test('Eliminar explica el horario lectivo sin descontar intentos', async () => {
+  const { EliminateScreen } = load('screens/EliminateScreen.tsx', {
+    ...common,
+    '../api/client': { ApiError },
+    '../api/game': { getMyMissionCard: async () => ({ intentosRestantes: 2, bloqueadoHasta: null }), eliminateTarget: async () => { throw rejectedError('HORARIO_LECTIVO', 'No disponible', { motivo: 'OBJETIVO', disponibleEn: new Date(Date.now() + 80_000).toISOString() }); } },
+  });
+  let tree;
+  await act(async () => { tree = create(React.createElement(EliminateScreen, { navigation: { goBack() {}, replace() {} }, route: { params: { gameId: 'p1', targetAlias: 'Pablo', attemptsLeft: 2 } } })); });
+  for (const digit of '111111') {
+    const key = tree.root.findAllByType('Pressable').find((node) => node.props.accessibilityLabel === `Introducir ${digit}`);
+    await act(async () => key.props.onPress());
+  }
+  const shown = JSON.stringify(tree.toJSON());
+  assert.match(shown, /Pablo está en clase/);
+  assert.match(shown, /Te quedan 2 intentos/);
+  await act(async () => tree.unmount());
+});
+
 test('Eliminar bloquea el teclado hasta la fecha que devuelve el servidor', async () => {
   const { EliminateScreen } = load('screens/EliminateScreen.tsx', {
     ...common,

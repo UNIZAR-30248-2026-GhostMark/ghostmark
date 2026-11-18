@@ -10,6 +10,8 @@ export type MissionCard = {
   intentosRestantes: number | null;
   /** Hasta cuándo no puede eliminar tras 3 fallos seguidos; nulo si no está bloqueado. */
   bloqueadoHasta: string | null;
+  /** El horario lectivo impide eliminar temporalmente, sin revelar el horario de nadie. */
+  noDisponible?: { motivo: "CAZADOR" | "OBJETIVO"; disponibleEn: string } | null;
 };
 
 export type LifeCode = {
