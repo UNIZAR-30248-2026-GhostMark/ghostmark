@@ -11,12 +11,19 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 public class GeneradorGemini implements GeneradorMisiones {
+
+    static final int MAXIMO_INTENTOS = 3;
+    static final int MAXIMO_MENSAJE = 200;
+
+    private static final Logger LOG = LoggerFactory.getLogger(GeneradorGemini.class);
 
     static final List<String> CATEGORIAS = List.of("CONVERSACION", "OBJETO", "FOTO", "GESTO",
             "OTRA", "CONTACTO_FISICO", "ALCOHOL", "RIESGO_FISICO", "CONTENIDO_SEXUAL",
@@ -38,14 +45,23 @@ public class GeneradorGemini implements GeneradorMisiones {
     private final String modelo;
     private final URI base;
     private final Duration limite;
+    private final Duration pausa;
+    private final Duration margen;
     private final HttpClient cliente;
     private final JsonMapper json = JsonMapper.builder().build();
 
     public GeneradorGemini(String clave, String modelo, URI base, Duration limite) {
+        this(clave, modelo, base, limite, Duration.ofSeconds(1), Duration.ofSeconds(5));
+    }
+
+    GeneradorGemini(String clave, String modelo, URI base, Duration limite, Duration pausa,
+            Duration margen) {
         this.clave = clave;
         this.modelo = modelo;
         this.base = base;
         this.limite = limite;
+        this.pausa = pausa;
+        this.margen = margen;
         this.cliente = HttpClient.newBuilder().connectTimeout(limite).build();
     }
 
@@ -57,27 +73,70 @@ public class GeneradorGemini implements GeneradorMisiones {
                 .header("x-goog-api-key", clave)
                 .POST(HttpRequest.BodyPublishers.ofString(cuerpo(cuantas, contexto, evitar)))
                 .build();
-        // El límite cubre también el cuerpo por si Gemini manda las cabeceras y se queda a medias
+        long fin = System.nanoTime() + limite.toNanos();
+        for (int intento = 1; ; intento++) {
+            HttpResponse<String> respuesta = enviar(peticion, fin - System.nanoTime());
+            int estado = respuesta.statusCode();
+            if (estado == 200) {
+                return leer(respuesta.body());
+            }
+            String motivo = "Gemini responde " + estado + mensaje(respuesta.body());
+            LOG.warn("Intento {} de {}: {}", intento, MAXIMO_INTENTOS, motivo);
+            boolean saturado = estado == 429 || estado == 503;
+            if (!saturado || intento == MAXIMO_INTENTOS
+                    || fin - System.nanoTime() < margen.toNanos()) {
+                throw new GeneradorNoDisponible(motivo);
+            }
+            esperar();
+        }
+    }
+
+    private HttpResponse<String> enviar(HttpRequest peticion, long restante) {
+        if (restante <= 0) {
+            throw noDisponible("Gemini tarda más de " + limite.toSeconds() + " s", null);
+        }
         CompletableFuture<HttpResponse<String>> pendiente =
                 cliente.sendAsync(peticion, HttpResponse.BodyHandlers.ofString());
-        HttpResponse<String> respuesta;
         try {
-            respuesta = pendiente.get(limite.toNanos(), TimeUnit.NANOSECONDS);
+            return pendiente.get(restante, TimeUnit.NANOSECONDS);
         } catch (TimeoutException error) {
             pendiente.cancel(true);
-            throw new GeneradorNoDisponible("Gemini tarda más de " + limite.toSeconds() + " s",
-                    error);
+            throw noDisponible("Gemini tarda más de " + limite.toSeconds() + " s", error);
         } catch (ExecutionException error) {
-            throw new GeneradorNoDisponible("No se puede conectar con Gemini", error.getCause());
+            throw noDisponible("No se puede conectar con Gemini", error.getCause());
         } catch (InterruptedException error) {
             pendiente.cancel(true);
             Thread.currentThread().interrupt();
-            throw new GeneradorNoDisponible("Petición a Gemini interrumpida", error);
+            throw noDisponible("Petición a Gemini interrumpida", error);
         }
-        if (respuesta.statusCode() != 200) {
-            throw new GeneradorNoDisponible("Gemini responde " + respuesta.statusCode());
+    }
+
+    private void esperar() {
+        try {
+            Thread.sleep(pausa);
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw noDisponible("Petición a Gemini interrumpida", error);
         }
-        return leer(respuesta.body());
+    }
+
+    private static GeneradorNoDisponible noDisponible(String motivo, Throwable causa) {
+        LOG.warn(motivo);
+        return new GeneradorNoDisponible(motivo, causa);
+    }
+
+    private String mensaje(String cuerpo) {
+        try {
+            JsonNode texto = json.readTree(cuerpo).path("error").path("message");
+            if (!texto.isString()) {
+                return "";
+            }
+            String mensaje = texto.stringValue();
+            return ": " + (mensaje.length() > MAXIMO_MENSAJE
+                    ? mensaje.substring(0, MAXIMO_MENSAJE) : mensaje);
+        } catch (RuntimeException error) {
+            return "";
+        }
     }
 
     private String cuerpo(int cuantas, String contexto, List<String> evitar) {
