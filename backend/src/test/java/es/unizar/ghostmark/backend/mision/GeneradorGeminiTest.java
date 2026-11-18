@@ -137,7 +137,7 @@ class GeneradorGeminiTest {
         assertThrows(GeneradorNoDisponible.class,
                 () -> generadorConReintentos(Duration.ofSeconds(5)).generar(12, "Campus",
                         List.of()));
-        assertEquals(GeneradorGemini.MAXIMO_INTENTOS, peticiones.get());
+        assertEquals(3, peticiones.get());
     }
 
     @Test
