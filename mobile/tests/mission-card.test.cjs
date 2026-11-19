@@ -35,7 +35,7 @@ const common = {
   'react-native': native,
   '../components/Screen': { Screen: 'Screen' },
   '../components/PrimaryButton': { PrimaryButton: 'PrimaryButton' },
-  '../utils/caughtSeen': { hasSeenCaught: async () => true },
+  '../utils/caughtSeen': { hasSeenCaught: async () => true, clearCaughtSeen: async () => {} },
   '@react-navigation/native': { useFocusEffect: (effect) => React.useEffect(effect, [effect]) },
   '../theme/colors': { colors: { background: '#000', ink: '#111', white: '#fff', surfaceRaised: '#222', border: '#333', text: '#eee', textMuted: '#aaa', lime: '#bfff38', danger: '#f55' } },
 };

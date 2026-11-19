@@ -19,6 +19,7 @@ export function feedTime(iso: string, now = new Date()) {
 }
 
 // Nunca dice quién eliminó a quién (criterio 2 de la PBI 7a).
-export function feedText(alias: string | null) {
+export function feedText(alias: string | null, tipo: "ELIMINACION" | "ANULACION" = "ELIMINACION") {
+  if (tipo === "ANULACION") return alias ? `Eliminación de ${alias} anulada` : "Una eliminación fue anulada";
   return alias ? `${alias} fue eliminado` : "Una cuenta eliminada fue eliminada";
 }

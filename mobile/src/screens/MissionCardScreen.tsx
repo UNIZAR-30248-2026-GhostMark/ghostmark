@@ -10,7 +10,7 @@ import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import { bangers } from "../theme/bangers";
 import type { RootStackParamList } from "../types/navigation";
-import { hasSeenCaught } from "../utils/caughtSeen";
+import { clearCaughtSeen, hasSeenCaught } from "../utils/caughtSeen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MissionCard">;
 
@@ -28,6 +28,8 @@ export function MissionCardScreen({ navigation, route }: Props) {
       if (result.estado === "ELIMINADO" && !(await hasSeenCaught(gameId))) {
         if (active) navigation.navigate("Caught", { gameId });
       }
+      // Vivo otra vez tras una anulación (11b.3): si lo vuelven a eliminar, «Te han cazado» sale de nuevo.
+      if (result.estado === "VIVO") void clearCaughtSeen(gameId);
       if (active) setCard(result);
     }).catch(async (requestError: unknown) => {
       if (!active) return;

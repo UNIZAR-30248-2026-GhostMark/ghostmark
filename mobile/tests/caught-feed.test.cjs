@@ -93,17 +93,22 @@ test('«Te han cazado» se recuerda por partida y un fallo del almacén no rompe
   const secureStore = {
     getItemAsync: async (key) => { if (failing) throw new Error('sin almacén'); return store.get(key) ?? null; },
     setItemAsync: async (key, value) => { if (failing) throw new Error('sin almacén'); store.set(key, value); },
+    deleteItemAsync: async (key) => { if (failing) throw new Error('sin almacén'); store.delete(key); },
   };
-  const { hasSeenCaught, markCaughtSeen } = load('utils/caughtSeen.ts', { 'expo-secure-store': secureStore });
+  const { clearCaughtSeen, hasSeenCaught, markCaughtSeen } = load('utils/caughtSeen.ts', { 'expo-secure-store': secureStore });
   assert.equal(await hasSeenCaught('p1'), false);
   await markCaughtSeen('p1');
   assert.equal(await hasSeenCaught('p1'), true);
   assert.equal(await hasSeenCaught('p2'), false, 'cada partida tiene su marca');
   await markCaughtSeen('a/b c');
   assert.deepEqual([...store.keys()], ['cazado-visto-p1', 'cazado-visto-a_b_c'], 'la clave solo lleva caracteres válidos de SecureStore');
+  await clearCaughtSeen('p1');
+  assert.equal(await hasSeenCaught('p1'), false, 'al revivir se olvida');
+  assert.equal(await hasSeenCaught('a/b c'), true, 'solo en esa partida');
   failing = true;
   assert.equal(await hasSeenCaught('p1'), false);
   await markCaughtSeen('p1');
+  await clearCaughtSeen('p1');
 });
 
 // ---------- CaughtScreen ----------
@@ -132,11 +137,14 @@ test('el contorno del rótulo queda oculto al lector de pantalla', async () => {
 
 // ---------- MissionCardScreen ----------
 
-function missionCard(card, { seen = false } = {}) {
+function missionCard(card, { seen = false, store } = {}) {
   const asked = [];
+  const caughtSeen = store
+    ? { hasSeenCaught: async (gameId) => { asked.push(gameId); return store.has(gameId); }, clearCaughtSeen: async (gameId) => { store.delete(gameId); } }
+    : { hasSeenCaught: async (gameId) => { asked.push(gameId); return seen; }, clearCaughtSeen: async () => {} };
   const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
     '../api/game': { getMyMissionCard: async () => (typeof card === 'function' ? card() : card), getMyGames: async () => [] },
-    '../utils/caughtSeen': { hasSeenCaught: async (gameId) => { asked.push(gameId); return seen; } },
+    '../utils/caughtSeen': caughtSeen,
   });
   return { MissionCardScreen, asked };
 }
@@ -274,6 +282,13 @@ test('el feed enseña cada eliminación con su hora y nunca quién la hizo', asy
   assert.doesNotMatch(shown, /eliminó a Pablo|cazó|por /);
 });
 
+test('el feed pinta una anulación en verde y dice que la víctima vuelve al juego', async () => {
+  const { FeedScreen } = feed(() => [{ tipo: 'ANULACION', alias: 'Marta', ocurridoEn: '2026-11-04T11:00:00Z' }]);
+  await mount(FeedScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', isPlayer: true } } });
+  assert.equal(hasText('Eliminación de Marta anulada'), true);
+  assert.match(texts(), /vuelve al juego/);
+});
+
 test('el pie del feed no promete el Wrapped (R11-27)', async () => {
   const { FeedScreen } = feed(() => []);
   await mount(FeedScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', isPlayer: true } } });
@@ -281,10 +296,10 @@ test('el pie del feed no promete el Wrapped (R11-27)', async () => {
   assert.doesNotMatch(texts(), /Wrapped/);
 });
 
-test('sin eliminaciones el feed lo dice en vez de quedarse en blanco', async () => {
+test('sin novedades el feed lo dice en vez de quedarse en blanco', async () => {
   const { FeedScreen } = feed(() => []);
   await mount(FeedScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', isPlayer: true } } });
-  assert.equal(hasText('Aún no hay eliminaciones.'), true);
+  assert.equal(hasText('Aún no hay novedades.'), true);
   assert.equal(hasText('CARGANDO FEED…'), false);
 });
 
@@ -320,4 +335,27 @@ test('el máster que no juega no puede ir a una carta que no tiene', async () =>
   assert.equal(byLabel('Ir a mi misión') === undefined, true);
   assert.equal(hasText('Misión'), false, 'su barra es Feed y Partida (R11-36)');
   assert.equal(byLabel('Ir a la pestaña Partida') !== undefined, true);
+});
+
+test('al revivir por una anulación vuelve la carta con su misión nueva, y una eliminación nueva vuelve a avisar (11b.3)', async () => {
+  const store = new Set(['p1']);
+  let current = eliminated;
+  const { MissionCardScreen } = missionCard(() => current, { store });
+  const visit = async () => {
+    if (tree) await act(async () => tree.unmount());
+    const navigation = navigationMock();
+    await mount(MissionCardScreen, { navigation, route: { params: { gameId: 'p1' } } });
+    return navigation;
+  };
+  let navigation = await visit();
+  assert.equal(hasText('ERES ESPECTADOR'), true);
+  assert.deepEqual(navigation.destinations, [], 'ya había visto «Te han cazado»');
+  current = { estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Que te preste un boli', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null };
+  navigation = await visit();
+  assert.equal(hasText('ERES ESPECTADOR'), false, 'vuelve a jugar');
+  assert.equal(hasText('MI CÓDIGO'), true);
+  assert.equal(store.has('p1'), false, 'se olvida que vio «Te han cazado»');
+  current = eliminated;
+  navigation = await visit();
+  assert.deepEqual(navigation.destinations, [['Caught', { gameId: 'p1' }]], 'la segunda eliminación vuelve a avisar');
 });

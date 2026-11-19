@@ -21,7 +21,7 @@ export type LifeCode = {
 };
 
 export type FeedEntry = {
-  tipo: "ELIMINACION";
+  tipo: "ELIMINACION" | "ANULACION";
   alias: string | null;
   ocurridoEn: string;
 };
