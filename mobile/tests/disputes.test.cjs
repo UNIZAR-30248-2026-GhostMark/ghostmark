@@ -28,6 +28,7 @@ class AnimatedValue { constructor(value) { this.value = value; } interpolate() {
 const native = {
   ActivityIndicator: 'ActivityIndicator', Image: 'Image', KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'android' },
   Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', TextInput: 'TextInput', View: 'View',
+  AppState: { addEventListener: () => ({ remove() {} }) },
   Animated: { Value: AnimatedValue, View: 'AnimatedView', timing: (value, options) => ({ start: () => { value.value = options.toValue; } }) },
   StyleSheet: { create: (styles) => styles, absoluteFill: {}, absoluteFillObject: {} },
 };
@@ -225,7 +226,16 @@ test('abrir una disputa manda el tipo y el texto y sustituye el formulario por l
 
 function eliminate(card) {
   const { EliminateScreen } = load('screens/EliminateScreen.tsx', { ...common,
-    '../api/game': { getMyMissionCard: async () => card, eliminateTarget: async () => { throw new Error('no debe llamarse'); } },
+    'expo-location': {
+      getForegroundPermissionsAsync: async () => ({ granted: true, canAskAgain: true }),
+      requestForegroundPermissionsAsync: async () => ({ granted: true, canAskAgain: true }),
+    },
+    '../api/game': {
+      getMyMissionCard: async () => card,
+      getSafeZones: async () => ({ zonas: [] }),
+      eliminateTarget: async () => { throw new Error('no debe llamarse'); },
+    },
+    '../utils/zoneLocation': { measureZone: async () => 'FUERA' },
   });
   return EliminateScreen;
 }

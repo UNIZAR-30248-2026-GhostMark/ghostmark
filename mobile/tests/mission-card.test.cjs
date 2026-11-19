@@ -130,7 +130,7 @@ test('ELIMINAR abre «Eliminar» con los intentos y el bloqueo de la carta', asy
 test('la carta dormida explica que el objetivo está en clase y desactiva Eliminar', async () => {
   const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
     '../api/client': { ApiError: class ApiError extends Error {} },
-    '../api/game': { getMyMissionCard: async () => ({ estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null, noDisponible: { motivo: 'OBJETIVO', disponibleEn: new Date(Date.now() + 80 * 60_000).toISOString() } }) },
+    '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => ({ estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null, noDisponible: { motivo: 'OBJETIVO', disponibleEn: new Date(Date.now() + 80 * 60_000).toISOString() } }) },
   });
   await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
   const shown = JSON.stringify(tree.toJSON());
@@ -143,7 +143,7 @@ test('la carta dormida explica que el objetivo está en clase y desactiva Elimin
 test('la carta dormida dice que estás en clase si el horario es del cazador', async () => {
   const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
     '../api/client': { ApiError: class ApiError extends Error {} },
-    '../api/game': { getMyMissionCard: async () => ({ estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null, noDisponible: { motivo: 'CAZADOR', disponibleEn: new Date(Date.now() + 20 * 60_000).toISOString() } }) },
+    '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => ({ estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null, noDisponible: { motivo: 'CAZADOR', disponibleEn: new Date(Date.now() + 20 * 60_000).toISOString() } }) },
   });
   await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
   assert.match(JSON.stringify(tree.toJSON()), /Estás en clase/);
@@ -157,7 +157,7 @@ test('la carta se vuelve a pedir en el siguiente en punto o y media y se duerme 
     const base = { estado: 'VIVO', aliasObjetivo: 'Pablo', mision: 'Di compilador', eliminaciones: 0, intentosRestantes: 3, bloqueadoHasta: null };
     const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common,
       '../api/client': { ApiError: class ApiError extends Error {} },
-      '../api/game': { getMyMissionCard: async () => { calls += 1; return calls === 1 ? { ...base, noDisponible: null } : { ...base, noDisponible: { motivo: 'OBJETIVO', disponibleEn: '2026-11-17T19:30:00Z' } }; } },
+      '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => { calls += 1; return calls === 1 ? { ...base, noDisponible: null } : { ...base, noDisponible: { motivo: 'OBJETIVO', disponibleEn: '2026-11-17T19:30:00Z' } }; } },
     });
     await mount(MissionCardScreen, { route: { params: { gameId: 'partida-propia' } } });
     assert.equal(calls, 1);
