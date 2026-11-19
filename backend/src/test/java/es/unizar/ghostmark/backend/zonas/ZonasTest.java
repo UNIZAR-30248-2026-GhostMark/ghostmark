@@ -23,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -48,29 +49,43 @@ class ZonasTest {
                 .body("zonas.nombre", hasItems("Biblioteca", "Aulario"))
                 .extract().response();
         List<String> ids = respuesta.path("zonas.id");
+        List<String> nombresIniciales = respuesta.path("zonas.nombre");
         assertNotEquals(ids.get(0), ids.get(1));
         assertEquals(2, contar(juego));
         assertEquals(1, eventos(juego));
+        comprobarUltimoEventoCoincideConGet(master, juego);
         Instant creado = jdbc.queryForObject(
                 "select creada_en from zona_segura where id = ?", java.sql.Timestamp.class,
                 UUID.fromString(ids.get(0))).toInstant();
 
         // Intercambiar los nombres no debe violar el índice único temporalmente.
         List<Map<String, Object>> cambiadas = List.of(
-                zonaConId(ids.get(0), "Biblioteca", cuadradoDesplazado()),
-                zonaConId(ids.get(1), "Aulario", cuadrado()));
+                zonaConId(ids.get(0), nombresIniciales.get(1), cuadradoDesplazado()),
+                zonaConId(ids.get(1), nombresIniciales.get(0), cuadrado()));
         guardar(master, juego, cambiadas).then().statusCode(200)
                 .body("zonas", hasSize(2));
         assertEquals(creado, jdbc.queryForObject(
                 "select creada_en from zona_segura where id = ?", java.sql.Timestamp.class,
                 UUID.fromString(ids.get(0))).toInstant());
-        ver(master, juego).then().statusCode(200).body("zonas", hasSize(2))
-                .body("zonas[0].puntos", hasSize(4));
+        Response actual = ver(master, juego).then().statusCode(200)
+                .body("zonas", hasSize(2))
+                .body("zonas[0].puntos", hasSize(4))
+                .extract().response();
+        Map<String, String> nombresPorId = new HashMap<>();
+        List<Map<String, Object>> zonasActuales = actual.path("zonas");
+        for (Map<String, Object> zonaActual : zonasActuales) {
+            nombresPorId.put((String) zonaActual.get("id"),
+                    (String) zonaActual.get("nombre"));
+        }
+        assertEquals(nombresIniciales.get(1), nombresPorId.get(ids.get(0)));
+        assertEquals(nombresIniciales.get(0), nombresPorId.get(ids.get(1)));
+        comprobarUltimoEventoCoincideConGet(master, juego);
 
         guardar(master, juego, List.of()).then().statusCode(200)
                 .body("zonas", hasSize(0));
         assertEquals(0, contar(juego));
         assertEquals(3, eventos(juego));
+        comprobarUltimoEventoCoincideConGet(master, juego);
         assertEquals(0, jdbc.queryForObject("select jsonb_array_length(datos->'zonas')"
                         + " from evento where partida_id = ? and tipo = 'ZONAS_CAMBIADAS'"
                         + " order by secuencia desc limit 1", Integer.class,
@@ -246,6 +261,18 @@ class ZonasTest {
         return jdbc.queryForObject("select count(*) from evento where partida_id = ?"
                         + " and tipo = 'ZONAS_CAMBIADAS'", Integer.class,
                 UUID.fromString(juego.id()));
+    }
+
+    private void comprobarUltimoEventoCoincideConGet(String master, Juego juego) {
+        String datosEvento = jdbc.queryForObject(
+                "select datos::text from evento where partida_id = ?"
+                        + " and tipo = 'ZONAS_CAMBIADAS'"
+                        + " order by secuencia desc limit 1",
+                String.class, UUID.fromString(juego.id()));
+        String respuestaGet = ver(master, juego).then().statusCode(200)
+                .extract().asString();
+        assertEquals(JsonMapper.shared().readTree(respuestaGet),
+                JsonMapper.shared().readTree(datosEvento));
     }
 
     private static Map<String, Object> zona(String nombre, List<Map<String, Double>> puntos) {
