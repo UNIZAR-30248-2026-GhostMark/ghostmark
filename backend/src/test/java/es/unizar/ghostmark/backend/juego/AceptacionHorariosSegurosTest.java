@@ -236,7 +236,7 @@ class AceptacionHorariosSegurosTest {
 
     private Response eliminar(Persona jugador, UUID partidaId, String codigo) {
         return given().port(puerto).auth().oauth2(jugador.token())
-                .contentType(ContentType.JSON).body(Map.of("codigo", codigo))
+                .contentType(ContentType.JSON).body(Map.of("codigo", codigo, "resultadoZona", "FUERA"))
                 .post(RUTA_ELIMINAR, partidaId);
     }
 
