@@ -2,6 +2,8 @@ package es.unizar.ghostmark.backend.juego;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +33,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -386,6 +390,63 @@ class EliminacionTest {
         comprobarCicloCerrado(mesa.juego());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"DENTRO", "FUERA", "NO_CONCLUYENTE"})
+    void elResultadoDeZonaSeGuardaConLaEliminacionSinDevolverlo(String resultado) {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
+
+        Response respuesta = peticion(cazador, mesa.juego(), Map.of("codigo",
+                codigoDe(mesa.juego(), victimaId, reloj.instant()), "resultadoZona", resultado));
+
+        respuesta.then().statusCode(200);
+        assertEquals(Set.of("aliasVictima", "carta"), respuesta.jsonPath().getMap("").keySet());
+        assertEquals(resultado, jdbc.queryForObject("select datos->>'resultadoZona' from evento"
+                + " where partida_id = ? and tipo = 'JUGADOR_ELIMINADO'", String.class,
+                mesa.juego().id()));
+    }
+
+    @Test
+    void sinResultadoDeZonaOConUnoQueNoExisteSeRechazaSinGastarIntentos() {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa.juego());
+        UUID victimaId = objetivo(mesa.juego(), cazadorId);
+        String correcto = codigoDe(mesa.juego(), victimaId, reloj.instant());
+
+        for (Map<String, Object> cuerpo : List.of(Map.<String, Object>of("codigo", correcto),
+                Map.<String, Object>of("codigo", correcto, "resultadoZona", "CERCA"))) {
+            peticion(cazador, mesa.juego(), cuerpo).then().statusCode(400)
+                    .body("codigo", equalTo("DATOS_NO_VALIDOS"))
+                    .body("errores.campo", hasItem("resultadoZona"));
+        }
+        assertEquals("VIVO", estadoJugador(victimaId));
+        assertEquals(0, intentosFallidos(mesa.juego(), cazadorId));
+    }
+
+    @Test
+    void laApiNoAceptaCoordenadasAlEliminar() {
+        Mesa mesa = preparar(3, true);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(0);
+        UUID cazadorId = inscripcion(cazador, mesa.juego());
+        UUID victimaId = objetivo(mesa.juego(), cazadorId);
+
+        peticion(cazador, mesa.juego(), Map.of("codigo",
+                codigoDe(mesa.juego(), victimaId, reloj.instant()), "resultadoZona", "DENTRO",
+                "latitud", 41.6836, "longitud", -0.8889)).then().statusCode(400)
+                .body("codigo", equalTo("DATOS_NO_VALIDOS"))
+                .body("errores.campo", hasItems("latitud", "longitud"));
+
+        assertEquals("VIVO", estadoJugador(victimaId));
+        assertEquals(0, intentosFallidos(mesa.juego(), cazadorId));
+        assertEquals(0, jdbc.queryForObject("select count(*) from evento where partida_id = ?"
+                + " and tipo = 'JUGADOR_ELIMINADO'", Integer.class, mesa.juego().id()));
+    }
+
     @Test
     void unCodigoSinSeisDigitosNoCuentaComoFallo() {
         Mesa mesa = preparar(3, true);
@@ -441,7 +502,8 @@ class EliminacionTest {
     void sinAutenticacionNoSePuedeEliminar() {
         Mesa mesa = preparar(3, true);
         arrancar(mesa).then().statusCode(200);
-        given().port(puerto).contentType(ContentType.JSON).body(Map.of("codigo", "000000"))
+        given().port(puerto).contentType(ContentType.JSON)
+                .body(Map.of("codigo", "000000", "resultadoZona", "FUERA"))
                 .post(RUTA_ELIMINAR, mesa.juego().id()).then().statusCode(401)
                 .body("codigo", equalTo("NO_AUTENTICADO"));
     }
@@ -631,8 +693,18 @@ class EliminacionTest {
     }
 
     private Response eliminar(Persona persona, Juego juego, String codigo) {
+        return peticion(persona, juego, Map.of("codigo", codigo, "resultadoZona", "FUERA"));
+    }
+
+    private Response peticion(Persona persona, Juego juego, Map<String, Object> cuerpo) {
         return given().port(puerto).auth().oauth2(persona.token()).contentType(ContentType.JSON)
-                .body(Map.of("codigo", codigo)).post(RUTA_ELIMINAR, juego.id());
+                .body(cuerpo).post(RUTA_ELIMINAR, juego.id());
+    }
+
+    private int intentosFallidos(Juego juego, UUID inscripcionId) {
+        return jdbc.queryForObject("select intentos_fallidos from jugador_partida"
+                + " where partida_id = ? and inscripcion_id = ?", Integer.class,
+                juego.id(), inscripcionId);
     }
 
     private UUID inscripcion(Persona persona, Juego juego) {

@@ -8,9 +8,11 @@ import es.unizar.ghostmark.backend.partida.PartidaNoEncontradaException;
 import es.unizar.ghostmark.backend.partida.PartidaRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ public class ServicioEliminacion {
     private static final long PASO_SEGUNDOS = 60;
     private static final long TOLERANCIA_SEGUNDOS = 15;
     private static final int PASOS_CADUCADOS = 10;
+    private static final Set<String> RESULTADOS_ZONA = Set.of("DENTRO", "FUERA",
+            "NO_CONCLUYENTE");
 
     private final CuentaRepository cuentas;
     private final PartidaRepository partidas;
@@ -51,8 +55,8 @@ public class ServicioEliminacion {
     }
 
     @Transactional(noRollbackFor = ErrorJuego.class)
-    public Eliminacion eliminar(UUID cuentaId, UUID partidaId, String codigo) {
-        comprobarFormato(codigo);
+    public Eliminacion eliminar(UUID cuentaId, UUID partidaId, NuevaEliminacion peticion) {
+        comprobarFormato(peticion);
         if (cuentas.bloquearPorId(cuentaId).isEmpty()) {
             throw new ErrorJuego(HttpStatus.UNAUTHORIZED, "NO_AUTENTICADO",
                     "La cuenta no está disponible");
@@ -93,23 +97,25 @@ public class ServicioEliminacion {
             }
         }
 
+        String codigo = peticion.getCodigo();
         if ("VIVO".equals(victima.estado()) && coincide(victima.secreto(), codigo, ahora)) {
-            return eliminar(partidaId, inscripcionId, victimaId, cazador, victima, ahora);
+            return eliminar(partidaId, inscripcionId, victimaId, cazador, victima,
+                    peticion.getResultadoZona(), ahora);
         }
         throw fallo(partidaId, inscripcionId, victima, codigo, ahora);
     }
 
     private Eliminacion eliminar(UUID partidaId, UUID cazadorId, UUID victimaId,
             JugadorPartidaRepository.EstadoJugador cazador,
-            JugadorPartidaRepository.EstadoJugador victima, Instant ahora) {
+            JugadorPartidaRepository.EstadoJugador victima, String resultadoZona, Instant ahora) {
         boolean unicoVivo = cazadorId.equals(victima.objetivoId());
         UUID objetivoHeredado = unicoVivo ? null : victima.objetivoId();
         UUID misionHeredada = unicoVivo ? null : victima.misionId();
         jugadores.eliminar(partidaId, victimaId, ahora);
         jugadores.heredar(partidaId, cazadorId, objetivoHeredado, misionHeredada);
         eventos.guardar(partidaId, "JUGADOR_ELIMINADO",
-                datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada),
-                ahora);
+                datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada,
+                        resultadoZona), ahora);
         cierre.cerrarSiUltimoVivo(partidaId, ahora);
         Carta carta = cartas.obtener(partidaId, cazadorId, ahora)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
@@ -156,21 +162,33 @@ public class ServicioEliminacion {
         return false;
     }
 
-    private void comprobarFormato(String codigo) {
+    private void comprobarFormato(NuevaEliminacion peticion) {
+        List<Map<String, String>> errores = new ArrayList<>();
+        for (String campo : peticion.camposNoPermitidos()) {
+            errores.add(Map.of("campo", campo, "mensaje", "Campo no permitido"));
+        }
+        String codigo = peticion.getCodigo();
         if (codigo == null || !codigo.matches("[0-9]{6}")) {
+            errores.add(Map.of("campo", "codigo", "mensaje", "Debe tener 6 dígitos"));
+        }
+        String resultadoZona = peticion.getResultadoZona();
+        if (resultadoZona == null || !RESULTADOS_ZONA.contains(resultadoZona)) {
+            errores.add(Map.of("campo", "resultadoZona",
+                    "mensaje", "Debe ser DENTRO, FUERA o NO_CONCLUYENTE"));
+        }
+        if (!errores.isEmpty()) {
             throw new ErrorJuego(HttpStatus.BAD_REQUEST, "DATOS_NO_VALIDOS",
-                    "Algún campo no cumple sus reglas",
-                    Map.of("errores", List.of(Map.of("campo", "codigo",
-                            "mensaje", "Debe tener 6 dígitos"))));
+                    "Algún campo no cumple sus reglas", Map.of("errores", errores));
         }
     }
 
     private static String datos(UUID cazadorId, UUID victimaId, UUID misionId,
-            UUID objetivoHeredadoId, UUID misionHeredadaId) {
+            UUID objetivoHeredadoId, UUID misionHeredadaId, String resultadoZona) {
         return "{\"cazadorId\":\"" + cazadorId + "\",\"victimaId\":\"" + victimaId + "\","
                 + "\"misionId\":" + valor(misionId) + ","
                 + "\"objetivoHeredadoId\":" + valor(objetivoHeredadoId) + ","
-                + "\"misionHeredadaId\":" + valor(misionHeredadaId) + "}";
+                + "\"misionHeredadaId\":" + valor(misionHeredadaId) + ","
+                + "\"resultadoZona\":\"" + resultadoZona + "\"}";
     }
 
     private static String valor(UUID id) {

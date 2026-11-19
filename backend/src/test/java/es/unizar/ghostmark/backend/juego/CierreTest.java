@@ -500,7 +500,8 @@ class CierreTest {
 
     private Response eliminar(Persona persona, Juego juego, String codigo) {
         return given().port(puerto).auth().oauth2(persona.token()).contentType(ContentType.JSON)
-                .body(Map.of("codigo", codigo)).post("/api/v1/partidas/{id}/eliminaciones",
+                .body(Map.of("codigo", codigo, "resultadoZona", "FUERA"))
+                .post("/api/v1/partidas/{id}/eliminaciones",
                         juego.id());
     }
 

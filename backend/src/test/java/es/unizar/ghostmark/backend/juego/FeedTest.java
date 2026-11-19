@@ -159,7 +159,8 @@ class FeedTest {
                 juego.id(), victimaId);
         String codigo = generador.generar(secreto, Instant.now()).codigo();
         return given().port(puerto).auth().oauth2(persona.token()).contentType(ContentType.JSON)
-                .body(Map.of("codigo", codigo)).post(RUTA_ELIMINAR, juego.id())
+                .body(Map.of("codigo", codigo, "resultadoZona", "FUERA"))
+                .post(RUTA_ELIMINAR, juego.id())
                 .then().statusCode(200).extract().response();
     }
 

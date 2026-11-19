@@ -193,7 +193,8 @@ class HorarioEliminacionTest {
 
     private Response eliminar(Persona persona, UUID partidaId, String codigo) {
         return given().port(puerto).auth().oauth2(persona.token()).contentType(ContentType.JSON)
-                .body(Map.of("codigo", codigo)).post(RUTA_ELIMINAR, partidaId);
+                .body(Map.of("codigo", codigo, "resultadoZona", "FUERA"))
+                .post(RUTA_ELIMINAR, partidaId);
     }
 
     private Response carta(Persona persona, UUID partidaId) {
