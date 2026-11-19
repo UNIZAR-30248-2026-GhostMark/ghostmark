@@ -99,8 +99,8 @@ class CartaAceptacionTest {
                     .body("aliasObjetivo", equalTo(alias)).body("mision", equalTo(mision))
                     .extract().jsonPath().getMap("");
             assertEquals(Set.of("estado", "aliasObjetivo", "mision", "eliminaciones",
-                    "intentosRestantes", "bloqueadoHasta", "noDisponible"),
-                    respuesta.keySet());
+                    "intentosRestantes", "bloqueadoHasta", "noDisponible", "bloqueadoPorDisputa",
+                    "disputarHasta"), respuesta.keySet());
         }
     }
 

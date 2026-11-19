@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,23 +35,23 @@ public class ServicioEliminacion {
     private final JugadorPartidaRepository jugadores;
     private final CartaRepository cartas;
     private final ServicioEvento eventos;
-    private final ServicioCierre cierre;
     private final List<ReglaEliminacion> reglas;
+    private final ApplicationEventPublisher publicador;
     private final Clock reloj;
     private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     public ServicioEliminacion(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, JugadorPartidaRepository jugadores,
-            CartaRepository cartas, ServicioEvento eventos, ServicioCierre cierre,
-            List<ReglaEliminacion> reglas, Clock reloj) {
+            CartaRepository cartas, ServicioEvento eventos,
+            List<ReglaEliminacion> reglas, ApplicationEventPublisher publicador, Clock reloj) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
         this.jugadores = jugadores;
         this.cartas = cartas;
         this.eventos = eventos;
-        this.cierre = cierre;
         this.reglas = reglas;
+        this.publicador = publicador;
         this.reloj = reloj;
     }
 
@@ -69,6 +70,11 @@ public class ServicioEliminacion {
             throw new ErrorJuego(HttpStatus.CONFLICT, "PARTIDA_NO_EN_JUEGO",
                     "La partida no está en juego");
         }
+        Instant ahora = Instant.now(reloj);
+        if (!ahora.isBefore(partida.getFinEn())) {
+            throw new ErrorJuego(HttpStatus.CONFLICT, "PARTIDA_NO_EN_JUEGO",
+                    "La partida ha llegado a su fecha de fin");
+        }
         JugadorPartidaRepository.EstadoJugador cazador = jugadores
                 .bloquear(partidaId, inscripcionId)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene al jugador"));
@@ -76,7 +82,6 @@ public class ServicioEliminacion {
             throw new ErrorJuego(HttpStatus.CONFLICT, "JUGADOR_ELIMINADO",
                     "El jugador está eliminado");
         }
-        Instant ahora = Instant.now(reloj);
         if (cazador.bloqueadoHasta() != null && ahora.isBefore(cazador.bloqueadoHasta())) {
             throw new ErrorJuego(HttpStatus.CONFLICT, "INTENTOS_BLOQUEADOS",
                     "Los intentos están bloqueados hasta que rote el código",
@@ -84,7 +89,8 @@ public class ServicioEliminacion {
         }
         UUID victimaId = cazador.objetivoId();
         if (victimaId == null) {
-            throw new IllegalStateException("El jugador vivo no tiene objetivo");
+            throw new ErrorJuego(HttpStatus.CONFLICT, "PARTIDA_NO_EN_JUEGO",
+                    "No te queda ningún rival: la partida se cierra al acabar el plazo de disputa");
         }
         JugadorPartidaRepository.EstadoJugador victima = jugadores.obtener(partidaId, victimaId)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene a la víctima"));
@@ -116,7 +122,7 @@ public class ServicioEliminacion {
         eventos.guardar(partidaId, "JUGADOR_ELIMINADO",
                 datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada,
                         resultadoZona), ahora);
-        cierre.cerrarSiUltimoVivo(partidaId, ahora);
+        publicador.publishEvent(new EliminacionHecha(partidaId, ahora));
         Carta carta = cartas.obtener(partidaId, cazadorId, ahora)
                 .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
         return new Eliminacion(inscripciones.aliasDeInscripcion(victimaId), carta);

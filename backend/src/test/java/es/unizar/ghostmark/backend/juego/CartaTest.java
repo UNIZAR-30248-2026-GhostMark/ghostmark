@@ -71,8 +71,8 @@ class CartaTest {
                     .body("aliasObjetivo", equalTo(aliasObjetivo)).body("mision", equalTo(mision))
                     .extract().response();
             assertEquals(Set.of("estado", "aliasObjetivo", "mision", "eliminaciones",
-                    "intentosRestantes", "bloqueadoHasta", "noDisponible"),
-                    respuesta.jsonPath().getMap("").keySet());
+                    "intentosRestantes", "bloqueadoHasta", "noDisponible", "bloqueadoPorDisputa",
+                    "disputarHasta"), respuesta.jsonPath().getMap("").keySet());
             assertEquals(respuesta.asString(), carta(jugador, mesa.juego()).asString());
         }
         List<Map<String, Object>> eventos = jdbc.queryForList("select tipo, secuencia, ocurrido_en"
