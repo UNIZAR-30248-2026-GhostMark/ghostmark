@@ -1,13 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import * as Location from "expo-location";
+import { useEffect, useRef, useState } from "react";
+import { AppState, Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { eliminateTarget, getMyMissionCard } from "../api/game";
+import { eliminateTarget, getMyMissionCard, getSafeZones } from "../api/game";
 import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
+import type { SafeZone } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
+import { measureZone } from "../utils/zoneLocation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Eliminate">;
 const keypad = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "←"];
@@ -26,6 +29,11 @@ export function EliminateScreen({ navigation, route }: Props) {
   const [stateAttempt, setStateAttempt] = useState(0);
   const [loadFailed, setLoadFailed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // Sin el permiso de ubicación no se deja meter el código (criterio 2 de la PBI 10b, f-sin-ubicacion).
+  const [permission, setPermission] = useState<"checking" | "granted" | "ask" | "settings">("checking");
+  const [permissionError, setPermissionError] = useState<string>();
+  // Las zonas se piden al abrir; `null` si no se pudieron cargar (R12-37).
+  const zones = useRef<Promise<SafeZone[] | null>>(undefined);
   const target = targetAlias?.toUpperCase() ?? "TU OBJETIVO";
   const blockedSeconds = blockedUntil
     ? Math.max(0, Math.ceil((Date.parse(blockedUntil) - now) / 1000))
@@ -61,6 +69,35 @@ export function EliminateScreen({ navigation, route }: Props) {
   }, [navigation, route.params.gameId, stateAttempt]);
 
   useEffect(() => {
+    zones.current = getSafeZones(route.params.gameId).then((value) => value.zonas, () => null);
+  }, [route.params.gameId]);
+
+  // Se comprueba al abrir y al volver de los ajustes del móvil.
+  useEffect(() => {
+    let active = true;
+    const check = () => {
+      Location.getForegroundPermissionsAsync().then((current) => {
+        if (active) setPermission(current.granted ? "granted" : current.canAskAgain ? "ask" : "settings");
+      }).catch(() => { if (active) setPermission("ask"); });
+    };
+    check();
+    const subscription = AppState.addEventListener("change", (state) => { if (state === "active") check(); });
+    return () => { active = false; subscription.remove(); };
+  }, []);
+
+  async function askPermission() {
+    setPermissionError(undefined);
+    try {
+      if (permission === "settings") { await Linking.openSettings(); return; }
+      const result = await Location.requestForegroundPermissionsAsync();
+      setPermission(result.granted ? "granted" : result.canAskAgain ? "ask" : "settings");
+      if (!result.granted) setPermissionError(result.canAskAgain ? "Sin la ubicación no puedes meter el código." : "Activa la ubicación en los ajustes del móvil para seguir.");
+    } catch {
+      setPermissionError("No hemos podido pedir el permiso de ubicación. Inténtalo de nuevo.");
+    }
+  }
+
+  useEffect(() => {
     if (!blockedUntil) return undefined;
     const timer = setInterval(() => {
       const currentNow = Date.now();
@@ -75,10 +112,11 @@ export function EliminateScreen({ navigation, route }: Props) {
   }, [blockedUntil]);
 
   async function submit(nextCode: string) {
-    if (nextCode.length !== 6 || sending || !stateReady) return;
+    if (nextCode.length !== 6 || sending || !stateReady || permission !== "granted") return;
     setSending(true);
     try {
-      const result = await eliminateTarget(route.params.gameId, nextCode);
+      const resultadoZona = await measureZone(await (zones.current ?? Promise.resolve(null)));
+      const result = await eliminateTarget(route.params.gameId, nextCode, resultadoZona);
       navigation.replace("EliminationSuccess", { gameId: route.params.gameId, result });
     } catch (requestError) {
       if (requestError instanceof ApiError) {
@@ -110,7 +148,7 @@ export function EliminateScreen({ navigation, route }: Props) {
   }
 
   function pressKey(key: string) {
-    if (sending || blocked || !stateReady) return;
+    if (sending || blocked || !stateReady || permission !== "granted") return;
     setError(undefined);
     if (key === "←") {
       setCode(code.slice(0, -1));
@@ -127,12 +165,21 @@ export function EliminateScreen({ navigation, route }: Props) {
     <View style={styles.header}><Pressable accessibilityLabel="Volver a mi carta" accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.backButton}><Ionicons color={colors.text} name="arrow-back" size={23} /></Pressable><Text style={styles.headerTitle}>ELIMINAR</Text></View>
     <View style={styles.content}>
       <Text adjustsFontSizeToFit minimumFontScale={0.55} numberOfLines={2} style={styles.title}>CÓDIGO DE {target}</Text>
-      <Text style={styles.description}>Pídele que te enseñe su código</Text>
-      <View accessibilityLabel={`Código introducido: ${code.length} de 6 dígitos`} style={styles.codeSlots}>{Array.from({ length: 6 }, (_, index) => <View key={index} style={[styles.slot, index === code.length && !sending && !blocked && styles.slotCurrent]}><Text style={styles.slotText}>{code[index] ?? ""}</Text></View>)}</View>
-      <View accessibilityLiveRegion="polite" style={styles.feedback}>
-        {blocked ? <><Text style={styles.blockedTitle}>INTENTOS BLOQUEADOS</Text><Text style={styles.blockedMessage}>Podrás volver a intentarlo en {blockedSeconds} s</Text></> : <>{error ? <Text style={styles.error}>{error}</Text> : null}{loadFailed ? <Pressable accessibilityRole="button" onPress={retryState} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}><Text style={styles.retryText}>REINTENTAR</Text></Pressable> : <Text style={styles.attempts}>{sending ? "COMPROBANDO…" : !stateReady || attempts === undefined ? "COMPROBANDO INTENTOS…" : `Te ${attempts === 1 ? "queda 1 intento" : `quedan ${attempts} intentos`}`}</Text>}</>}
-      </View>
-      <View style={styles.keypad}>{keypad.map((key, index) => key ? <Pressable accessibilityLabel={key === "←" ? "Borrar último dígito" : `Introducir ${key}`} accessibilityRole="button" disabled={sending || blocked || !stateReady} key={key} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, pressed && !blocked && stateReady && styles.pressed, (sending || blocked || !stateReady) && styles.disabled]}><Text style={styles.keyText}>{key === "←" ? "⌫" : key}</Text></Pressable> : <View key={`empty-${index}`} style={styles.keyPlaceholder} />)}</View>
+      {permission === "checking" ? null : permission !== "granted" ? <View style={styles.noLocation}>
+        <Text style={styles.description}>Para eliminar hace falta la ubicación</Text>
+        <View style={styles.codeSlots}>{Array.from({ length: 6 }, (_, index) => <View key={index} style={[styles.slot, styles.slotOff]} />)}</View>
+        <Image accessibilityLabel="Fantasma protegido" source={require("../../assets/ghosts/fantasma-escudo.png")} style={styles.noLocationGhost} />
+        <Text style={styles.noLocationText}>Solo miro si estás en una zona segura al meter el código. Nunca guardo dónde estás.</Text>
+        {permissionError ? <Text style={styles.error}>{permissionError}</Text> : null}
+        <Pressable accessibilityRole="button" onPress={() => void askPermission()} style={({ pressed }) => [styles.permissionButton, pressed && styles.pressed]}><Text style={styles.permissionText}>{permission === "settings" ? "ABRIR AJUSTES" : "DAR PERMISO"}</Text></Pressable>
+      </View> : <>
+        <Text style={styles.description}>Pídele que te enseñe su código</Text>
+        <View accessibilityLabel={`Código introducido: ${code.length} de 6 dígitos`} style={styles.codeSlots}>{Array.from({ length: 6 }, (_, index) => <View key={index} style={[styles.slot, index === code.length && !sending && !blocked && styles.slotCurrent]}><Text style={styles.slotText}>{code[index] ?? ""}</Text></View>)}</View>
+        <View accessibilityLiveRegion="polite" style={styles.feedback}>
+          {blocked ? <><Text style={styles.blockedTitle}>INTENTOS BLOQUEADOS</Text><Text style={styles.blockedMessage}>Podrás volver a intentarlo en {blockedSeconds} s</Text></> : <>{error ? <Text style={styles.error}>{error}</Text> : null}{loadFailed ? <Pressable accessibilityRole="button" onPress={retryState} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}><Text style={styles.retryText}>REINTENTAR</Text></Pressable> : <Text style={styles.attempts}>{sending ? "COMPROBANDO…" : !stateReady || attempts === undefined ? "COMPROBANDO INTENTOS…" : `Te ${attempts === 1 ? "queda 1 intento" : `quedan ${attempts} intentos`}`}</Text>}</>}
+        </View>
+        <View style={styles.keypad}>{keypad.map((key, index) => key ? <Pressable accessibilityLabel={key === "←" ? "Borrar último dígito" : `Introducir ${key}`} accessibilityRole="button" disabled={sending || blocked || !stateReady} key={key} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, pressed && !blocked && stateReady && styles.pressed, (sending || blocked || !stateReady) && styles.disabled]}><Text style={styles.keyText}>{key === "←" ? "⌫" : key}</Text></Pressable> : <View key={`empty-${index}`} style={styles.keyPlaceholder} />)}</View>
+      </>}
     </View>
   </View>;
 }
@@ -170,5 +217,11 @@ const styles = StyleSheet.create({
   key: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 14, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, height: 61, justifyContent: "center", width: "30%" },
   keyPlaceholder: { height: 61, width: "30%" },
   keyText: { alignSelf: "stretch", color: colors.white, ...bangers(27), lineHeight: 34, paddingBottom: 1, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 2, width: 1 }, textShadowRadius: 0 },
+  noLocation: { alignItems: "center", alignSelf: "stretch", flex: 1 },
+  slotOff: { backgroundColor: colors.textMuted, borderColor: colors.border, boxShadow: "none", opacity: 0.6 },
+  noLocationGhost: { height: 130, marginTop: 26, resizeMode: "contain", width: 130 },
+  noLocationText: { color: colors.white, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 20, marginBottom: 12, marginTop: 14, textAlign: "center" },
+  permissionButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: colors.cream, borderColor: colors.ink, borderRadius: 14, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, justifyContent: "center", marginBottom: 41, marginTop: "auto", minHeight: 58 },
+  permissionText: { alignSelf: "stretch", color: colors.ink, ...bangers(24), lineHeight: 32, paddingTop: 3, textAlign: "center" },
   disabled: { opacity: 0.55 }, pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });
