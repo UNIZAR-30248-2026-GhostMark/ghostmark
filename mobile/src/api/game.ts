@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { AiMission, AiMissionStatus, Game, GameConfiguration, GameSummary, MissionBatch, MissionType, PublicGame } from "../types/game";
+import type { AiMission, AiMissionStatus, Game, GameConfiguration, GameSummary, MissionBatch, MissionType, PublicGame, SafeZone } from "../types/game";
 
 export type MissionCard = {
   estado: "VIVO" | "ELIMINADO";
@@ -79,4 +79,12 @@ export function reviewAiMission(gameId: string, missionId: string, estado: Extra
 
 export function getFeed(gameId: string) {
   return request<FeedEntry[]>(`/api/v1/partidas/${encodeURIComponent(gameId)}/feed`);
+}
+
+export function getSafeZones(gameId: string) {
+  return request<{ zonas: SafeZone[] }>(`/api/v1/partidas/${encodeURIComponent(gameId)}/zonas`);
+}
+
+export function saveSafeZones(gameId: string, zonas: SafeZone[]) {
+  return request<{ zonas: SafeZone[] }>(`/api/v1/partidas/${encodeURIComponent(gameId)}/zonas`, { body: { zonas }, method: "PUT" });
 }

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { getMyGames, startGame } from "../api/game";
+import { getMyGames, getSafeZones, startGame } from "../api/game";
 import { getPlayers } from "../api/inscription";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
@@ -68,6 +68,7 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
   const [gameState, setGameState] = useState<GameSummary>();
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string>();
+  const [zoneCount, setZoneCount] = useState<number>();
   const isMaster = gameState?.soyMaster ?? false;
   const masterPlays = players?.some((player) => player.esMaster) ?? false;
   const canReviewSchedule = !isMaster || masterPlays;
@@ -98,6 +99,14 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
     });
     return () => { active = false; };
   }, [gameId, attempt, navigation, isFocused]);
+
+  // El máster puede cambiar las zonas hasta que arranca la partida (R12-32).
+  useEffect(() => {
+    if (!isFocused || !isMaster) return undefined;
+    let active = true;
+    getSafeZones(gameId).then((result) => { if (active) setZoneCount(result.zonas.length); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [gameId, isFocused, isMaster]);
 
   async function start() {
     setStartError(undefined);
@@ -155,6 +164,9 @@ export function WaitingRoomScreen({ navigation, route }: Props) {
       {startError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{startError}</Text> : null}
       {canReviewSchedule ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("Schedule", { gameId })} style={({ pressed }) => [styles.reviewButton, pressed && styles.pressed]}>
         <Text style={styles.reviewText}>REVISAR MI HORARIO</Text>
+      </Pressable> : null}
+      {isMaster ? <Pressable accessibilityLabel="Cambiar las zonas seguras" accessibilityRole="button" onPress={() => navigation.navigate("CreateGameZones", { editGameId: gameId })} style={({ pressed }) => [styles.reviewButton, pressed && styles.pressed]}>
+        <Text style={styles.reviewText}>{zoneCount === undefined ? "ZONAS SEGURAS" : `ZONAS SEGURAS · ${zoneCount}`}</Text>
       </Pressable> : null}
       {isMaster ? <PrimaryButton disabled={isStarting || !canStart} onPress={start}>{isStarting ? "ARRANCANDO…" : "ARRANCAR YA"}</PrimaryButton> : null}
     </View>

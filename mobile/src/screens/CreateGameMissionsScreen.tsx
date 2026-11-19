@@ -27,15 +27,20 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
   const contextValue = context === "Otro…" ? otherContext.trim() : context;
 
   async function createLibraryGame() {
-    setError(undefined); setIsSaving(true);
+    setError(undefined);
+    // La Biblioteca todavía no necesita una partida. Se crea al guardar las zonas (paso 4).
+    if (!createdGame) {
+      navigation.navigate("CreateGameZones", { configuration: { ...route.params.configuration, tipoMisiones: "BIBLIOTECA" } });
+      return;
+    }
+    setIsSaving(true);
     try {
-      // Si ya se creó como IA (por ejemplo, porque la IA no respondió), se cambia a Biblioteca sin crear otra (R11-19).
-      const game = await ensureGame("BIBLIOTECA");
-      if (game.tipoMisiones === "BIBLIOTECA") openShare(game);
-      else { const changed = await changeMissionType(game.id, "BIBLIOTECA"); setCreatedGame(changed); openShare(changed); }
-    } catch (requestError) {
-      setError(messageFor(requestError, "No hemos podido crear la partida. Comprueba la conexión e inténtalo de nuevo."));
-    } finally { setIsSaving(false); }
+      // Tras una caída de IA ya hay partida: se cambia sin crear otra antes de ir a las zonas.
+      const game = createdGame.tipoMisiones === "BIBLIOTECA" ? createdGame : await changeMissionType(createdGame.id, "BIBLIOTECA");
+      setCreatedGame(game);
+      navigation.navigate("CreateGameZones", { configuration: { ...route.params.configuration, tipoMisiones: "BIBLIOTECA" }, game });
+    } catch (requestError) { setError(messageFor(requestError, "No hemos podido preparar la partida. Comprueba la conexión e inténtalo de nuevo.")); }
+    finally { setIsSaving(false); }
   }
 
   async function generateMissions() {
@@ -68,8 +73,8 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
     else navigation.goBack();
   }
 
-  function openShare(game: Game) {
-    navigation.reset({ index: 1, routes: [homeRoute(game), { name: "ShareGame", params: { game } }] });
+  function homeRoute(game: Game) {
+    return { name: "Home" as const, params: { createdGame: { finEn: game.finEn, id: game.id, inicioEn: game.inicioEn, nombre: game.nombre, estado: game.estado, motivoCancelacion: null, numInscritos: game.numInscritos, soyJugador: game.masterJuega, soyMaster: true } } };
   }
 
   return <Screen><View style={styles.screen}>
@@ -94,10 +99,6 @@ export function CreateGameMissionsScreen({ navigation, route }: Props) {
 
 function TypeButton({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.typeButton, active && styles.typeButtonOn, pressed && styles.pressed]}><Text style={[styles.typeText, active && styles.typeTextOn]}>{label}</Text></Pressable>;
-}
-
-function homeRoute(game: Game) {
-  return { name: "Home" as const, params: { createdGame: { finEn: game.finEn, id: game.id, inicioEn: game.inicioEn, nombre: game.nombre, estado: game.estado, motivoCancelacion: null, numInscritos: game.numInscritos, soyJugador: game.masterJuega, soyMaster: true } } };
 }
 
 function messageFor(error: unknown, fallback: string) {

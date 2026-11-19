@@ -101,7 +101,13 @@ export function ReviewAiMissionsScreen({ navigation, route }: Props) {
     } finally { setIsSaving(false); }
   }
 
-  function finish() { navigation.navigate("ShareGame", { game: route.params.game }); }
+  function finish() {
+    const game = route.params.game;
+    navigation.navigate("CreateGameZones", {
+      configuration: { entradasTardias: game.entradasTardias, finEn: game.finEn, inicioEn: game.inicioEn, masterJuega: game.masterJuega, nombre: game.nombre, plazoDisputaHoras: game.plazoDisputaHoras, tipoMisiones: game.tipoMisiones },
+      game,
+    });
+  }
 
   return <Screen><View style={styles.screen}>
     <View style={styles.header}><Pressable accessibilityLabel="Volver a Inicio" accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.back}><Ionicons color={colors.text} name="arrow-back" size={23} /></Pressable>{current ? <View style={styles.counter}><Text style={styles.counterText}>{Math.min(reviewed + 1, total)} de {total}</Text></View> : null}</View>
