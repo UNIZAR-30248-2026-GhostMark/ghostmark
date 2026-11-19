@@ -46,7 +46,7 @@ const common = {
   '../theme/bangers': { bangers: (fontSize) => ({ fontFamily: 'Bangers', fontSize }) },
   '../theme/colors': { colors: { background: '#000', border: '#333', coral: '#f55', cream: '#fff', danger: '#f55', ink: '#111', lime: '#bf3', surfaceRaised: '#222', text: '#eee', textMuted: '#aaa', white: '#fff' } },
   '../utils/dispute': dispute,
-  '../utils/caughtSeen': { hasSeenCaught: async () => true, markCaughtSeen: async () => {} },
+  '../utils/caughtSeen': { clearCaughtSeen: async () => {}, hasSeenCaught: async () => true, markCaughtSeen: async () => {} },
 };
 
 let tree;
