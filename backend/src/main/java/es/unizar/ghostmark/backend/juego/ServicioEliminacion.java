@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ServicioEliminacion {
 
+    private static final String ORIGEN_CODIGO = "CODIGO";
+    private static final String ORIGEN_DISPUTA = "DISPUTA";
     private static final int INTENTOS = 3;
     private static final long PASO_SEGUNDOS = 60;
     private static final long TOLERANCIA_SEGUNDOS = 15;
@@ -105,15 +107,39 @@ public class ServicioEliminacion {
 
         String codigo = peticion.getCodigo();
         if ("VIVO".equals(victima.estado()) && coincide(victima.secreto(), codigo, ahora)) {
-            return eliminar(partidaId, inscripcionId, victimaId, cazador, victima,
+            aplicar(partidaId, inscripcionId, victimaId, cazador, victima, ORIGEN_CODIGO,
                     peticion.getResultadoZona(), ahora);
+            Carta carta = cartas.obtener(partidaId, inscripcionId, ahora)
+                    .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
+            return new Eliminacion(inscripciones.aliasDeInscripcion(victimaId), carta);
         }
         throw fallo(partidaId, inscripcionId, victima, codigo, ahora);
     }
 
-    private Eliminacion eliminar(UUID partidaId, UUID cazadorId, UUID victimaId,
+    /**
+     * Elimina al objetivo del cazador sin código, porque el árbitro le ha dado la razón en una
+     * disputa por negativa (11a.3, R12-20). Es el mismo paso 4 que «Eliminar»: herencia, evento
+     * con {@code origen = DISPUTA} y sin resultado de zona, y {@link EliminacionHecha}. No pasa por
+     * las reglas de la eliminación. Va dentro de la transacción de quien la llama, con la fila de
+     * la partida ya bloqueada.
+     */
+    public void eliminarPorDisputa(UUID partidaId, UUID cazadorId, UUID victimaId,
+            Instant ahora) {
+        JugadorPartidaRepository.EstadoJugador cazador = jugadores.bloquear(partidaId, cazadorId)
+                .orElseThrow(() -> new IllegalStateException("La partida no tiene al cazador"));
+        JugadorPartidaRepository.EstadoJugador victima = jugadores.obtener(partidaId, victimaId)
+                .orElseThrow(() -> new IllegalStateException("La partida no tiene a la víctima"));
+        if (!"VIVO".equals(cazador.estado()) || !"VIVO".equals(victima.estado())
+                || !victimaId.equals(cazador.objetivoId())) {
+            throw new IllegalStateException("La víctima ya no es el objetivo del cazador");
+        }
+        aplicar(partidaId, cazadorId, victimaId, cazador, victima, ORIGEN_DISPUTA, null, ahora);
+    }
+
+    private void aplicar(UUID partidaId, UUID cazadorId, UUID victimaId,
             JugadorPartidaRepository.EstadoJugador cazador,
-            JugadorPartidaRepository.EstadoJugador victima, String resultadoZona, Instant ahora) {
+            JugadorPartidaRepository.EstadoJugador victima, String origen, String resultadoZona,
+            Instant ahora) {
         boolean unicoVivo = cazadorId.equals(victima.objetivoId());
         UUID objetivoHeredado = unicoVivo ? null : victima.objetivoId();
         UUID misionHeredada = unicoVivo ? null : victima.misionId();
@@ -121,11 +147,8 @@ public class ServicioEliminacion {
         jugadores.heredar(partidaId, cazadorId, objetivoHeredado, misionHeredada);
         eventos.guardar(partidaId, "JUGADOR_ELIMINADO",
                 datos(cazadorId, victimaId, cazador.misionId(), objetivoHeredado, misionHeredada,
-                        resultadoZona), ahora);
+                        origen, resultadoZona), ahora);
         publicador.publishEvent(new EliminacionHecha(partidaId, ahora));
-        Carta carta = cartas.obtener(partidaId, cazadorId, ahora)
-                .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
-        return new Eliminacion(inscripciones.aliasDeInscripcion(victimaId), carta);
     }
 
     private ErrorJuego fallo(UUID partidaId, UUID inscripcionId,
@@ -189,12 +212,14 @@ public class ServicioEliminacion {
     }
 
     private static String datos(UUID cazadorId, UUID victimaId, UUID misionId,
-            UUID objetivoHeredadoId, UUID misionHeredadaId, String resultadoZona) {
+            UUID objetivoHeredadoId, UUID misionHeredadaId, String origen, String resultadoZona) {
         return "{\"cazadorId\":\"" + cazadorId + "\",\"victimaId\":\"" + victimaId + "\","
                 + "\"misionId\":" + valor(misionId) + ","
                 + "\"objetivoHeredadoId\":" + valor(objetivoHeredadoId) + ","
                 + "\"misionHeredadaId\":" + valor(misionHeredadaId) + ","
-                + "\"resultadoZona\":\"" + resultadoZona + "\"}";
+                + "\"origen\":\"" + origen + "\","
+                + "\"resultadoZona\":" + (resultadoZona == null ? "null"
+                        : "\"" + resultadoZona + "\"") + "}";
     }
 
     private static String valor(UUID id) {
