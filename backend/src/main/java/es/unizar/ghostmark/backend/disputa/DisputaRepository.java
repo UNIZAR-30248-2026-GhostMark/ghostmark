@@ -107,6 +107,12 @@ public class DisputaRepository {
                 UUID.class, partidaId);
     }
 
+    public List<UUID> abiertasDeEliminacion(UUID partidaId, UUID eventoId) {
+        return jdbc.queryForList("select id from disputa where partida_id = ?"
+                + " and evento_eliminacion_id = ? and estado = 'ABIERTA' order by id",
+                UUID.class, partidaId, eventoId);
+    }
+
     public void sinObjeto(UUID disputaId, Instant ahora) {
         jdbc.update("update disputa set estado = 'SIN_OBJETO', cerrada_en = ? where id = ?",
                 fecha(ahora), disputaId);

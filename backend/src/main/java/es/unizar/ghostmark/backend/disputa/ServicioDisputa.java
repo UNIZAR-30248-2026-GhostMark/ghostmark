@@ -159,15 +159,32 @@ public class ServicioDisputa {
 
     @EventListener
     public void alEliminar(EliminacionHecha hecha) {
-        for (UUID id : disputas.negativasSinObjeto(hecha.partidaId())) {
-            disputas.sinObjeto(id, hecha.ahora());
+        cerrarNegativasSinObjeto(hecha.partidaId(), hecha.ahora());
+    }
+
+    public void cerrarNegativasSinObjeto(UUID partidaId, Instant ahora) {
+        cerrarSinObjeto(partidaId, disputas.negativasSinObjeto(partidaId), ahora);
+    }
+
+    public void cerrarPorAnulacion(UUID partidaId, List<UUID> eventosEliminacion,
+            Instant ahora) {
+        List<UUID> abiertas = new ArrayList<>();
+        for (UUID evento : eventosEliminacion) {
+            abiertas.addAll(disputas.abiertasDeEliminacion(partidaId, evento));
+        }
+        cerrarSinObjeto(partidaId, abiertas, ahora);
+    }
+
+    private void cerrarSinObjeto(UUID partidaId, List<UUID> ids, Instant ahora) {
+        for (UUID id : ids) {
+            disputas.sinObjeto(id, ahora);
             Map<String, Object> datos = new LinkedHashMap<>();
             datos.put("disputaId", id.toString());
             datos.put("estado", "SIN_OBJETO");
             datos.put("razon", null);
             datos.put("resueltaPor", null);
-            eventos.guardar(hecha.partidaId(), "DISPUTA_RESUELTA",
-                    JsonMapper.shared().writeValueAsString(datos), hecha.ahora());
+            eventos.guardar(partidaId, "DISPUTA_RESUELTA",
+                    JsonMapper.shared().writeValueAsString(datos), ahora);
         }
     }
 
