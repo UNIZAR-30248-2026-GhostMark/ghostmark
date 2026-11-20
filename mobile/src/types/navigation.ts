@@ -20,10 +20,13 @@ export type RootStackParamList = {
   GameEnded: { game: import("./game").GameSummary };
   GameCancelled: { game: Pick<import("./game").GameSummary, "nombre" | "numInscritos"> & Partial<Pick<import("./game").GameSummary, "motivoCancelacion">> };
   MissionCard: { gameId: string; revealOnce?: boolean };
-  Caught: { gameId: string };
+  Caught: { gameId: string; disputarHasta?: string | null };
+  OpenDispute: { gameId: string; tipo?: import("./game").DisputeType; returnToCard?: "ESPECTADOR" | "VIVO" };
+  Dispute: { gameId: string; disputeId: string; returnToCard?: "ESPECTADOR" | "VIVO" };
+  DisputeList: { gameId: string };
   Feed: { gameId: string; isPlayer: boolean };
   LifeCode: { gameId: string };
-  Eliminate: { gameId: string; targetAlias?: string | null; attemptsLeft?: number | null; blockedUntil?: string | null };
+  Eliminate: { gameId: string; targetAlias?: string | null; attemptsLeft?: number | null; blockedUntil?: string | null; blockedByDispute?: boolean };
   EliminationSuccess: { gameId: string; result: import("../api/game").EliminationResult };
   ScanInvitation: undefined;
   ApiStatus: undefined;

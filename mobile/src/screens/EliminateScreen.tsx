@@ -34,11 +34,12 @@ export function EliminateScreen({ navigation, route }: Props) {
   const [permissionError, setPermissionError] = useState<string>();
   // Las zonas se piden al abrir; `null` si no se pudieron cargar (R12-37).
   const zones = useRef<Promise<SafeZone[] | null>>(undefined);
+  const [disputeBlocked, setDisputeBlocked] = useState(Boolean(route.params.blockedByDispute));
   const target = targetAlias?.toUpperCase() ?? "TU OBJETIVO";
   const blockedSeconds = blockedUntil
     ? Math.max(0, Math.ceil((Date.parse(blockedUntil) - now) / 1000))
     : 0;
-  const blocked = blockedSeconds > 0;
+  const blocked = blockedSeconds > 0 || disputeBlocked;
 
   // La carta puede seguir recargándose al volver atrás. Antes de dejar escribir, se consulta
   // siempre el estado actual del servidor para no reutilizar intentos o bloqueos caducados.
@@ -57,6 +58,7 @@ export function EliminateScreen({ navigation, route }: Props) {
       }
       setAttempts(card.intentosRestantes);
       setBlockedUntil(card.bloqueadoHasta ?? undefined);
+      setDisputeBlocked(card.bloqueadoPorDisputa);
       setTargetAlias(card.aliasObjetivo);
       setError(undefined);
       setStateReady(true);
@@ -176,8 +178,9 @@ export function EliminateScreen({ navigation, route }: Props) {
         <Text style={styles.description}>Pídele que te enseñe su código</Text>
         <View accessibilityLabel={`Código introducido: ${code.length} de 6 dígitos`} style={styles.codeSlots}>{Array.from({ length: 6 }, (_, index) => <View key={index} style={[styles.slot, index === code.length && !sending && !blocked && styles.slotCurrent]}><Text style={styles.slotText}>{code[index] ?? ""}</Text></View>)}</View>
         <View accessibilityLiveRegion="polite" style={styles.feedback}>
-          {blocked ? <><Text style={styles.blockedTitle}>INTENTOS BLOQUEADOS</Text><Text style={styles.blockedMessage}>Podrás volver a intentarlo en {blockedSeconds} s</Text></> : <>{error ? <Text style={styles.error}>{error}</Text> : null}{loadFailed ? <Pressable accessibilityRole="button" onPress={retryState} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}><Text style={styles.retryText}>REINTENTAR</Text></Pressable> : <Text style={styles.attempts}>{sending ? "COMPROBANDO…" : !stateReady || attempts === undefined ? "COMPROBANDO INTENTOS…" : `Te ${attempts === 1 ? "queda 1 intento" : `quedan ${attempts} intentos`}`}</Text>}</>}
+          {blocked ? <><Text style={styles.blockedTitle}>{disputeBlocked ? "DISPUTA ABIERTA" : "INTENTOS BLOQUEADOS"}</Text><Text style={styles.blockedMessage}>{disputeBlocked ? "Tienes una disputa abierta" : `Podrás volver a intentarlo en ${blockedSeconds} s`}</Text></> : <>{error ? <Text style={styles.error}>{error}</Text> : null}{loadFailed ? <Pressable accessibilityRole="button" onPress={retryState} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}><Text style={styles.retryText}>REINTENTAR</Text></Pressable> : <Text style={styles.attempts}>{sending ? "COMPROBANDO…" : !stateReady || attempts === undefined ? "COMPROBANDO INTENTOS…" : `Te ${attempts === 1 ? "queda 1 intento" : `quedan ${attempts} intentos`}`}</Text>}</>}
         </View>
+        {!disputeBlocked ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("OpenDispute", { gameId: route.params.gameId, tipo: "NEGATIVA", returnToCard: "VIVO" })} style={styles.negative}><Text style={styles.negativeText}>NO ME ENSEÑA EL CÓDIGO</Text></Pressable> : null}
         <View style={styles.keypad}>{keypad.map((key, index) => key ? <Pressable accessibilityLabel={key === "←" ? "Borrar último dígito" : `Introducir ${key}`} accessibilityRole="button" disabled={sending || blocked || !stateReady} key={key} onPress={() => pressKey(key)} style={({ pressed }) => [styles.key, pressed && !blocked && stateReady && styles.pressed, (sending || blocked || !stateReady) && styles.disabled]}><Text style={styles.keyText}>{key === "←" ? "⌫" : key}</Text></Pressable> : <View key={`empty-${index}`} style={styles.keyPlaceholder} />)}</View>
       </>}
     </View>
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 13, lineHeight: 18, marginHorizontal: 15, textAlign: "center" },
   blockedTitle: { color: colors.danger, ...bangers(19), lineHeight: 24, textAlign: "center" },
   blockedMessage: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, marginTop: 4, textAlign: "center" },
-  keypad: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: "auto", paddingBottom: 41, rowGap: 11, width: "100%" },
+  keypad: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 10, paddingBottom: 14, rowGap: 11, width: "100%" },
   key: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 14, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, height: 61, justifyContent: "center", width: "30%" },
   keyPlaceholder: { height: 61, width: "30%" },
   keyText: { alignSelf: "stretch", color: colors.white, ...bangers(27), lineHeight: 34, paddingBottom: 1, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 2, width: 1 }, textShadowRadius: 0 },
@@ -223,5 +226,7 @@ const styles = StyleSheet.create({
   noLocationText: { color: colors.white, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 20, marginBottom: 12, marginTop: 14, textAlign: "center" },
   permissionButton: { alignItems: "center", alignSelf: "stretch", backgroundColor: colors.cream, borderColor: colors.ink, borderRadius: 14, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, justifyContent: "center", marginBottom: 41, marginTop: "auto", minHeight: 58 },
   permissionText: { alignSelf: "stretch", color: colors.ink, ...bangers(24), lineHeight: 32, paddingTop: 3, textAlign: "center" },
+  negative: { alignItems: "center", alignSelf: "stretch", marginTop: 6, paddingBottom: 8, paddingTop: 8 },
+  negativeText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13, textDecorationLine: "underline" },
   disabled: { opacity: 0.55 }, pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

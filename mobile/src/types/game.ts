@@ -53,6 +53,30 @@ export type GameSummary = Pick<Game, "id" | "nombre" | "estado" | "inicioEn" | "
   soyJugador: boolean;
   motivoCancelacion: CancellationReason | null;
   resultado: GameResult | null;
+  disputasPorArbitrar?: number;
+};
+
+export type DisputeType = "ELIMINACION" | "NEGATIVA";
+export type DisputeState = "ABIERTA" | "RESUELTA" | "SIN_OBJETO";
+export type ZoneResult = "DENTRO" | "FUERA" | "NO_CONCLUYENTE";
+
+export type Dispute = {
+  id: string;
+  tipo: DisputeType;
+  estado: DisputeState;
+  aliasCazador: string | null;
+  aliasVictima: string | null;
+  mision: string;
+  textoApertura: string;
+  textoRespuesta: string | null;
+  abiertaEn: string;
+  plazoHasta: string;
+  soyArbitro: boolean;
+  puedoResponder: boolean;
+  resultadoZona: ZoneResult | null;
+  razon: "CAZADOR" | "VICTIMA" | null;
+  resueltaPor: "MASTER" | "SORTEADO" | "ZONA" | null;
+  cerradaEn: string | null;
 };
 export type GameDraft = Pick<GameConfiguration, "nombre" | "inicioEn" | "finEn">;
 

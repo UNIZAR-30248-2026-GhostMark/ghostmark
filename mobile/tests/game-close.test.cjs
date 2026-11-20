@@ -218,7 +218,7 @@ test('la tarjeta grande de una partida cerrada dice cuándo se cerró realmente'
 
 function missionCard(error, games) {
   const navigation = { replaced: [], navigate() {}, replace(...args) { this.replaced.push(args); } };
-  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getMyMissionCard: async () => { throw error; }, getMyGames: async () => games } });
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => { throw error; }, getMyGames: async () => games } });
   return { MissionCardScreen, navigation };
 }
 
@@ -238,7 +238,7 @@ test('si la partida aún no ha arrancado, la carta enseña el error', async () =
 
 test('la pestaña Partida de la carta abre la de esa partida', async () => {
   const navigation = { destinations: [], navigate(...args) { this.destinations.push(args); }, replace() {} };
-  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getMyMissionCard: async () => ({ aliasObjetivo: 'Pablo', mision: 'Di compilador' }), getMyGames: async () => [] } });
+  const { MissionCardScreen } = load('screens/MissionCardScreen.tsx', { ...common, '../api/game': { getDisputes: async () => [], getMyMissionCard: async () => ({ aliasObjetivo: 'Pablo', mision: 'Di compilador' }), getMyGames: async () => [] } });
   await mount(MissionCardScreen, { navigation, route: { params: { gameId: 'p7' } } });
   await act(async () => byLabel('Ir a la pestaña Partida').props.onPress());
   assert.deepEqual(navigation.destinations, [['GameTab', { gameId: 'p7' }]]);
@@ -253,4 +253,14 @@ test('la pestaña Feed de Partida abre el feed y dice si quien mira juega', asyn
     await act(async () => tree.unmount());
     tree = undefined;
   }
+});
+
+test('«Tareas de máster» cuenta las disputas que arbitra y abre su lista (11a.4)', async () => {
+  const { GameTabScreen, navigation } = gameTab({ games: [{ ...inPlay, disputasPorArbitrar: 2 }] });
+  await mount(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } });
+  const card = byLabel('Ver disputas');
+  const numbers = card.findAllByType('Text').map((node) => [node.props.children].flat().join(''));
+  assert.deepEqual(numbers, ['2', 'Disputas']);
+  await act(async () => card.props.onPress());
+  assert.deepEqual(navigation.destinations, [['DisputeList', { gameId: 'p1' }]]);
 });

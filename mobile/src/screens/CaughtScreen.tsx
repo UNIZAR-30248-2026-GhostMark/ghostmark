@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { G, Line } from "react-native-svg";
@@ -26,8 +26,12 @@ export function actionLines(count = 64) {
 }
 
 export function CaughtScreen({ navigation, route }: Props) {
-  const { gameId } = route.params;
+  const { gameId, disputarHasta } = route.params;
   const lines = useMemo(() => actionLines(), []);
+  const [now, setNow] = useState(() => Date.now());
+  const seconds = disputarHasta ? Math.max(0, Math.ceil((Date.parse(disputarHasta) - now) / 1000)) : 0;
+  const canDispute = seconds > 0;
+  useEffect(() => { if (!canDispute) return undefined; const timer = setInterval(() => setNow(Date.now()), 1_000); return () => clearInterval(timer); }, [canDispute]);
 
   // Se enseña una vez por partida (R11-25): desde ahora la carta es la del espectador.
   useEffect(() => { void markCaughtSeen(gameId); }, [gameId]);
@@ -45,7 +49,7 @@ export function CaughtScreen({ navigation, route }: Props) {
         </View>
       </View>
       <View style={styles.footer}>
-        {/* Sin disputa (R11-14), «CERRAR» es el botón principal (R11-29). */}
+        {canDispute ? <><Text style={styles.disputePrompt}>¿NO FUE LIMPIO? TIENES</Text><View style={styles.countdown}><Text style={styles.countdownText}>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</Text></View><Text style={styles.disputePrompt}>PARA ABRIR UNA DISPUTA</Text><Pressable accessibilityRole="button" onPress={() => navigation.navigate("OpenDispute", { gameId, returnToCard: "ESPECTADOR" })} style={styles.button}><Text style={styles.buttonText}>ABRIR DISPUTA</Text></Pressable></> : null}
         <Pressable accessibilityRole="button" onPress={() => { void markCaughtSeen(gameId).then(() => navigation.goBack()); }} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
           <Text style={styles.buttonText}>CERRAR</Text>
         </Pressable>
@@ -58,13 +62,17 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.coral, flex: 1, overflow: "hidden" },
   lines: { alignSelf: "center", height: 560, opacity: 0.28, position: "absolute", top: -40, width: 560 },
   safeArea: { flex: 1 },
-  content: { alignItems: "center", flex: 1, paddingHorizontal: 24 },
-  ghost: { height: 222, marginTop: 40, resizeMode: "contain", transform: [{ rotate: "6deg" }], width: 236 },
-  titleWrap: { alignSelf: "stretch", marginTop: 70 },
-  title: { alignSelf: "stretch", color: colors.cream, ...bangers(64), lineHeight: 66, textAlign: "center" },
+  // Lleva el bloque visual hasta el contador en vez de dejar un hueco muerto.
+  content: { alignItems: "center", flex: 1, justifyContent: "flex-end", paddingHorizontal: 24 },
+  ghost: { height: 194, marginTop: 18, resizeMode: "contain", transform: [{ rotate: "6deg" }], width: 220 },
+  titleWrap: { alignSelf: "stretch", marginTop: 22 },
+  title: { alignSelf: "stretch", color: colors.cream, ...bangers(56), lineHeight: 61, textAlign: "center" },
   titleOutline: { color: colors.ink, left: 0, position: "absolute", right: 0, top: 0 },
-  footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 },
-  button: { alignItems: "center", backgroundColor: colors.cream, borderColor: colors.ink, borderRadius: 12, borderWidth: 3, boxShadow: `4px 4px 0px ${colors.ink}`, height: 58, justifyContent: "center" },
-  buttonText: { alignSelf: "stretch", color: colors.ink, ...bangers(24), letterSpacing: 0.8, textAlign: "center" },
+  footer: { alignItems: "center", paddingBottom: 10, paddingHorizontal: 24, paddingTop: 4 },
+  disputePrompt: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 12, lineHeight: 16, marginTop: 5, textAlign: "center" },
+  countdown: { alignItems: "center", backgroundColor: colors.ink, borderRadius: 20, justifyContent: "center", marginTop: 6, minHeight: 82, minWidth: 164, paddingHorizontal: 18, paddingVertical: 9 },
+  countdownText: { color: colors.cream, ...bangers(48), lineHeight: 67, paddingTop: 8 },
+  button: { alignItems: "center", alignSelf: "stretch", backgroundColor: colors.cream, borderColor: colors.ink, borderRadius: 12, borderWidth: 3, boxShadow: `4px 4px 0px ${colors.ink}`, height: 51, justifyContent: "center", marginTop: 10 },
+  buttonText: { alignSelf: "stretch", color: colors.ink, ...bangers(21), letterSpacing: 0.8, lineHeight: 29, paddingTop: 4, textAlign: "center" },
   pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
 });
