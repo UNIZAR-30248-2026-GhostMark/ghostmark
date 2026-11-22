@@ -40,14 +40,15 @@ public class ServicioMisionesAnulacion {
     @Transactional(propagation = Propagation.MANDATORY)
     public List<Asignacion> sustituir(UUID partidaId, UUID cazadorId, List<UUID> revividos) {
         Objects.requireNonNull(partidaId, "partidaId");
-        Objects.requireNonNull(cazadorId, "cazadorId");
         Objects.requireNonNull(revividos, "revividos");
         Set<UUID> afectados = new LinkedHashSet<>();
-        afectados.add(cazadorId);
+        if (cazadorId != null) {
+            afectados.add(cazadorId);
+        }
         for (UUID revivido : revividos) {
             afectados.add(Objects.requireNonNull(revivido, "revivido"));
         }
-        if (afectados.size() != revividos.size() + 1) {
+        if (afectados.size() != revividos.size() + (cazadorId == null ? 0 : 1)) {
             throw new IllegalArgumentException("Los afectados no pueden repetirse");
         }
 

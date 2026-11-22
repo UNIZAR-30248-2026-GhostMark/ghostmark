@@ -129,6 +129,33 @@ public class JugadorPartidaRepository {
                 Integer.class, partidaId, inscripcionId);
     }
 
+    public List<UUID> idsVivos(UUID partidaId) {
+        return jdbc.queryForList("select inscripcion_id from jugador_partida"
+                + " where partida_id = ? and estado = 'VIVO' order by inscripcion_id for update",
+                UUID.class, partidaId);
+    }
+
+    public void revivir(UUID partidaId, UUID inscripcionId) {
+        jdbc.update("update jugador_partida set estado = 'VIVO', eliminado_en = null,"
+                        + " intentos_fallidos = 0, bloqueado_hasta = null"
+                        + " where partida_id = ? and inscripcion_id = ? and estado = 'ELIMINADO'",
+                partidaId, inscripcionId);
+    }
+
+    public void restarEliminaciones(UUID partidaId, UUID inscripcionId, int cuantas) {
+        jdbc.update("update jugador_partida set eliminaciones = greatest(eliminaciones - ?, 0)"
+                        + " where partida_id = ? and inscripcion_id = ?",
+                cuantas, partidaId, inscripcionId);
+    }
+
+    public void fijarCiclo(UUID partidaId, List<UUID> orden) {
+        for (int i = 0; i < orden.size(); i++) {
+            jdbc.update("update jugador_partida set objetivo_id = ?, intentos_fallidos = 0,"
+                            + " bloqueado_hasta = null where partida_id = ? and inscripcion_id = ?",
+                    orden.get((i + 1) % orden.size()), partidaId, orden.get(i));
+        }
+    }
+
     public void bloquearIntentos(UUID partidaId, UUID inscripcionId, Instant hasta) {
         jdbc.update("update jugador_partida set intentos_fallidos = 0, bloqueado_hasta = ?"
                         + " where partida_id = ? and inscripcion_id = ?",
