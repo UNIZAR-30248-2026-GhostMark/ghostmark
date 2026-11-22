@@ -299,9 +299,9 @@ erDiagram
 | `objetivo_id` | `uuid` | clave ajena a `inscripcion` (sin acción al borrar: la fila se borra con la partida); nulo si el jugador está eliminado o es el único vivo | A quién persigue ahora |
 | `mision_id` | `uuid` | clave ajena a `mision`; nulo en los mismos casos | La misión que tiene que cumplir ahora. La 6a.1 decide cómo se guardan las misiones aprobadas de la IA |
 | `eliminaciones` | `smallint` | no nulo; por defecto 0 | Las que ha hecho; deciden el ganador (PBI 8) |
-| `secreto_codigo` | `bytea` | no nulo; 20 bytes de `SecureRandom` | Secreto del código de vida. No lo devuelve ninguna operación de la API |
+| `secreto_codigo` | `bytea` | no nulo; 20 bytes de `SecureRandom` | No lo devuelve ninguna operación de la API. Desde el #261 no se usa: el código de vida se genera al azar en cada apertura y se guarda en `codigo_emitido` |
 | `intentos_fallidos` | `smallint` | no nulo; por defecto 0; `check (intentos_fallidos between 0 and 3)` | Códigos incorrectos seguidos del cazador sobre su objetivo actual (PBI 7b) |
-| `bloqueado_hasta` | `timestamptz` | nulo si no está bloqueado | Tras 3 fallos seguidos, el instante en que rota el código (PBI 7b) |
+| `bloqueado_hasta` | `timestamptz` | nulo si no está bloqueado | Tras 3 fallos seguidos, 60 s después del tercero (PBI 7b; #261) |
 | `eliminado_en` | `timestamptz` | nulo mientras está vivo | |
 
 - **Se crea al arrancar:** en la transacción del arranque, después de `CICLO_FORMADO` y `MISIONES_REPARTIDAS`, una fila `VIVO` por jugador con su objetivo, su misión y un secreto nuevo. La migración rellena las partidas que ya estén `EN_JUEGO` a partir de esos dos eventos; como en SQL no hay `SecureRandom`, el secreto de esas filas son los 20 primeros bytes de `uuid_send(gen_random_uuid()) || uuid_send(gen_random_uuid())`, sin extensiones.
@@ -310,9 +310,24 @@ erDiagram
 
 ### Código de vida
 
-- **Cálculo:** TOTP (RFC 6238) con HMAC-SHA1 sobre `secreto_codigo`, pasos de 60 s alineados con el reloj (paso = segundos desde 1970 / 60) y 6 dígitos, con ceros a la izquierda. El servidor lo calcula cada vez; el código no se guarda.
-- **Solo lo obtiene su dueño, vivo:** `GET /partidas/{id}/yo/codigo` devuelve el código del paso actual y `caducaEn`, el final del paso. La app lo muestra con la cuenta atrás y lo vuelve a pedir al llegar a `caducaEn`. Nadie obtiene el código de otro, y un eliminado tampoco el suyo.
-- **Tolerancia (R11-13):** al eliminar se acepta el código del paso actual y, durante los 15 primeros segundos de cada paso, también el del paso anterior.
+- **Cálculo (#261):** cada `GET /partidas/{id}/yo/codigo` genera un código nuevo de 6 dígitos con `SecureRandom`, con ceros a la izquierda, y lo guarda en `codigo_emitido` con `caduca_en` = ahora + 60 s. Así la cuenta atrás de «Mi código» empieza siempre en 60 s, se abra en el segundo que se abra. Antes se calculaba un TOTP con pasos de 60 s alineados con el reloj, y quien abría «Mi código» al final de un minuto solo tenía unos segundos.
+- **Solo lo obtiene su dueño, vivo:** `GET /partidas/{id}/yo/codigo` devuelve el código y `caducaEn`. La app lo muestra con la cuenta atrás y lo vuelve a pedir al llegar a `caducaEn`. Nadie obtiene el código de otro, y un eliminado tampoco el suyo.
+- **Tolerancia (R11-13):** al eliminar se acepta cualquier código emitido para el objetivo hasta 15 s después de su `caduca_en`.
+
+### `codigo_emitido`
+
+| Columna | Tipo | Restricciones | Regla de producto |
+|--|--|--|--|
+| `id` | `uuid` | clave primaria | |
+| `partida_id` | `uuid` | clave ajena a `partida`, `on delete cascade` | |
+| `inscripcion_id` | `uuid` | clave ajena a `inscripcion`, `on delete cascade`; índice con `caduca_en` | Dueño del código |
+| `codigo` | `char(6)` | no nulo; seis dígitos | |
+| `emitido_en` | `timestamptz` | no nulo | Cuándo se abrió «Mi código» |
+| `caduca_en` | `timestamptz` | no nulo; posterior a `emitido_en` | `emitido_en` + 60 s |
+
+- Migración: `V202611221200__codigo_emitido.sql` (#261).
+- Al emitir un código se borran las emisiones de ese jugador que caducaron hace más de 10 minutos: ya no valen ni para responder `CODIGO_CADUCADO`.
+- **Borrar la cuenta:** el código no tiene datos de la persona; se queda con la inscripción, como `jugador_partida`, y deja de valer a los 75 s.
 
 ### Eliminar
 
@@ -321,7 +336,7 @@ erDiagram
 1. La partida tiene que estar `EN_JUEGO` (`PARTIDA_NO_EN_JUEGO`) y quien llama, ser jugador de ella (si no, 404, también el máster que no juega).
 2. Quien llama tiene que estar `VIVO` (`JUGADOR_ELIMINADO`) y no bloqueado (`INTENTOS_BLOQUEADOS`, con `bloqueadoHasta`).
    - Después se aplican las reglas de la eliminación, en orden: horario lectivo (PBI 9) y, con la 11a, disputa abierta. Ver «Horarios seguros» más abajo. Un rechazo por una regla no compara el código ni cuenta como fallo.
-3. Se compara el código con el de su objetivo, con la tolerancia de arriba. Si no coincide, suma un fallo y responde `CODIGO_CADUCADO` si es un código de su objetivo de los últimos 10 minutos, o `CODIGO_INCORRECTO` si no (también si es el código de otro jugador), con `intentosRestantes`. Al tercer fallo seguido, `bloqueado_hasta` pasa a ser el inicio del paso siguiente, `intentos_fallidos` vuelve a 0 y responde `INTENTOS_BLOQUEADOS`. Un código que no tiene 6 dígitos responde 400 `DATOS_NO_VALIDOS` y no cuenta como fallo. El código de una víctima ya eliminada se rechaza como `CODIGO_INCORRECTO`, porque un eliminado no es objetivo de nadie.
+3. Se busca el código entre los emitidos para su objetivo, con la tolerancia de arriba. Si no está, suma un fallo y responde `CODIGO_CADUCADO` si es un código de su objetivo que caducó en los últimos 10 minutos, o `CODIGO_INCORRECTO` si no (también si es el código de otro jugador), con `intentosRestantes`. Al tercer fallo seguido, `bloqueado_hasta` pasa a ser 60 s después de ese fallo, `intentos_fallidos` vuelve a 0 y responde `INTENTOS_BLOQUEADOS`. Un código que no tiene 6 dígitos responde 400 `DATOS_NO_VALIDOS` y no cuenta como fallo. El código de una víctima ya eliminada se rechaza como `CODIGO_INCORRECTO`, porque un eliminado no es objetivo de nadie.
 4. Si coincide: se guarda `JUGADOR_ELIMINADO`; la víctima pasa a `ELIMINADO`, con `eliminado_en` y sin objetivo ni misión; el cazador hereda su objetivo y su misión, suma una eliminación y vuelve a 0 fallos sin bloqueo. Si el objetivo heredado es él mismo, es el único vivo: se queda sin objetivo ni misión y la partida se cierra con la PBI 8.
 
 **Eliminaciones a la vez (PBI 7b):** el bloqueo de la fila de la partida hace que las eliminaciones de una misma partida se apliquen de una en una. Si A elimina a B a la vez que B elimina a C, cuenta el orden en que se aplican: si va primero la de A, la de B ve que su cazador ya está eliminado y se rechaza con `JUGADOR_ELIMINADO`; si va primero la de B, valen las dos (B hereda a su nuevo objetivo y después A elimina a B). En los dos casos el ciclo sigue siendo único y cerrado.

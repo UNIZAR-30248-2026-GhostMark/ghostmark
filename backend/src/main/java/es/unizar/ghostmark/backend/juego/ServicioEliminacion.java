@@ -7,6 +7,7 @@ import es.unizar.ghostmark.backend.partida.Partida;
 import es.unizar.ghostmark.backend.partida.PartidaNoEncontradaException;
 import es.unizar.ghostmark.backend.partida.PartidaRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,9 +26,7 @@ public class ServicioEliminacion {
     private static final String ORIGEN_CODIGO = "CODIGO";
     private static final String ORIGEN_DISPUTA = "DISPUTA";
     private static final int INTENTOS = 3;
-    private static final long PASO_SEGUNDOS = 60;
-    private static final long TOLERANCIA_SEGUNDOS = 15;
-    private static final int PASOS_CADUCADOS = 10;
+    private static final Duration BLOQUEO = Duration.ofSeconds(60);
     private static final Set<String> RESULTADOS_ZONA = Set.of("DENTRO", "FUERA",
             "NO_CONCLUYENTE");
 
@@ -39,13 +38,14 @@ public class ServicioEliminacion {
     private final ServicioEvento eventos;
     private final List<ReglaEliminacion> reglas;
     private final ApplicationEventPublisher publicador;
+    private final CodigoEmitidoRepository emitidos;
     private final Clock reloj;
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     public ServicioEliminacion(CuentaRepository cuentas, PartidaRepository partidas,
             InscripcionRepository inscripciones, JugadorPartidaRepository jugadores,
             CartaRepository cartas, ServicioEvento eventos,
-            List<ReglaEliminacion> reglas, ApplicationEventPublisher publicador, Clock reloj) {
+            List<ReglaEliminacion> reglas, ApplicationEventPublisher publicador,
+            CodigoEmitidoRepository emitidos, Clock reloj) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
@@ -54,6 +54,7 @@ public class ServicioEliminacion {
         this.eventos = eventos;
         this.reglas = reglas;
         this.publicador = publicador;
+        this.emitidos = emitidos;
         this.reloj = reloj;
     }
 
@@ -86,7 +87,7 @@ public class ServicioEliminacion {
         }
         if (cazador.bloqueadoHasta() != null && ahora.isBefore(cazador.bloqueadoHasta())) {
             throw new ErrorJuego(HttpStatus.CONFLICT, "INTENTOS_BLOQUEADOS",
-                    "Los intentos están bloqueados hasta que rote el código",
+                    "Los intentos están bloqueados durante 60 segundos",
                     Map.of("bloqueadoHasta", cazador.bloqueadoHasta()));
         }
         UUID victimaId = cazador.objetivoId();
@@ -106,14 +107,14 @@ public class ServicioEliminacion {
         }
 
         String codigo = peticion.getCodigo();
-        if ("VIVO".equals(victima.estado()) && coincide(victima.secreto(), codigo, ahora)) {
+        if ("VIVO".equals(victima.estado()) && emitidos.valido(victimaId, codigo, ahora)) {
             aplicar(partidaId, inscripcionId, victimaId, cazador, victima, ORIGEN_CODIGO,
                     peticion.getResultadoZona(), ahora);
             Carta carta = cartas.obtener(partidaId, inscripcionId, ahora)
                     .orElseThrow(() -> new IllegalStateException("La partida no tiene la carta"));
             return new Eliminacion(inscripciones.aliasDeInscripcion(victimaId), carta);
         }
-        throw fallo(partidaId, inscripcionId, victima, codigo, ahora);
+        throw fallo(partidaId, inscripcionId, victimaId, codigo, ahora);
     }
 
     /**
@@ -151,44 +152,23 @@ public class ServicioEliminacion {
         publicador.publishEvent(new EliminacionHecha(partidaId, ahora));
     }
 
-    private ErrorJuego fallo(UUID partidaId, UUID inscripcionId,
-            JugadorPartidaRepository.EstadoJugador victima, String codigo, Instant ahora) {
+    private ErrorJuego fallo(UUID partidaId, UUID inscripcionId, UUID victimaId, String codigo,
+            Instant ahora) {
         int fallos = jugadores.sumarFallo(partidaId, inscripcionId);
         if (fallos >= INTENTOS) {
-            Instant siguientePaso = Instant.ofEpochSecond(
-                    (Math.floorDiv(ahora.getEpochSecond(), PASO_SEGUNDOS) + 1) * PASO_SEGUNDOS);
-            jugadores.bloquearIntentos(partidaId, inscripcionId, siguientePaso);
+            Instant hasta = ahora.plus(BLOQUEO);
+            jugadores.bloquearIntentos(partidaId, inscripcionId, hasta);
             return new ErrorJuego(HttpStatus.CONFLICT, "INTENTOS_BLOQUEADOS",
-                    "Los intentos están bloqueados hasta que rote el código",
-                    Map.of("bloqueadoHasta", siguientePaso));
+                    "Los intentos están bloqueados durante 60 segundos",
+                    Map.of("bloqueadoHasta", hasta));
         }
-        if (esCaducado(victima.secreto(), codigo, ahora)) {
+        if (emitidos.caducado(victimaId, codigo, ahora)) {
             return new ErrorJuego(HttpStatus.UNPROCESSABLE_ENTITY, "CODIGO_CADUCADO",
                     "El código ha caducado", Map.of("intentosRestantes", INTENTOS - fallos));
         }
         return new ErrorJuego(HttpStatus.UNPROCESSABLE_ENTITY, "CODIGO_INCORRECTO",
                 "El código no es el de tu objetivo",
                 Map.of("intentosRestantes", INTENTOS - fallos));
-    }
-
-    private boolean coincide(byte[] secreto, String codigo, Instant ahora) {
-        if (generador.generar(secreto, ahora).codigo().equals(codigo)) {
-            return true;
-        }
-        boolean principioDelPaso = ahora.getEpochSecond() % PASO_SEGUNDOS < TOLERANCIA_SEGUNDOS;
-        return principioDelPaso
-                && generador.generar(secreto, ahora.minusSeconds(PASO_SEGUNDOS))
-                        .codigo().equals(codigo);
-    }
-
-    private boolean esCaducado(byte[] secreto, String codigo, Instant ahora) {
-        for (int paso = 1; paso <= PASOS_CADUCADOS; paso++) {
-            if (generador.generar(secreto, ahora.minusSeconds(PASO_SEGUNDOS * paso))
-                    .codigo().equals(codigo)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void comprobarFormato(NuevaEliminacion peticion) {

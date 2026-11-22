@@ -606,9 +606,9 @@ paths:
       operationId: obtenerMiCodigo
       summary: Mi código de vida
       description: |
-        Código de 6 dígitos del paso de 60 s actual (TOTP con el secreto del jugador) y el instante en que
-        caduca. La app lo vuelve a pedir al llegar a `caducaEn`. Solo para el propio jugador y vivo:
-        nadie obtiene el código de otro.
+        Código nuevo de 6 dígitos, al azar, que caduca 60 s después de pedirlo (#261). Al eliminar vale
+        hasta 15 s después de `caducaEn`. La app lo vuelve a pedir al llegar a `caducaEn`. Solo para el
+        propio jugador y vivo: nadie obtiene el código de otro.
       responses:
         '200':
           description: Mi código actual
@@ -900,11 +900,11 @@ components:
           maximum: 3
           description: >-
             Códigos que puede probar antes del bloqueo (3, 2 o 1). Durante un bloqueo vale 3, los que tendrá cuando
-            rote el código. Nulo si el jugador está eliminado o es el único vivo
+            acabe. Nulo si el jugador está eliminado o es el único vivo
         bloqueadoHasta:
           type: [string, 'null']
           format: date-time
-          description: Tras 3 fallos seguidos, hasta cuándo no puede eliminar (el inicio del paso siguiente del código); nulo si no está bloqueado
+          description: Tras 3 fallos seguidos, hasta cuándo no puede eliminar (60 s después del tercer fallo); nulo si no está bloqueado
         noDisponible:
           oneOf:
             - $ref: '#/components/schemas/NoDisponible'
@@ -965,7 +965,7 @@ components:
       required: [codigo, caducaEn]
       properties:
         codigo: { type: string, pattern: '^[0-9]{6}$', example: '482913' }
-        caducaEn: { type: string, format: date-time, description: Final del paso de 60 s actual }
+        caducaEn: { type: string, format: date-time, description: 60 s después de pedir el código }
     NuevaEliminacion:
       type: object
       required: [codigo, resultadoZona]

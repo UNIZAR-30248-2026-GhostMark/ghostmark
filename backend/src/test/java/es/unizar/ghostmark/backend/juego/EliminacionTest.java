@@ -58,8 +58,6 @@ class EliminacionTest {
     @MockitoBean
     Clock reloj;
 
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
-
     @BeforeEach
     void fijarReloj() {
         // A mitad del minuto: ningún test depende de cuándo cambia el código de verdad.
@@ -304,18 +302,18 @@ class EliminacionTest {
                 .body("intentosRestantes", equalTo(1));
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409);
 
-        Instant rotado = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        Instant desbloqueo = reloj.instant().plusSeconds(60);
         carta(cazador, mesa.juego()).then().statusCode(200)
                 .body("intentosRestantes", equalTo(3))
-                .body("bloqueadoHasta", equalTo(rotado.toString()));
-        when(reloj.instant()).thenReturn(rotado);
+                .body("bloqueadoHasta", equalTo(desbloqueo.toString()));
+        when(reloj.instant()).thenReturn(desbloqueo);
         carta(cazador, mesa.juego()).then().statusCode(200)
                 .body("intentosRestantes", equalTo(3))
                 .body("bloqueadoHasta", nullValue());
     }
 
     @Test
-    void trasRotarElCodigoSeDesbloqueaYSePuedeEliminar() {
+    void sesentaSegundosDespuesDelTercerFalloSeDesbloqueaYSePuedeEliminar() {
         Mesa mesa = preparar(3, true);
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
@@ -324,20 +322,20 @@ class EliminacionTest {
 
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
-        Instant rotado = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        Instant desbloqueo = reloj.instant().plusSeconds(60);
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409)
                 .body("codigo", equalTo("INTENTOS_BLOQUEADOS"))
-                .body("bloqueadoHasta", equalTo(rotado.toString()));
+                .body("bloqueadoHasta", equalTo(desbloqueo.toString()));
 
-        // Un segundo antes de la rotación el código correcto tampoco permite eliminar
-        Instant antes = rotado.minusSeconds(1);
+        // Un segundo antes de que acabe el bloqueo el código correcto tampoco permite eliminar
+        Instant antes = desbloqueo.minusSeconds(1);
         when(reloj.instant()).thenReturn(antes);
         eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, antes))
                 .then().statusCode(409).body("codigo", equalTo("INTENTOS_BLOQUEADOS"));
         assertTrue(victimasRegistradas(mesa.juego()).isEmpty());
 
-        when(reloj.instant()).thenReturn(rotado);
-        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, rotado))
+        when(reloj.instant()).thenReturn(desbloqueo);
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, desbloqueo))
                 .then().statusCode(200)
                 .body("carta.eliminaciones", equalTo(1));
         assertEquals("ELIMINADO", estadoJugador(victimaId));
@@ -530,29 +528,28 @@ class EliminacionTest {
     }
 
     @Test
-    void elCodigoAnteriorValeDuranteLosQuincePrimerosSegundosDelPaso() {
+    void elCodigoValeHastaQuinceSegundosDespuesDeCaducar() {
         Mesa mesa = preparar(3, true);
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
         UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
-        String anterior = codigoDe(mesa.juego(), victimaId, reloj.instant());
-        Instant pasoNuevo = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        Instant abierto = reloj.instant();
+        String anterior = codigoDe(mesa.juego(), victimaId, abierto);
 
-        // R11-13: el segundo 14 del paso nuevo todavía acepta el código anterior.
-        when(reloj.instant()).thenReturn(pasoNuevo.plusSeconds(14));
+        when(reloj.instant()).thenReturn(abierto.plusSeconds(74));
         eliminar(cazador, mesa.juego(), anterior).then().statusCode(200);
     }
 
     @Test
-    void pasadosLosQuinceSegundosElCodigoAnteriorEstaCaducado() {
+    void pasadosLosQuinceSegundosElCodigoEstaCaducado() {
         Mesa mesa = preparar(3, true);
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
         UUID victimaId = objetivo(mesa.juego(), inscripcion(cazador, mesa.juego()));
-        String anterior = codigoDe(mesa.juego(), victimaId, reloj.instant());
-        Instant pasoNuevo = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        Instant abierto = reloj.instant();
+        String anterior = codigoDe(mesa.juego(), victimaId, abierto);
 
-        when(reloj.instant()).thenReturn(pasoNuevo.plusSeconds(15));
+        when(reloj.instant()).thenReturn(abierto.plusSeconds(75));
         eliminar(cazador, mesa.juego(), anterior).then().statusCode(422)
                 .body("codigo", equalTo("CODIGO_CADUCADO"));
         assertEquals("VIVO", jdbc.queryForObject("select estado from jugador_partida"
@@ -735,10 +732,7 @@ class EliminacionTest {
     }
 
     private String codigoDe(Juego juego, UUID inscripcionId, Instant cuando) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where partida_id = ? and inscripcion_id = ?", byte[].class,
-                juego.id(), inscripcionId);
-        return generador.generar(secreto, cuando).codigo();
+        return CodigosDePrueba.emitir(jdbc, inscripcionId, cuando);
     }
 
     private static String distintoDe(String codigo) {

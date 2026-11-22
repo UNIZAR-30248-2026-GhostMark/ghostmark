@@ -46,8 +46,6 @@ class HorarioEliminacionTest {
 
     @MockitoBean
     Clock reloj;
-
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
     private ZonedDateTime martes;
 
     @BeforeEach
@@ -185,10 +183,7 @@ class HorarioEliminacionTest {
     }
 
     private String codigoDe(UUID partidaId, UUID inscripcionId, Instant cuando) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where partida_id = ? and inscripcion_id = ?", byte[].class,
-                partidaId, inscripcionId);
-        return generador.generar(secreto, cuando).codigo();
+        return CodigosDePrueba.emitir(jdbc, inscripcionId, cuando);
     }
 
     private Response eliminar(Persona persona, UUID partidaId, String codigo) {

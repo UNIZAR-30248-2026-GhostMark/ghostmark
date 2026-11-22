@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
-import es.unizar.ghostmark.backend.juego.GeneradorCodigoVida;
+import es.unizar.ghostmark.backend.juego.CodigosDePrueba;
 import es.unizar.ghostmark.backend.juego.TareaCierre;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -49,8 +49,6 @@ class DisputaTest {
 
     @MockitoBean
     Clock reloj;
-
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     @BeforeEach
     void fijarReloj() {
@@ -388,9 +386,7 @@ class DisputaTest {
     }
 
     private String codigoDe(UUID inscripcionId, Instant cuando) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where inscripcion_id = ?", byte[].class, inscripcionId);
-        return generador.generar(secreto, cuando).codigo();
+        return CodigosDePrueba.emitir(jdbc, inscripcionId, cuando);
     }
 
     private Response cerrar(Mesa mesa) {

@@ -63,8 +63,6 @@ class CierreTest {
     @MockitoBean
     Clock reloj;
 
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
-
     @BeforeEach
     void fijarReloj() {
         Instant ahora = Instant.now().truncatedTo(ChronoUnit.MINUTES).plusSeconds(30);
@@ -547,10 +545,7 @@ class CierreTest {
     }
 
     private String codigoDe(Juego juego, UUID inscripcionId, Instant cuando) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where partida_id = ? and inscripcion_id = ?", byte[].class,
-                juego.id(), inscripcionId);
-        return generador.generar(secreto, cuando).codigo();
+        return CodigosDePrueba.emitir(jdbc, inscripcionId, cuando);
     }
 
     private String estado(Juego juego) {

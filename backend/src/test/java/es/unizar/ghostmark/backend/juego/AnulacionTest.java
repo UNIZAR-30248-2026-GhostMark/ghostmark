@@ -56,8 +56,6 @@ class AnulacionTest {
     @MockitoBean
     Clock reloj;
 
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
-
     @BeforeEach
     void fijarReloj() {
         when(reloj.instant()).thenReturn(
@@ -292,11 +290,9 @@ class AnulacionTest {
     }
 
     private void eliminarDesde(Mesa mesa, UUID cazador, UUID victima, String zona) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where inscripcion_id = ?", byte[].class, victima);
         given().port(puerto).auth().oauth2(persona(mesa, cazador).token())
                 .contentType(ContentType.JSON)
-                .body(Map.of("codigo", generador.generar(secreto, reloj.instant()).codigo(),
+                .body(Map.of("codigo", CodigosDePrueba.emitir(jdbc, victima, reloj.instant()),
                         "resultadoZona", zona))
                 .post("/api/v1/partidas/{id}/eliminaciones", mesa.id())
                 .then().statusCode(200);
