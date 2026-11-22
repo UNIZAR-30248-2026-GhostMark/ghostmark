@@ -900,11 +900,11 @@ components:
           maximum: 3
           description: >-
             Códigos que puede probar antes del bloqueo (3, 2 o 1). Durante un bloqueo vale 3, los que tendrá cuando
-            rote el código. Nulo si el jugador está eliminado o es el único vivo
+            acabe. Nulo si el jugador está eliminado o es el único vivo
         bloqueadoHasta:
           type: [string, 'null']
           format: date-time
-          description: Tras 3 fallos seguidos, hasta cuándo no puede eliminar (el inicio del paso siguiente del código); nulo si no está bloqueado
+          description: Tras 3 fallos seguidos, hasta cuándo no puede eliminar (60 s después del tercer fallo); nulo si no está bloqueado
         noDisponible:
           oneOf:
             - $ref: '#/components/schemas/NoDisponible'

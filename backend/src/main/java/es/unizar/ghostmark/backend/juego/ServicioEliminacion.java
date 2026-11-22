@@ -7,6 +7,7 @@ import es.unizar.ghostmark.backend.partida.Partida;
 import es.unizar.ghostmark.backend.partida.PartidaNoEncontradaException;
 import es.unizar.ghostmark.backend.partida.PartidaRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,7 @@ public class ServicioEliminacion {
     private static final String ORIGEN_CODIGO = "CODIGO";
     private static final String ORIGEN_DISPUTA = "DISPUTA";
     private static final int INTENTOS = 3;
-    private static final long PASO_SEGUNDOS = 60;
+    private static final Duration BLOQUEO = Duration.ofSeconds(60);
     private static final Set<String> RESULTADOS_ZONA = Set.of("DENTRO", "FUERA",
             "NO_CONCLUYENTE");
 
@@ -86,7 +87,7 @@ public class ServicioEliminacion {
         }
         if (cazador.bloqueadoHasta() != null && ahora.isBefore(cazador.bloqueadoHasta())) {
             throw new ErrorJuego(HttpStatus.CONFLICT, "INTENTOS_BLOQUEADOS",
-                    "Los intentos están bloqueados hasta que rote el código",
+                    "Los intentos están bloqueados durante 60 segundos",
                     Map.of("bloqueadoHasta", cazador.bloqueadoHasta()));
         }
         UUID victimaId = cazador.objetivoId();
@@ -155,12 +156,11 @@ public class ServicioEliminacion {
             Instant ahora) {
         int fallos = jugadores.sumarFallo(partidaId, inscripcionId);
         if (fallos >= INTENTOS) {
-            Instant siguientePaso = Instant.ofEpochSecond(
-                    (Math.floorDiv(ahora.getEpochSecond(), PASO_SEGUNDOS) + 1) * PASO_SEGUNDOS);
-            jugadores.bloquearIntentos(partidaId, inscripcionId, siguientePaso);
+            Instant hasta = ahora.plus(BLOQUEO);
+            jugadores.bloquearIntentos(partidaId, inscripcionId, hasta);
             return new ErrorJuego(HttpStatus.CONFLICT, "INTENTOS_BLOQUEADOS",
-                    "Los intentos están bloqueados hasta que rote el código",
-                    Map.of("bloqueadoHasta", siguientePaso));
+                    "Los intentos están bloqueados durante 60 segundos",
+                    Map.of("bloqueadoHasta", hasta));
         }
         if (emitidos.caducado(victimaId, codigo, ahora)) {
             return new ErrorJuego(HttpStatus.UNPROCESSABLE_ENTITY, "CODIGO_CADUCADO",

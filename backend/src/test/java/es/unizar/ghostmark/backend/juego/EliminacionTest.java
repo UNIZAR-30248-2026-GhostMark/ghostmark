@@ -302,18 +302,18 @@ class EliminacionTest {
                 .body("intentosRestantes", equalTo(1));
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409);
 
-        Instant rotado = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        Instant desbloqueo = reloj.instant().plusSeconds(60);
         carta(cazador, mesa.juego()).then().statusCode(200)
                 .body("intentosRestantes", equalTo(3))
-                .body("bloqueadoHasta", equalTo(rotado.toString()));
-        when(reloj.instant()).thenReturn(rotado);
+                .body("bloqueadoHasta", equalTo(desbloqueo.toString()));
+        when(reloj.instant()).thenReturn(desbloqueo);
         carta(cazador, mesa.juego()).then().statusCode(200)
                 .body("intentosRestantes", equalTo(3))
                 .body("bloqueadoHasta", nullValue());
     }
 
     @Test
-    void trasRotarElCodigoSeDesbloqueaYSePuedeEliminar() {
+    void sesentaSegundosDespuesDelTercerFalloSeDesbloqueaYSePuedeEliminar() {
         Mesa mesa = preparar(3, true);
         arrancar(mesa).then().statusCode(200);
         Persona cazador = mesa.jugadores().get(0);
@@ -322,20 +322,20 @@ class EliminacionTest {
 
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(422);
-        Instant rotado = reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60);
+        Instant desbloqueo = reloj.instant().plusSeconds(60);
         eliminar(cazador, mesa.juego(), incorrecto).then().statusCode(409)
                 .body("codigo", equalTo("INTENTOS_BLOQUEADOS"))
-                .body("bloqueadoHasta", equalTo(rotado.toString()));
+                .body("bloqueadoHasta", equalTo(desbloqueo.toString()));
 
-        // Un segundo antes de la rotación el código correcto tampoco permite eliminar
-        Instant antes = rotado.minusSeconds(1);
+        // Un segundo antes de que acabe el bloqueo el código correcto tampoco permite eliminar
+        Instant antes = desbloqueo.minusSeconds(1);
         when(reloj.instant()).thenReturn(antes);
         eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, antes))
                 .then().statusCode(409).body("codigo", equalTo("INTENTOS_BLOQUEADOS"));
         assertTrue(victimasRegistradas(mesa.juego()).isEmpty());
 
-        when(reloj.instant()).thenReturn(rotado);
-        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, rotado))
+        when(reloj.instant()).thenReturn(desbloqueo);
+        eliminar(cazador, mesa.juego(), codigoDe(mesa.juego(), victimaId, desbloqueo))
                 .then().statusCode(200)
                 .body("carta.eliminaciones", equalTo(1));
         assertEquals("ELIMINADO", estadoJugador(victimaId));
