@@ -74,11 +74,12 @@ public class ServicioAnulacion {
 
         boolean cazadorVivo = jugadores.obtener(partidaId, cazadorId)
                 .map(estado -> "VIVO".equals(estado.estado())).orElse(false);
+        UUID cazadorConMision = cazadorVivo ? cazadorId : null;
         List<UUID> orden = ciclo.formarEvitando(jugadores.idsVivos(partidaId),
-                cazadorVivo ? cazadorId : null, new LinkedHashSet<>(revividos));
+                cazadorConMision, new LinkedHashSet<>(revividos));
         jugadores.fijarCiclo(partidaId, orden);
         final List<ServicioMisionesAnulacion.Asignacion> nuevas = misiones.sustituir(partidaId,
-                cazadorId, revividos);
+                cazadorConMision, revividos);
 
         Map<String, Object> datos = new LinkedHashMap<>();
         datos.put("eventoEliminacionId", eventoEliminacionId.toString());

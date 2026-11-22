@@ -31,6 +31,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Aceptación de la PBI 4 (#5): arranque, ciclo, cancelación y reproducción de eventos (#65).
@@ -47,6 +49,12 @@ class ArranqueAceptacionTest {
 
     @Autowired
     TareaArranque tarea;
+
+    @Autowired
+    ServicioAnulacion anulacion;
+
+    @Autowired
+    PlatformTransactionManager transacciones;
 
     @Test
     void criterio1ArrancaSolaEnLaFechaDeInicio() {
@@ -155,15 +163,7 @@ class ArranqueAceptacionTest {
         Persona cazador = mesa.jugadores().get(1);
         UUID cazadorId = inscripcion(mesa, cazador);
         for (int i = 0; i < 2; i++) {
-            UUID victimaId = jdbc.queryForObject("select objetivo_id from jugador_partida"
-                    + " where inscripcion_id = ?", UUID.class, cazadorId);
-            byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                    + " where inscripcion_id = ?", byte[].class, victimaId);
-            given().port(puerto).auth().oauth2(cazador.token()).contentType(ContentType.JSON)
-                    .body(Map.of("codigo", new GeneradorCodigoVida()
-                            .generar(secreto, Instant.now()).codigo(), "resultadoZona", "FUERA"))
-                    .post("/api/v1/partidas/{id}/eliminaciones", mesa.id())
-                    .then().statusCode(200);
+            eliminarSuObjetivo(mesa, cazador, cazadorId);
         }
 
         EstadoReconstruido reconstruido = reproducir(mesa);
@@ -176,6 +176,42 @@ class ArranqueAceptacionTest {
         comprobarCiclo(reconstruido.objetivos(), vivos);
     }
 
+    @Test
+    void elEstadoConUnaAnulacionSeReconstruyeDesdeLosEventos() {
+        Mesa mesa = preparar(5);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.jugadores().get(1);
+        UUID cazadorId = inscripcion(mesa, cazador);
+        UUID primera = eliminarSuObjetivo(mesa, cazador, cazadorId);
+        eliminarSuObjetivo(mesa, cazador, cazadorId);
+        UUID evento = jdbc.queryForObject("select id from evento where partida_id = ?"
+                + " and tipo = 'JUGADOR_ELIMINADO' and datos->>'victimaId' = ?",
+                UUID.class, mesa.id(), primera.toString());
+
+        new TransactionTemplate(transacciones).executeWithoutResult(estado ->
+                anulacion.anular(mesa.id(), evento, Instant.now()));
+
+        EstadoReconstruido reconstruido = reproducir(mesa);
+        assertEquals("EN_JUEGO", reconstruido.estado());
+        assertTrue(reconstruido.eliminados().isEmpty());
+        assertEquals(0, reconstruido.eliminaciones().get(cazadorId));
+        comprobarJugadores(mesa, reconstruido);
+        comprobarCiclo(reconstruido.objetivos(), reconstruido.inscritos());
+    }
+
+    private UUID eliminarSuObjetivo(Mesa mesa, Persona cazador, UUID cazadorId) {
+        UUID victimaId = jdbc.queryForObject("select objetivo_id from jugador_partida"
+                + " where inscripcion_id = ?", UUID.class, cazadorId);
+        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
+                + " where inscripcion_id = ?", byte[].class, victimaId);
+        given().port(puerto).auth().oauth2(cazador.token()).contentType(ContentType.JSON)
+                .body(Map.of("codigo", new GeneradorCodigoVida()
+                        .generar(secreto, Instant.now()).codigo(), "resultadoZona", "FUERA"))
+                .post("/api/v1/partidas/{id}/eliminaciones", mesa.id())
+                .then().statusCode(200);
+        return victimaId;
+    }
+
     private EstadoReconstruido reproducir(Mesa mesa) {
         // Este intérprete de prueba parte de cero; no toma el estado actual de partida.
         String reconstruido = null;
@@ -184,8 +220,9 @@ class ArranqueAceptacionTest {
         Map<UUID, UUID> misiones = new HashMap<>();
         Set<UUID> eliminados = new HashSet<>();
         Map<UUID, Integer> eliminaciones = new HashMap<>();
+        Map<UUID, UUID> cazadorPorEvento = new HashMap<>();
         long secuencia = 1;
-        List<Map<String, Object>> eventos = jdbc.queryForList("select secuencia, tipo,"
+        List<Map<String, Object>> eventos = jdbc.queryForList("select id, secuencia, tipo,"
                 + " datos::text as datos from evento where partida_id = ? order by secuencia",
                 mesa.id());
         assertFalse(eventos.isEmpty());
@@ -242,6 +279,30 @@ class ArranqueAceptacionTest {
                     objetivos.put(cazador, heredado);
                     misiones.put(cazador, uuid(datos.getString("misionHeredadaId")));
                     eliminaciones.merge(cazador, 1, Integer::sum);
+                    cazadorPorEvento.put((UUID) evento.get("id"), cazador);
+                }
+                case "ELIMINACION_ANULADA" -> {
+                    assertEquals("EN_JUEGO", reconstruido);
+                    for (String anulada : datos.getList("anuladas", String.class)) {
+                        eliminaciones.merge(cazadorPorEvento.get(UUID.fromString(anulada)), -1,
+                                Integer::sum);
+                    }
+                    for (String revivido : datos.getList("revividos", String.class)) {
+                        assertTrue(eliminados.remove(UUID.fromString(revivido)));
+                    }
+                    List<UUID> orden = datos.getList("orden", String.class).stream()
+                            .map(UUID::fromString).toList();
+                    Set<UUID> vivos = new HashSet<>(inscritos);
+                    vivos.removeAll(eliminados);
+                    assertEquals(vivos, Set.copyOf(orden));
+                    objetivos.clear();
+                    objetivos.putAll(objetivos(orden));
+                    List<String> conMision = datos.getList("misiones.inscripcionId");
+                    List<String> nuevas = datos.getList("misiones.misionId");
+                    for (int i = 0; i < conMision.size(); i++) {
+                        misiones.put(UUID.fromString(conMision.get(i)),
+                                UUID.fromString(nuevas.get(i)));
+                    }
                 }
                 default -> fail("Evento no previsto en el recorrido de las PBI 4 y 7a: "
                         + evento.get("tipo"));

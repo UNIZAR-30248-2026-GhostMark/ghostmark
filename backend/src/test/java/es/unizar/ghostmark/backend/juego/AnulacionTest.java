@@ -142,6 +142,28 @@ class AnulacionTest {
     }
 
     @Test
+    void siAlCazadorYaLoHanEliminadoSoloCambiaLaMisionDeLosRevividos() {
+        Mesa mesa = preparar(5);
+        UUID cazador = mesa.inscritos().getFirst();
+        UUID victima = objetivo(cazador);
+        UUID suCazador = mesa.inscritos().stream()
+                .filter(id -> cazador.equals(objetivo(id))).findFirst().orElseThrow();
+        eliminar(mesa, cazador, victima);
+        eliminar(mesa, suCazador, cazador);
+
+        anular(mesa, eliminacionDe(mesa, victima));
+
+        assertEquals("VIVO", estado(victima));
+        assertEquals("ELIMINADO", estado(cazador));
+        assertNull(objetivo(cazador));
+        assertEquals(0, eliminaciones(cazador));
+        assertEquals(1, eliminaciones(suCazador));
+        comprobarCiclo(mesa, 4);
+        assertEquals(List.of(victima.toString()),
+                ultimaAnulacion(mesa).getList("misiones.inscripcionId"));
+    }
+
+    @Test
     void lasDisputasDeLaCadenaYLasNegativasSinObjetoSeCierran() {
         Mesa mesa = preparar(5);
         UUID cazador = mesa.inscritos().getFirst();
