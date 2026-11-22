@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
-import es.unizar.ghostmark.backend.juego.GeneradorCodigoVida;
+import es.unizar.ghostmark.backend.juego.CodigosDePrueba;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.Clock;
@@ -50,8 +50,6 @@ class ArbitrajeTest {
 
     @MockitoBean
     Clock reloj;
-
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     @BeforeEach
     void fijarReloj() {
@@ -284,10 +282,8 @@ class ArbitrajeTest {
     }
 
     private Response eliminar(Persona cazador, Mesa mesa, UUID victima, String zona) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where inscripcion_id = ?", byte[].class, victima);
         return given().port(puerto).auth().oauth2(cazador.token()).contentType(ContentType.JSON)
-                .body(Map.of("codigo", generador.generar(secreto, reloj.instant()).codigo(),
+                .body(Map.of("codigo", CodigosDePrueba.emitir(jdbc, victima, reloj.instant()),
                         "resultadoZona", zona))
                 .post("/api/v1/partidas/{id}/eliminaciones", mesa.id());
     }

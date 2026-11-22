@@ -20,15 +20,18 @@ public class ServicioCodigoVida {
     private final PartidaRepository partidas;
     private final InscripcionRepository inscripciones;
     private final JugadorPartidaRepository jugadores;
+    private final CodigoEmitidoRepository emitidos;
     private final Clock reloj;
     private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
 
     public ServicioCodigoVida(CuentaRepository cuentas, PartidaRepository partidas,
-            InscripcionRepository inscripciones, JugadorPartidaRepository jugadores, Clock reloj) {
+            InscripcionRepository inscripciones, JugadorPartidaRepository jugadores,
+            CodigoEmitidoRepository emitidos, Clock reloj) {
         this.cuentas = cuentas;
         this.partidas = partidas;
         this.inscripciones = inscripciones;
         this.jugadores = jugadores;
+        this.emitidos = emitidos;
         this.reloj = reloj;
     }
 
@@ -53,6 +56,9 @@ public class ServicioCodigoVida {
             throw new ErrorInscripcion(HttpStatus.CONFLICT, "JUGADOR_ELIMINADO",
                     "El jugador está eliminado");
         }
-        return generador.generar(jugador.secreto(), Instant.now(reloj));
+        Instant ahora = Instant.now(reloj);
+        CodigoVida codigo = generador.generar(ahora);
+        emitidos.emitir(partidaId, inscripcionId, codigo, ahora);
+        return codigo;
     }
 }

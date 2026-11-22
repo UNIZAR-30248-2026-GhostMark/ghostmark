@@ -62,15 +62,16 @@ class CodigoVidaTest {
                 .header("Cache-Control", equalTo("no-store")).extract().response();
         assertEquals(Set.of("codigo", "caducaEn"), respuesta.jsonPath().getMap("").keySet());
         assertTrue(respuesta.<String>path("codigo").matches("[0-9]{6}"));
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where inscripcion_id = ?", byte[].class, inscripcion(jugador, mesa));
-        CodigoVida esperado = new GeneradorCodigoVida().generar(secreto, reloj.instant());
-        assertEquals(esperado.codigo(), respuesta.path("codigo"));
-        assertEquals(esperado.caducaEn(), Instant.parse(respuesta.path("caducaEn")));
-        given().port(puerto).auth().oauth2(jugador.token())
+        assertEquals(reloj.instant().plusSeconds(60), Instant.parse(respuesta.path("caducaEn")));
+        assertEquals(List.of(respuesta.<String>path("codigo")),
+                emitidos(inscripcion(jugador, mesa)));
+        String suyo = given().port(puerto).auth().oauth2(jugador.token())
                 .queryParam("inscripcionId", inscripcion(otro, mesa))
                 .queryParam("cuentaId", otro.id()).get(RUTA, mesa.partida())
-                .then().statusCode(200).body("codigo", equalTo(esperado.codigo()));
+                .then().statusCode(200).extract().path("codigo");
+        assertEquals(2, emitidos(inscripcion(jugador, mesa)).size());
+        assertTrue(emitidos(inscripcion(jugador, mesa)).contains(suyo));
+        assertTrue(emitidos(inscripcion(otro, mesa)).isEmpty());
         given().port(puerto).auth().oauth2(jugador.token())
                 .get("/api/v1/partidas/{id}/inscritos/{otro}/codigo",
                         mesa.partida(), inscripcion(otro, mesa)).then().statusCode(404);
@@ -140,27 +141,19 @@ class CodigoVidaTest {
     }
 
     @Test
-    void rotaEnElLimiteDelMinutoSinEsperasReales() {
+    void abiertoAlFinalDelMinutoElCodigoDuraSesentaSegundos() {
         Mesa mesa = preparar(true);
         arrancar(mesa);
-        jdbc.update("update jugador_partida set secreto_codigo = ? where inscripcion_id = ?",
-                "12345678901234567890".getBytes(StandardCharsets.US_ASCII),
-                inscripcion(mesa.master(), mesa));
-        Instant limite = Instant.ofEpochSecond(120);
-        when(reloj.instant()).thenReturn(limite.minusSeconds(30));
-        String primero = codigo(mesa.master(), mesa.partida()).then().statusCode(200)
-                .extract().path("codigo");
-        assertEquals("287082", primero);
-        when(reloj.instant()).thenReturn(limite.minusNanos(1));
-        Response antes = codigo(mesa.master(), mesa.partida()).then().statusCode(200)
-                .body("codigo", equalTo(primero)).extract().response();
-        assertEquals(limite, Instant.parse(antes.path("caducaEn")));
-        when(reloj.instant()).thenReturn(limite);
-        Response despues = codigo(mesa.master(), mesa.partida()).then().statusCode(200)
+        Instant alFinal = Instant.parse("2026-11-23T10:00:59Z");
+        when(reloj.instant()).thenReturn(alFinal);
+        Response primero = codigo(mesa.master(), mesa.partida()).then().statusCode(200)
                 .extract().response();
-        assertNotEquals(primero, despues.path("codigo"));
-        assertEquals("359152", despues.path("codigo"));
-        assertEquals(limite.plusSeconds(60), Instant.parse(despues.path("caducaEn")));
+        assertEquals(alFinal.plusSeconds(60), Instant.parse(primero.path("caducaEn")));
+        when(reloj.instant()).thenReturn(alFinal.plusSeconds(60));
+        Response siguiente = codigo(mesa.master(), mesa.partida()).then().statusCode(200)
+                .extract().response();
+        assertEquals(alFinal.plusSeconds(120), Instant.parse(siguiente.path("caducaEn")));
+        assertEquals(2, emitidos(inscripcion(mesa.master(), mesa)).size());
     }
 
     @Test
@@ -232,6 +225,11 @@ class CodigoVidaTest {
         return jdbc.queryForList("select inscripcion_id, objetivo_id, mision_id, estado,"
                 + " encode(secreto_codigo, 'hex') as secreto from jugador_partida"
                 + " where partida_id = ? order by inscripcion_id", mesa.partida());
+    }
+
+    private List<String> emitidos(UUID inscripcionId) {
+        return jdbc.queryForList("select codigo from codigo_emitido where inscripcion_id = ?"
+                + " order by emitido_en", String.class, inscripcionId);
     }
 
     private Mesa preparar(boolean masterJuega) {

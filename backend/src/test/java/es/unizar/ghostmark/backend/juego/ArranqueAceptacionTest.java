@@ -202,11 +202,9 @@ class ArranqueAceptacionTest {
     private UUID eliminarSuObjetivo(Mesa mesa, Persona cazador, UUID cazadorId) {
         UUID victimaId = jdbc.queryForObject("select objetivo_id from jugador_partida"
                 + " where inscripcion_id = ?", UUID.class, cazadorId);
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where inscripcion_id = ?", byte[].class, victimaId);
         given().port(puerto).auth().oauth2(cazador.token()).contentType(ContentType.JSON)
-                .body(Map.of("codigo", new GeneradorCodigoVida()
-                        .generar(secreto, Instant.now()).codigo(), "resultadoZona", "FUERA"))
+                .body(Map.of("codigo", CodigosDePrueba.emitir(jdbc, victimaId, Instant.now()),
+                        "resultadoZona", "FUERA"))
                 .post("/api/v1/partidas/{id}/eliminaciones", mesa.id())
                 .then().statusCode(200);
         return victimaId;

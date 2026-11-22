@@ -75,7 +75,7 @@ class EliminacionAceptacionTest {
             assertTrue(valor.matches("[0-9]{6}"));
             assertEquals(Set.of("codigo", "caducaEn"), respuesta.jsonPath().getMap("").keySet());
             Instant caduca = Instant.parse(respuesta.path("caducaEn"));
-            assertEquals(reloj.instant().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60), caduca);
+            assertEquals(reloj.instant().plusSeconds(60), caduca);
         }
         Persona ajeno = registrar();
         codigo(ajeno, mesa.partida()).then().statusCode(404)
@@ -96,26 +96,24 @@ class EliminacionAceptacionTest {
         String otroId = inscritos.stream().filter(fila -> otro.alias().equals(fila.get("alias")))
                 .findFirst().orElseThrow().get("id").toString();
 
-        // Único dato fijado en BD: secreto del vector conocido, para evitar colisiones aleatorias
-        assertEquals(1, jdbc.update("update jugador_partida set secreto_codigo = ?"
-                        + " where inscripcion_id = (select id from inscripcion"
-                        + " where partida_id = ? and cuenta_id = ?)",
-                "12345678901234567890".getBytes(StandardCharsets.US_ASCII),
-                mesa.partida(), jugador.id()));
-        when(reloj.instant()).thenReturn(Instant.ofEpochSecond(90));
-        codigo(jugador, mesa.partida()).then().statusCode(200)
-                .body("codigo", equalTo("287082"));
-        given().port(puerto).auth().oauth2(jugador.token()).queryParam("inscripcionId", otroId)
-                .queryParam("cuentaId", otro.id()).get(RUTA_CODIGO, mesa.partida())
-                .then().statusCode(200).body("codigo", equalTo("287082"));
-        when(reloj.instant()).thenReturn(Instant.ofEpochSecond(120).minusNanos(1));
-        Response antes = codigo(jugador, mesa.partida()).then().statusCode(200)
-                .body("codigo", equalTo("287082")).extract().response();
-        assertEquals(Instant.ofEpochSecond(120), Instant.parse(antes.path("caducaEn")));
-        when(reloj.instant()).thenReturn(Instant.ofEpochSecond(120));
+        when(reloj.instant()).thenReturn(Instant.parse("2026-11-23T10:00:59Z"));
+        Response primero = codigo(jugador, mesa.partida()).then().statusCode(200)
+                .extract().response();
+        assertEquals(Instant.parse("2026-11-23T10:01:59Z"),
+                Instant.parse(primero.path("caducaEn")));
+        Response suyo = given().port(puerto).auth().oauth2(jugador.token())
+                .queryParam("inscripcionId", otroId).queryParam("cuentaId", otro.id())
+                .get(RUTA_CODIGO, mesa.partida()).then().statusCode(200).extract().response();
+        assertEquals(2, jdbc.queryForObject("select count(*) from codigo_emitido ce"
+                + " join inscripcion i on i.id = ce.inscripcion_id"
+                + " where i.partida_id = ? and i.cuenta_id = ? and ce.codigo in (?, ?)",
+                Integer.class, mesa.partida(), jugador.id(), primero.<String>path("codigo"),
+                suyo.<String>path("codigo")));
+        when(reloj.instant()).thenReturn(Instant.parse("2026-11-23T10:01:59Z"));
         Response despues = codigo(jugador, mesa.partida()).then().statusCode(200)
-                .body("codigo", equalTo("359152")).extract().response();
-        assertEquals(Instant.ofEpochSecond(180), Instant.parse(despues.path("caducaEn")));
+                .extract().response();
+        assertEquals(Instant.parse("2026-11-23T10:02:59Z"),
+                Instant.parse(despues.path("caducaEn")));
     }
 
     @Test

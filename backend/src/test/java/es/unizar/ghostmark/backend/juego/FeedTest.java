@@ -35,8 +35,6 @@ class FeedTest {
     @Autowired
     JdbcTemplate jdbc;
 
-    private final GeneradorCodigoVida generador = new GeneradorCodigoVida();
-
     @Test
     void listaLasEliminacionesSinDecirQuienLasHizo() {
         Mesa mesa = preparar(4, true);
@@ -154,10 +152,7 @@ class FeedTest {
     }
 
     private Response eliminar(Persona persona, Juego juego, UUID victimaId) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where partida_id = ? and inscripcion_id = ?", byte[].class,
-                juego.id(), victimaId);
-        String codigo = generador.generar(secreto, Instant.now()).codigo();
+        String codigo = CodigosDePrueba.emitir(jdbc, victimaId, Instant.now());
         return given().port(puerto).auth().oauth2(persona.token()).contentType(ContentType.JSON)
                 .body(Map.of("codigo", codigo, "resultadoZona", "FUERA"))
                 .post(RUTA_ELIMINAR, juego.id())
