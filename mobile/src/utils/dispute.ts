@@ -57,7 +57,14 @@ export function disputeWaiting(dispute: Dispute) {
 
 // Resultado al final de la disputa (R12-35).
 export function disputeOutcome(dispute: Dispute) {
-  if (dispute.estado === "SIN_OBJETO") return { title: "DISPUTA CERRADA: YA NO ES SU OBJETIVO", detail: null };
+  if (dispute.estado === "SIN_OBJETO") {
+    return {
+      title: dispute.tipo === "ELIMINACION"
+        ? "DISPUTA CERRADA: ELIMINACIÓN ANULADA"
+        : "DISPUTA CERRADA: YA NO ES SU OBJETIVO",
+      detail: null,
+    };
+  }
   if (dispute.estado !== "RESUELTA") return null;
   return {
     title: dispute.razon === "CAZADOR" ? "GANA EL CAZADOR" : "GANA LA VÍCTIMA",

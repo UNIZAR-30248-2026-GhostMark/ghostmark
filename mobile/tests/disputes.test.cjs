@@ -118,6 +118,7 @@ test('el resultado distingue quién gana, la zona y la disputa sin objeto (R12-3
   assert.equal(dispute.disputeOutcome(base()), null);
   assert.deepEqual(dispute.disputeOutcome(base({ estado: 'RESUELTA', razon: 'CAZADOR', resueltaPor: 'MASTER' })), { title: 'GANA EL CAZADOR', detail: null });
   assert.deepEqual(dispute.disputeOutcome(base({ estado: 'RESUELTA', razon: 'VICTIMA', resueltaPor: 'ZONA' })), { title: 'GANA LA VÍCTIMA', detail: 'Estaba en una zona segura' });
+  assert.deepEqual(dispute.disputeOutcome(base({ estado: 'SIN_OBJETO' })), { title: 'DISPUTA CERRADA: ELIMINACIÓN ANULADA', detail: null });
   assert.deepEqual(dispute.disputeOutcome(base({ tipo: 'NEGATIVA', estado: 'SIN_OBJETO' })), { title: 'DISPUTA CERRADA: YA NO ES SU OBJETIVO', detail: null });
   assert.equal(dispute.disputeListMeta(base({ estado: 'SIN_OBJETO' })), 'CERRADA · VER DETALLE');
 });
@@ -188,6 +189,13 @@ test('una disputa sin objeto no ofrece botones ni dice quién gana', async () =>
   await mount(DisputeScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', disputeId: 'd1' } } });
   assert.equal(hasText('DISPUTA CERRADA: YA NO ES SU OBJETIVO'), true);
   assert.doesNotMatch(texts(), /GANA|RECHAZAR|ELIMINAR A|Quedan/);
+});
+
+test('una eliminación anulada en cadena explica por qué se cerró la disputa', async () => {
+  const { DisputeScreen } = disputeScreen(base({ estado: 'SIN_OBJETO', soyArbitro: true }));
+  await mount(DisputeScreen, { navigation: navigationMock(), route: { params: { gameId: 'p1', disputeId: 'd1' } } });
+  assert.equal(hasText('DISPUTA CERRADA: ELIMINACIÓN ANULADA'), true);
+  assert.equal(hasText('DISPUTA CERRADA: YA NO ES SU OBJETIVO'), false);
 });
 
 // ---------- CaughtScreen y OpenDisputeScreen ----------
