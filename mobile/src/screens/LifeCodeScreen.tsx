@@ -55,9 +55,8 @@ export function LifeCodeScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (!lifeCode) return undefined;
-    // Al llegar a 0 se pide el código nuevo una sola vez; si el reloj del móvil va adelantado
-    // y el servidor devuelve el mismo, se vuelve a pedir pasados 2 s, no en cada segundo.
-    const pending = lifeCodeSecondsRemaining(lifeCode.caducaEn) === 0;
+    // El #261 emite un código nuevo cada vez que se pide, con 60 s desde esa petición.
+    // Por eso, al caducar se solicita inmediatamente el siguiente, sin esperar al minuto del reloj.
     const timer = setInterval(() => {
       const next = lifeCodeSecondsRemaining(lifeCode.caducaEn);
       setRemaining(next);
@@ -65,7 +64,7 @@ export function LifeCodeScreen({ navigation, route }: Props) {
         clearInterval(timer);
         setAttempt((value) => value + 1);
       }
-    }, pending ? 2_000 : 1_000);
+    }, 1_000);
     return () => clearInterval(timer);
   }, [lifeCode]);
 

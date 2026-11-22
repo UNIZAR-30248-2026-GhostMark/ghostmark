@@ -148,38 +148,36 @@ test('Eliminar envía seis dígitos y abre la pantalla de acierto', async () => 
   tree.unmount();
 });
 
-test('al acabar la cuenta atrás Mi código pide el código nuevo sin repetir la petición cada segundo', async () => {
-  mock.timers.enable({ apis: ['setInterval', 'Date'], now: Date.parse('2026-11-05T17:30:30Z') });
-  // Con el reloj del móvil adelantado, el servidor aún devuelve el mismo código al llegar a 0.
-  const responses = [
-    { codigo: '482913', caducaEn: '2026-11-05T17:31:00Z' },
-    { codigo: '482913', caducaEn: '2026-11-05T17:31:00Z' },
-    { codigo: '105377', caducaEn: '2026-11-05T17:32:00Z' },
-  ];
+test('Mi código empieza lleno aunque se abra al final del minuto y se renueva al caducar', async () => {
+  mock.timers.enable({ apis: ['setInterval', 'Date'], now: Date.parse('2026-11-05T17:30:59Z') });
   let calls = 0;
   const { LifeCodeScreen } = load('screens/LifeCodeScreen.tsx', {
     ...common,
-    // La comprobación de la eliminación va a la carta, así que no cuenta como petición de código.
-    '../api/game': { getMyLifeCode: async () => responses[Math.min(calls++, responses.length - 1)], getMyMissionCard: async () => ({ estado: 'VIVO' }) },
+    '../api/game': {
+      getMyLifeCode: async () => {
+        calls += 1;
+        return {
+          codigo: calls === 1 ? '482913' : '105377',
+          caducaEn: new Date(Date.now() + 60_000).toISOString(),
+        };
+      },
+      getMyMissionCard: async () => ({ estado: 'VIVO' }),
+    },
   });
   let tree;
   try {
     await act(async () => { tree = create(React.createElement(LifeCodeScreen, { navigation: { goBack() {} }, route: { params: { gameId: 'p1' } } })); });
-    assert.match(JSON.stringify(tree.toJSON()), /"30 s"/);
-    await act(async () => { mock.timers.tick(29_000); });
+    assert.match(JSON.stringify(tree.toJSON()), /"60 s"/);
+    await act(async () => { mock.timers.tick(59_000); });
     assert.equal(calls, 1);
     assert.match(JSON.stringify(tree.toJSON()), /"1 s"/);
     await act(async () => { mock.timers.tick(1_000); });
     assert.equal(calls, 2);
-    // Sigue el mismo código: espera 2 s antes de volver a pedirlo.
-    await act(async () => { mock.timers.tick(1_000); });
-    assert.equal(calls, 2);
-    await act(async () => { mock.timers.tick(1_000); });
-    assert.equal(calls, 3);
     const shown = JSON.stringify(tree.toJSON());
     assert.match(shown, /105/);
     assert.match(shown, /377/);
     assert.doesNotMatch(shown, /482/);
+    assert.match(shown, /60 s/);
   } finally {
     await act(async () => tree.unmount());
     mock.timers.reset();
