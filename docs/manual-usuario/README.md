@@ -398,7 +398,7 @@ Cuando la víctima gana una disputa por su eliminación, porque el árbitro puls
 
 ### 12.1 Qué se anula
 
-Se anula la eliminación disputada y también las que el mismo cazador hizo después, porque esos objetivos le llegaron heredados de la víctima. Por ejemplo, Imad elimina a Marta, hereda a Pablo y lo elimina también; si Marta gana la disputa, se anulan las dos y vuelven Marta y Pablo. Las eliminaciones de otros cazadores no cambian.
+Se anula la eliminación disputada y también las que el mismo cazador hizo después, porque esos objetivos le llegaron heredados de la víctima. Por ejemplo, Imad elimina a Marta, hereda a Pablo y lo elimina también; si Marta gana la disputa, se anulan las dos y vuelven Marta y Pablo. Las eliminaciones de otros cazadores no cambian. Si al cazador ya lo había eliminado otro jugador, sigue eliminado: solo vuelven sus víctimas.
 
 ### 12.2 Qué cambia en la partida
 
@@ -407,6 +407,7 @@ Se anula la eliminación disputada y también las que el mismo cazador hizo desp
 - **Misiones nuevas** para el cazador y para cada jugador que vuelve. Los demás conservan la suya.
 - **Objetivos nuevos:** se reparten otra vez los objetivos entre todos los vivos, procurando que el cazador no tenga como objetivo a nadie que acaba de volver ni al revés. Con dos o tres vivos a veces no se puede evitar, y con solo dos la cadena es la misma.
 - **Intentos completos:** todos los vivos vuelven a tener 3 intentos, porque su objetivo puede haber cambiado.
+- **Disputas que se cierran solas:** si alguno de los que vuelven había abierto una disputa por su eliminación, esa disputa se cierra, porque la eliminación ya está anulada. Dentro de la disputa, que se abre con «Ver disputas» en la pestaña Partida (apartado 11.3), sale «Disputa cerrada: eliminación anulada».
 
 Mira tu carta después de una anulación: puede que tengas otro objetivo y otra misión.
 
