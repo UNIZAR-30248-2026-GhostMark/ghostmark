@@ -55,8 +55,6 @@ class AceptacionAnulacionTest {
     @MockitoBean
     Clock reloj;
 
-    private final GeneradorCodigoVida codigos = new GeneradorCodigoVida();
-
     @BeforeEach
     void fijarReloj() {
         when(reloj.instant()).thenReturn(
@@ -155,6 +153,38 @@ class AceptacionAnulacionTest {
                 .anyMatch(n -> "ANULACION".equals(n.get("tipo"))));
         carta(mesa, victima).then().statusCode(200)
                 .body("estado", equalTo("VIVO"));
+    }
+
+    @Test
+    void criterio1ConDosVivosElCicloEsReciprocoYSoloSeCambianMisionesAfectadas() {
+        Mesa mesa = preparar(3);
+        UUID cazador = mesa.inscritos().getFirst();
+        UUID victima = objetivo(cazador);
+        UUID perseguidor = mesa.inscritos().stream()
+                .filter(id -> cazador.equals(objetivo(id))).findFirst().orElseThrow();
+        eliminar(mesa, cazador, victima, "FUERA");
+        eliminar(mesa, perseguidor, cazador, "FUERA");
+        UUID misionConservada = mision(perseguidor);
+        assertEquals("ELIMINADO", estado(cazador));
+        assertEquals("ELIMINADO", estado(victima));
+
+        decidir(mesa, abrir(mesa, victima), "VICTIMA").then().statusCode(200);
+
+        assertEquals("ELIMINADO", estado(cazador));
+        assertEquals("VIVO", estado(victima));
+        assertEquals("VIVO", estado(perseguidor));
+        assertEquals(2, comprobarCiclo(mesa));
+        assertEquals(perseguidor, objetivo(victima));
+        assertEquals(victima, objetivo(perseguidor));
+        assertEquals(0, eliminaciones(cazador));
+        assertEquals(1, eliminaciones(perseguidor));
+        assertEquals(misionConservada, mision(perseguidor));
+        assertNotNull(mision(victima));
+        JsonPath anulacion = ultimaAnulacion(mesa);
+        assertEquals(List.of(victima.toString()),
+                anulacion.getList("misiones.inscripcionId", String.class));
+        assertEquals(Set.of(victima.toString(), perseguidor.toString()),
+                Set.copyOf(anulacion.getList("orden", String.class)));
     }
 
     @Test
@@ -321,10 +351,7 @@ class AceptacionAnulacionTest {
     }
 
     private void eliminar(Mesa mesa, UUID cazador, UUID victima, String zona) {
-        byte[] secreto = jdbc.queryForObject("select secreto_codigo from jugador_partida"
-                + " where partida_id = ? and inscripcion_id = ?", byte[].class,
-                mesa.id(), victima);
-        String codigo = codigos.generar(secreto, reloj.instant()).codigo();
+        String codigo = CodigosDePrueba.emitir(jdbc, victima, reloj.instant());
         given().port(puerto).auth().oauth2(persona(mesa, cazador).token())
                 .contentType(ContentType.JSON)
                 .body(Map.of("codigo", codigo, "resultadoZona", zona))
