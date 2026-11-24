@@ -17,6 +17,7 @@ export type RootStackParamList = {
   WaitingRoom: { gameId: string; game: Pick<import("./game").Game, "inicioEn"> };
   GameStarted: { game: Pick<import("./game").GameSummary, "nombre" | "inicioEn" | "numInscritos" | "soyJugador"> & Partial<Pick<import("./game").GameSummary, "id">> };
   GameTab: { gameId: string };
+  SafeZonesMap: { zones: import("./game").SafeZone[] };
   GameEnded: { game: import("./game").GameSummary };
   GameCancelled: { game: Pick<import("./game").GameSummary, "nombre" | "numInscritos"> & Partial<Pick<import("./game").GameSummary, "motivoCancelacion">> };
   MissionCard: { gameId: string; revealOnce?: boolean };

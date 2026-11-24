@@ -4,14 +4,15 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 
 import { ApiError } from "../api/client";
 import { getCurrentAccount } from "../api/auth";
-import { closeGame, getMyGames } from "../api/game";
+import { closeGame, getMyGames, getSafeZones } from "../api/game";
+import { MapZones } from "../components/MapZones";
 import { getPlayers } from "../api/inscription";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
-import type { GameSummary } from "../types/game";
+import type { GameSummary, SafeZone } from "../types/game";
 import type { Player } from "../types/inscription";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -68,7 +69,7 @@ export function GameTabScreen({ navigation, route }: Props) {
       <Tabs game={game} navigation={navigation} />
       {error ? <View style={styles.errorState}><Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text><PrimaryButton onPress={() => setAttempt((value) => value + 1)}>REINTENTAR</PrimaryButton></View>
         : !game || !players ? <View style={styles.loading}><ActivityIndicator color={colors.lime} size="large" /><Text style={styles.loadingText}>CARGANDO PARTIDA…</Text></View>
-          : <>{game.soyMaster ? <MasterTasks disputes={game.disputasPorArbitrar ?? 0} gameId={game.id} navigation={navigation} /> : null}<View style={styles.playersHeading}><Text style={styles.sectionTitle}>JUGADORES</Text>{players.every((player) => player.estado) ? <Text style={styles.count}>{players.filter((player) => player.estado === "VIVO").length} vivos de {players.length}</Text> : null}</View><View style={styles.players}>{players.map((player) => <PlayerRow currentAlias={getCurrentAccount()?.alias} key={player.id} player={player} />)}</View></>}
+          : <>{game.soyMaster ? <MasterTasks disputes={game.disputasPorArbitrar ?? 0} gameId={game.id} navigation={navigation} /> : null}<ZonesPanel gameId={game.id} navigation={navigation} /><View style={styles.playersHeading}><Text style={styles.sectionTitle}>JUGADORES</Text>{players.every((player) => player.estado) ? <Text style={styles.count}>{players.filter((player) => player.estado === "VIVO").length} vivos de {players.length}</Text> : null}</View><View style={styles.players}>{players.map((player) => <PlayerRow currentAlias={getCurrentAccount()?.alias} key={player.id} player={player} />)}</View></>}
     </ScrollView>
     {game ? <Actions isClosing={isClosing} isMaster={game?.soyMaster ?? false} onClose={confirmFinish} /> : null}
     <ConfirmDialog confirmLabel="Cerrar" destructive message="Termina para todos y no se puede deshacer." onCancel={() => setConfirmingClose(false)} onConfirm={() => { setConfirmingClose(false); void finishGame(); }} title="¿Cerrar la partida?" visible={confirmingClose} />
@@ -94,6 +95,17 @@ function TaskCard({ color, label, number = 0 }: { color: "white" | "lavender" | 
   return <View style={[styles.taskCard, colorStyle]}><Text style={[styles.taskNumber, textStyle]}>{number}</Text><Text style={[styles.taskLabel, textStyle]}>{label}</Text></View>;
 }
 
+function ZonesPanel({ gameId, navigation }: { gameId: string; navigation: Props["navigation"] }) {
+  const [zones, setZones] = useState<SafeZone[]>();
+  useEffect(() => {
+    let active = true;
+    getSafeZones(gameId).then((result) => { if (active) setZones(result.zonas); }).catch(() => { if (active) setZones([]); });
+    return () => { active = false; };
+  }, [gameId]);
+  if (!zones?.length) return null;
+  return <View><View style={styles.zonesHeading}><Text style={styles.sectionTitle}>ZONAS SEGURAS</Text><Text style={styles.zoneCount}>{zones.length} {zones.length === 1 ? "zona" : "zonas"}</Text></View><View style={styles.mapPreview}><MapZones height={194} interactive={false} zones={zones} /><Pressable accessibilityHint="Abre el mapa a pantalla completa" accessibilityLabel="Ver mapa de zonas seguras" accessibilityRole="button" onPress={() => navigation.navigate("SafeZonesMap", { zones })} style={styles.mapTapTarget}><View pointerEvents="none" style={styles.mapPreviewHint}><Text style={styles.mapPreviewText}>VER MAPA</Text></View></Pressable></View><View style={styles.zoneNote}><Text style={styles.zoneShield}>⌾</Text><Text style={styles.zoneNoteText}>No se elimina dentro de una zona. Nadie ve dónde estás.</Text></View></View>;
+}
+
 function PlayerRow({ currentAlias, player }: { currentAlias?: string; player: Player }) {
   // Sin estado (el servidor aún no lo manda) no se pinta: no se sabe si está vivo.
   const state = player.estado;
@@ -111,5 +123,6 @@ const styles = StyleSheet.create({
   tabs: { backgroundColor: colors.ink, borderRadius: 15, flexDirection: "row", height: 49, padding: 4 }, tab: { alignItems: "center", flex: 1, justifyContent: "center" }, tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: "#CFC2DD", borderRadius: 11, borderWidth: 2, flex: 1, justifyContent: "center" }, tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13 }, tabOnText: { color: colors.ink, ...bangers(18) },
   sectionTitle: { color: colors.text, ...bangers(28), marginTop: 22 }, taskRow: { flexDirection: "row", gap: 9, marginTop: 9 }, taskPress: { flex: 1 }, taskCard: { borderColor: colors.ink, borderRadius: 12, borderWidth: 3, flex: 1, minHeight: 70, paddingHorizontal: 10, paddingVertical: 7 }, taskWhite: { backgroundColor: colors.white }, taskLavender: { backgroundColor: "#D7C6FF" }, taskPurple: { backgroundColor: colors.surfaceRaised, borderColor: colors.border }, taskNumber: { color: colors.ink, ...bangers(29), lineHeight: 30 }, taskLabel: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11, marginTop: 1 }, taskTextLight: { color: colors.white },
   playersHeading: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, count: { backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 8, borderWidth: 2, color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11, marginTop: 22, paddingHorizontal: 9, paddingVertical: 4 }, players: { gap: 7, marginTop: 10, paddingBottom: 22 }, playerRow: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 11, borderWidth: 3, flexDirection: "row", minHeight: 54, paddingHorizontal: 8 }, playerInactive: { backgroundColor: "#38284B", borderColor: "#635173" }, playerGhost: { height: 39, resizeMode: "contain", width: 42 }, playerGhostInactive: { opacity: 0.38, tintColor: "#D4CBDC" }, playerName: { color: colors.text, flex: 1, fontFamily: "ZenMaruBold", fontSize: 14, marginLeft: 5 }, playerState: { borderColor: colors.ink, borderRadius: 7, borderWidth: 1, color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 9, paddingHorizontal: 7, paddingVertical: 4 }, playerAlive: { backgroundColor: colors.lime }, playerEliminated: { backgroundColor: colors.danger },
+  zonesHeading: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, zoneCount: { backgroundColor: "#D7C6FF", borderColor: colors.ink, borderRadius: 8, borderWidth: 2, color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 10, marginTop: 22, paddingHorizontal: 9, paddingVertical: 4 }, mapPreview: { borderRadius: 19, marginTop: 7, overflow: "hidden", position: "relative" }, mapTapTarget: { bottom: 0, left: 0, position: "absolute", right: 0, top: 0, zIndex: 3 }, mapPreviewHint: { alignItems: "center", backgroundColor: "rgba(18,6,31,.77)", borderColor: colors.lime, borderRadius: 9, borderWidth: 2, bottom: 11, left: 11, paddingHorizontal: 11, paddingVertical: 5, position: "absolute", right: 11 }, mapPreviewText: { color: colors.lime, ...bangers(16), lineHeight: 19, textAlign: "center" }, zoneNote: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 11, borderWidth: 3, flexDirection: "row", gap: 8, marginTop: 13, minHeight: 58, paddingHorizontal: 12 }, zoneShield: { color: colors.lime, fontSize: 23 }, zoneNoteText: { color: colors.text, flex: 1, fontFamily: "ZenMaruBold", fontSize: 11, lineHeight: 16 },
   footer: { paddingBottom: 12, paddingHorizontal: 24, paddingTop: 8 }, actionRow: { flexDirection: "row", gap: 7 }, reportButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 12, borderWidth: 3, flex: 1, justifyContent: "center", minHeight: 50, paddingHorizontal: 5 }, abandonButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 12, borderWidth: 3, flex: 1.1, justifyContent: "center", minHeight: 50, paddingHorizontal: 5 }, closeButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 12, borderWidth: 3, flex: 1.45, justifyContent: "center", minHeight: 50, paddingHorizontal: 6 }, reportText: { color: colors.white, ...bangers(15), textAlign: "center" }, abandonText: { color: colors.ink, ...bangers(15), textAlign: "center" }, closeText: { alignSelf: "stretch", color: colors.ink, ...bangers(15), textAlign: "center" }, loading: { alignItems: "center", gap: 13, marginTop: 80 }, loadingText: { color: colors.text, ...bangers(24) }, errorState: { alignItems: "center", gap: 16, marginTop: 70 }, error: { color: colors.danger, fontFamily: "ZenMaruBold", fontSize: 14, lineHeight: 20, textAlign: "center" }, pressed: { opacity: 0.78, transform: [{ scale: 0.97 }] },
 });

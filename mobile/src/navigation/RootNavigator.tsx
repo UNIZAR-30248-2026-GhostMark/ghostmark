@@ -17,6 +17,7 @@ import { GameNormsScreen } from "../screens/GameNormsScreen";
 import { GameStartedScreen } from "../screens/GameStartedScreen";
 import { GameEndedScreen } from "../screens/GameEndedScreen";
 import { GameTabScreen } from "../screens/GameTabScreen";
+import { SafeZonesMapScreen } from "../screens/SafeZonesMapScreen";
 import { MissionCardScreen } from "../screens/MissionCardScreen";
 import { LifeCodeScreen } from "../screens/LifeCodeScreen";
 import { EliminateScreen } from "../screens/EliminateScreen";
@@ -137,6 +138,7 @@ export function RootNavigator() {
         <Stack.Screen name="WaitingRoom" component={WaitingRoomScreen} />
         <Stack.Screen name="GameStarted" component={GameStartedScreen} />
         <Stack.Screen name="GameTab" component={GameTabScreen} />
+        <Stack.Screen name="SafeZonesMap" component={SafeZonesMapScreen} />
         <Stack.Screen name="GameEnded" component={GameEndedScreen} />
         <Stack.Screen name="MissionCard" component={MissionCardScreen} />
         <Stack.Screen name="LifeCode" component={LifeCodeScreen} />

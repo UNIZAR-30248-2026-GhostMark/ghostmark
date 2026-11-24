@@ -25,7 +25,7 @@ class ApiError extends Error { constructor(message, status = 400, code) { super(
 class AnimatedValue { constructor(value) { this.value = value; } interpolate() { return this; } }
 let alerts = [];
 const native = {
-  ActivityIndicator: 'ActivityIndicator', Image: 'Image', Modal: 'Modal', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View',
+  ActivityIndicator: 'ActivityIndicator', Image: 'Image', Modal: 'Modal', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View', useWindowDimensions: () => ({ height: 800 }),
   Alert: { alert: (...args) => alerts.push(args) },
   Animated: { Value: AnimatedValue, View: 'AnimatedView', timing: () => ({ start() {} }) },
   StyleSheet: { create: (styles) => styles, absoluteFillObject: {} },
@@ -117,8 +117,9 @@ function gameTab({ games = [inPlay], players, close = async () => closedGame(res
   const navigation = { destinations: [], replaced: [], navigate(...args) { this.destinations.push(args); }, replace(...args) { this.replaced.push(args); } };
   const { GameTabScreen } = load('screens/GameTabScreen.tsx', { ...common,
     '../api/auth': { getCurrentAccount: () => ({ alias: 'fantasmilla' }) },
-    '../api/game': { getMyGames: async () => games, closeGame: (...args) => { calls.push(args); return close(...args); } },
+    '../api/game': { getMyGames: async () => games, getSafeZones: async () => ({ zonas: [] }), closeGame: (...args) => { calls.push(args); return close(...args); } },
     '../api/inscription': { getPlayers: async () => players ?? [{ id: 'i1', alias: 'fantasmilla', esMaster: true }, { id: 'i2', alias: 'Marta', esMaster: false }] },
+    '../components/MapZones': { MapZones: 'MapZones' },
   });
   return { GameTabScreen, navigation, calls };
 }
