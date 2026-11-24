@@ -79,18 +79,18 @@ test('Mi código muestra los seis dígitos y la cuenta atrás recibidos', async 
   }
 });
 
-test('Mi código pasa directamente a «Te han cazado» si el servidor confirma la eliminación', async () => {
+test('Mi código pasa a «Te han cazado» con el plazo de disputa si el servidor confirma la eliminación (#337)', async () => {
   const ApiErrorWithCode = class ApiError extends Error { constructor() { super('El jugador está eliminado'); this.code = 'JUGADOR_ELIMINADO'; } };
   const destinations = [];
   const { LifeCodeScreen } = load('screens/LifeCodeScreen.tsx', {
     ...common,
     '../api/client': { ApiError: ApiErrorWithCode },
-    '../api/game': { getMyLifeCode: async () => { throw new ApiErrorWithCode(); } },
+    '../api/game': { getMyLifeCode: async () => { throw new ApiErrorWithCode(); }, getMyMissionCard: async () => ({ estado: 'ELIMINADO', disputarHasta: '2026-11-24T18:10:00Z' }) },
   });
   let tree;
   try {
     await act(async () => { tree = create(React.createElement(LifeCodeScreen, { navigation: { goBack() {}, replace: (...args) => destinations.push(args) }, route: { params: { gameId: 'p1' } } })); });
-    assert.deepEqual(destinations, [['Caught', { gameId: 'p1' }]]);
+    assert.deepEqual(destinations, [['Caught', { gameId: 'p1', disputarHasta: '2026-11-24T18:10:00Z' }]]);
     assert.doesNotMatch(JSON.stringify(tree.toJSON()), /REINTENTAR/);
   } finally {
     await act(async () => tree.unmount());
@@ -106,7 +106,7 @@ test('Mi código detecta una eliminación mientras está abierto, sin pedir cód
     ...common,
     '../api/game': {
       getMyLifeCode: async () => { codeCalls += 1; return { codigo: '482913', caducaEn: new Date(Date.now() + 60_000).toISOString() }; },
-      getMyMissionCard: async () => { cardCalls += 1; return { estado: cardCalls === 1 ? 'VIVO' : 'ELIMINADO' }; },
+      getMyMissionCard: async () => { cardCalls += 1; return { estado: cardCalls === 1 ? 'VIVO' : 'ELIMINADO', disputarHasta: '2026-11-05T17:40:00Z' }; },
     },
   });
   let tree;
@@ -115,7 +115,7 @@ test('Mi código detecta una eliminación mientras está abierto, sin pedir cód
     await act(async () => { mock.timers.tick(5_000); });
     assert.equal(destinations.length, 0);
     await act(async () => { mock.timers.tick(5_000); });
-    assert.deepEqual(destinations, [['Caught', { gameId: 'p1' }]]);
+    assert.deepEqual(destinations, [['Caught', { gameId: 'p1', disputarHasta: '2026-11-05T17:40:00Z' }]]);
     // Con el #261 el código se emite al pedirlo: la comprobación no puede pedir códigos.
     assert.equal(codeCalls, 1);
   } finally {
@@ -406,16 +406,16 @@ test('Eliminar ofrece REINTENTAR si no puede consultar la carta y vuelve a pedir
   await act(async () => tree.unmount());
 });
 
-test('Eliminar no enseña cero intentos si eliminan al jugador con esa pantalla abierta', async () => {
+test('Eliminar lleva a «Te han cazado» con el plazo de disputa si eliminan al jugador (#337)', async () => {
   const destinations = [];
   const { EliminateScreen } = load('screens/EliminateScreen.tsx', {
     ...common,
     '../api/client': { ApiError },
-    '../api/game': { getMyMissionCard: async () => ({ estado: 'ELIMINADO', intentosRestantes: null, bloqueadoHasta: null }), eliminateTarget: async () => { throw new Error('no debe enviar'); } },
+    '../api/game': { getMyMissionCard: async () => ({ estado: 'ELIMINADO', intentosRestantes: null, bloqueadoHasta: null, disputarHasta: '2026-11-24T18:10:00Z' }), eliminateTarget: async () => { throw new Error('no debe enviar'); } },
   });
   let tree;
   await act(async () => { tree = create(React.createElement(EliminateScreen, { navigation: { goBack() {}, replace: (...args) => destinations.push(args) }, route: { params: { gameId: 'p1' } } })); });
-  assert.deepEqual(destinations, [['Caught', { gameId: 'p1' }]]);
+  assert.deepEqual(destinations, [['Caught', { gameId: 'p1', disputarHasta: '2026-11-24T18:10:00Z' }]]);
   assert.doesNotMatch(JSON.stringify(tree.toJSON()), /Te quedan 0 intentos/);
   await act(async () => tree.unmount());
 });

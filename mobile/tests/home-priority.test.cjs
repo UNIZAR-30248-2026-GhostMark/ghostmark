@@ -37,7 +37,7 @@ test('Inicio destaca una partida en juego aunque una cancelada llegue antes', ()
   const selected = selectHomeGames([cancelled, waiting, active]);
 
   assert.equal(selected.featuredGame, active);
-  assert.deepEqual(selected.otherGames, [cancelled, waiting]);
+  assert.deepEqual(selected.otherGames, [waiting, cancelled]);
 });
 
 test('Inicio no muestra una cancelada como tarjeta grande si existe otra partida abierta', () => {
@@ -48,6 +48,17 @@ test('Inicio no muestra una cancelada como tarjeta grande si existe otra partida
 
   assert.equal(selected.featuredGame, waiting);
   assert.deepEqual(selected.otherGames, [cancelled]);
+});
+
+test('Inicio coloca las demás partidas en juego antes que las cerradas', () => {
+  const featured = game('destacada', 'EN_JUEGO');
+  const closed = game('cerrada', 'CERRADA');
+  const alsoActive = game('sigue-en-juego', 'EN_JUEGO');
+
+  const selected = selectHomeGames([featured, closed, alsoActive]);
+
+  assert.equal(selected.featuredGame, featured);
+  assert.deepEqual(selected.otherGames, [alsoActive, closed]);
 });
 
 test('Inicio pone en grande la partida en inscripción antes que una cerrada (R11-23)', () => {

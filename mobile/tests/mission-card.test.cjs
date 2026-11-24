@@ -109,7 +109,7 @@ test('la carta reserva espacio y reduce el texto para el alias y la misión máx
   const missionText = texts.find((text) => text.props.children === mission.toUpperCase());
   assert.equal(target.props.numberOfLines, 1);
   assert.equal(target.props.minimumFontScale, 0.4);
-  assert.equal(target.props.style.height, 62);
+  assert.equal(target.props.style.height, 76, 'la altura debe admitir la línea Bangers completa en Android');
   assert.equal(missionText.props.numberOfLines, 5);
   assert.equal(missionText.props.minimumFontScale, 0.35);
   assert.equal(missionText.props.style.lineHeight, 34);

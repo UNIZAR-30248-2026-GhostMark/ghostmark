@@ -48,7 +48,7 @@ export function EliminateScreen({ navigation, route }: Props) {
     getMyMissionCard(route.params.gameId).then((card) => {
       if (!active) return;
       if (card.estado === "ELIMINADO") {
-        navigation.replace("Caught", { gameId: route.params.gameId });
+        navigation.replace("Caught", { gameId: route.params.gameId, ...(card.disputarHasta ? { disputarHasta: card.disputarHasta } : {}) });
         return;
       }
       if (typeof card.intentosRestantes !== "number") {

@@ -22,13 +22,13 @@ test('todos los estilos Bangers usan el helper compartido', () => {
   }
 });
 
-test('el helper Bangers conserva el tamaño solicitado', () => {
+test('el helper Bangers reserva altura vertical en Android', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/theme/bangers.ts'), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const module = { exports: {} };
   new Function('module', 'exports', code)(module, module.exports);
-  assert.deepEqual(module.exports.bangers(20), { fontFamily: 'Bangers', fontSize: 20 });
-  assert.deepEqual(module.exports.bangers(40), { fontFamily: 'Bangers', fontSize: 40 });
+  assert.deepEqual(module.exports.bangers(20), { fontFamily: 'Bangers', fontSize: 20, includeFontPadding: true, lineHeight: 25 });
+  assert.deepEqual(module.exports.bangers(40), { fontFamily: 'Bangers', fontSize: 40, includeFontPadding: true, lineHeight: 49 });
 });
 
 test('los textos Bangers de botones y pestañas no quedan ajustados a su contenido', () => {
@@ -93,7 +93,15 @@ test('los títulos Bangers de varias líneas tienen altura suficiente en Android
   const endedTitle = ended.match(/title:\s*\{([^}]*)\}/);
   assert.ok(endedTitle, 'GameEndedScreen debe declarar el estilo title');
   assert.match(endedTitle[1], /\.\.\.bangers\(42\)/);
-  assert.match(endedTitle[1], /lineHeight:\s*(4[3-9]|[5-9]\d)/);
+  assert.match(endedTitle[1], /lineHeight:\s*(5[0-9]|[6-9]\d)/);
+  assert.match(endedTitle[1], /minHeight:\s*112/);
+
+  const mission = fs.readFileSync(path.join(sourceRoot, 'screens/MissionCardScreen.tsx'), 'utf8');
+  const dormantCountdown = mission.match(/dormantCountdown:\s*\{([^}]*)\}/);
+  assert.ok(dormantCountdown, 'la carta dormida debe reservar dos líneas completas');
+  assert.match(mission, /dormantCard:[^\n]*minHeight:\s*348/);
+  assert.match(dormantCountdown[1], /lineHeight:\s*(3[5-9]|[4-9]\d)/);
+  assert.match(dormantCountdown[1], /minHeight:\s*76/);
 });
 
 test('los números de las casillas de Eliminar caben enteros y centrados (#263)', () => {

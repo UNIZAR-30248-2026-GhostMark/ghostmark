@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
@@ -22,22 +22,28 @@ export function LifeCodeScreen({ navigation, route }: Props) {
   const [attempt, setAttempt] = useState(0);
   const [remaining, setRemaining] = useState(0);
 
+  const showCaught = useCallback((disputarHasta?: string | null) => {
+    navigation.replace("Caught", { gameId: route.params.gameId, ...(disputarHasta ? { disputarHasta } : {}) });
+  }, [navigation, route.params.gameId]);
+
   useEffect(() => {
     let active = true;
     getMyLifeCode(route.params.gameId).then((result) => {
       if (!active) return;
       setLifeCode(result);
       setRemaining(lifeCodeSecondsRemaining(result.caducaEn));
-    }).catch((requestError: unknown) => {
+    }).catch(async (requestError: unknown) => {
       if (!active) return;
       if (requestError instanceof ApiError && requestError.code === "JUGADOR_ELIMINADO") {
-        navigation.replace("Caught", { gameId: route.params.gameId });
+        // El código ya no se puede consultar, pero la carta conserva el plazo para disputar.
+        const card = await getMyMissionCard(route.params.gameId).catch(() => undefined);
+        if (active) showCaught(card?.disputarHasta);
         return;
       }
       setError(requestError instanceof ApiError ? requestError.message : "No hemos podido cargar tu código. Comprueba la conexión e inténtalo de nuevo.");
     });
     return () => { active = false; };
-  }, [attempt, navigation, route.params.gameId]);
+  }, [attempt, route.params.gameId, showCaught]);
 
   // Mientras muestra un código, consulta la carta para saber si han eliminado a la víctima y
   // llevarla a «Te han cazado» (R11-37). Se pregunta a la carta y no al código para no pedir
@@ -47,11 +53,11 @@ export function LifeCodeScreen({ navigation, route }: Props) {
     let active = true;
     const timer = setInterval(() => {
       getMyMissionCard(route.params.gameId).then((card) => {
-        if (active && card.estado === "ELIMINADO") navigation.replace("Caught", { gameId: route.params.gameId });
+        if (active && card.estado === "ELIMINADO") showCaught(card.disputarHasta);
       }).catch(() => undefined);
     }, ELIMINATION_CHECK_MS);
     return () => { active = false; clearInterval(timer); };
-  }, [error, lifeCode, navigation, route.params.gameId]);
+  }, [error, lifeCode, route.params.gameId, showCaught]);
 
   useEffect(() => {
     if (!lifeCode) return undefined;

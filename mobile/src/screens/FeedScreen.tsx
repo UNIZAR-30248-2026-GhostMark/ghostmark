@@ -39,11 +39,14 @@ export function FeedScreen({ navigation, route }: Props) {
   const now = new Date();
   return <Screen padded={false}><View style={styles.screen}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.tabs}>
-        {/* El máster que no juega no tiene misión: su barra es Feed y Partida (R11-36). */}
-        {isPlayer ? <Pressable accessibilityLabel="Ir a mi misión" accessibilityRole="button" onPress={() => navigation.navigate("MissionCard", { gameId })} style={styles.tab}><Text style={styles.tabText}>Misión</Text></Pressable> : null}
-        <View style={styles.tabOn}><Text style={styles.tabOnText}>FEED</Text></View>
-        <Pressable accessibilityLabel="Ir a la pestaña Partida" accessibilityRole="button" onPress={() => navigation.navigate("GameTab", { gameId })} style={styles.tab}><Text style={styles.tabText}>Partida</Text></Pressable>
+      <View style={styles.topNavigation}>
+        <Pressable accessibilityLabel="Volver a mis partidas" accessibilityRole="button" onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })} style={styles.homeButton}><Text style={styles.homeButtonText}>←</Text></Pressable>
+        <View style={styles.tabs}>
+          {/* El máster que no juega no tiene misión: su barra es Feed y Partida (R11-36). */}
+          {isPlayer ? <Pressable accessibilityLabel="Ir a mi misión" accessibilityRole="button" onPress={() => navigation.navigate("MissionCard", { gameId })} style={styles.tab}><Text style={styles.tabText}>Misión</Text></Pressable> : null}
+          <View style={styles.tabOn}><Text style={styles.tabOnText}>FEED</Text></View>
+          <Pressable accessibilityLabel="Ir a la pestaña Partida" accessibilityRole="button" onPress={() => navigation.navigate("GameTab", { gameId })} style={styles.tab}><Text style={styles.tabText}>Partida</Text></Pressable>
+        </View>
       </View>
       {error ? <View style={[styles.state, styles.errorState]}>
         <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
@@ -71,7 +74,10 @@ export function FeedScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background, flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18 },
-  tabs: { backgroundColor: colors.ink, borderRadius: 15, flexDirection: "row", height: 49, padding: 4 },
+  topNavigation: { alignItems: "center", flexDirection: "row", gap: 8 },
+  homeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 12, borderWidth: 2, height: 45, justifyContent: "center", width: 45 },
+  homeButtonText: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 27, lineHeight: 32, marginTop: -2 },
+  tabs: { backgroundColor: colors.ink, borderRadius: 15, flex: 1, flexDirection: "row", height: 49, padding: 4 },
   tab: { alignItems: "center", flex: 1, justifyContent: "center" },
   tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: "#CFC2DD", borderRadius: 11, borderWidth: 2, flex: 1, justifyContent: "center" },
   tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 13 },

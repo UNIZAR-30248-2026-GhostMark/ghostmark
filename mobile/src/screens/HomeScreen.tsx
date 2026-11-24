@@ -31,8 +31,20 @@ export function selectHomeGames(games: GameSummary[]) {
     ?? games.find((game) => game.estado === "CERRADA");
   return {
     featuredGame,
-    otherGames: games.filter((game) => game.id !== featuredGame?.id),
+    // Las partidas que siguen vivas no deben quedar mezcladas debajo del historial cerrado.
+    otherGames: games
+      .map((game, index) => ({ game, index }))
+      .filter(({ game }) => game.id !== featuredGame?.id)
+      .sort((left, right) => gameOrder(left.game) - gameOrder(right.game) || left.index - right.index)
+      .map(({ game }) => game),
   };
+}
+
+function gameOrder(game: GameSummary) {
+  if (game.estado === "EN_JUEGO") return 0;
+  if (game.estado === "EN_INSCRIPCION") return 1;
+  if (game.estado === "CERRADA") return 2;
+  return 3;
 }
 
 export function HomeScreen({ navigation, route }: Props) {
