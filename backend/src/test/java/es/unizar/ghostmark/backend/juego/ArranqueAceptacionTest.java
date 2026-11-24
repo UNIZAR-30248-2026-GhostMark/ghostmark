@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -15,6 +16,8 @@ import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -199,6 +202,63 @@ class ArranqueAceptacionTest {
         comprobarCiclo(reconstruido.objetivos(), reconstruido.inscritos());
     }
 
+    @Test
+    void elEstadoDeLasDisputasSeReconstruyeTrasAnularUnaCadena() {
+        Mesa mesa = preparar(5);
+        arrancar(mesa).then().statusCode(200);
+        Persona cazador = mesa.master();
+        UUID cazadorId = inscripcion(mesa, cazador);
+        UUID primera = eliminarSuObjetivo(mesa, cazador, cazadorId);
+        UUID segunda = eliminarSuObjetivo(mesa, cazador, cazadorId);
+        Persona primeraVictima = mesa.jugadores().stream()
+                .filter(j -> primera.equals(inscripcion(mesa, j))).findFirst().orElseThrow();
+        Persona segundaVictima = mesa.jugadores().stream()
+                .filter(j -> segunda.equals(inscripcion(mesa, j))).findFirst().orElseThrow();
+
+        UUID segundaDisputa = UUID.fromString(given().port(puerto)
+                .auth().oauth2(segundaVictima.token()).contentType(ContentType.JSON)
+                .body(Map.of("tipo", "ELIMINACION", "texto", "Impugno la segunda"))
+                .post("/api/v1/partidas/{id}/disputas", mesa.id())
+                .then().statusCode(201).extract().path("id"));
+        UUID primeraDisputa = UUID.fromString(given().port(puerto)
+                .auth().oauth2(primeraVictima.token()).contentType(ContentType.JSON)
+                .body(Map.of("tipo", "ELIMINACION", "texto", "Impugno la primera"))
+                .post("/api/v1/partidas/{id}/disputas", mesa.id())
+                .then().statusCode(201).extract().path("id"));
+        given().port(puerto).auth().oauth2(cazador.token()).contentType(ContentType.JSON)
+                .body(Map.of("texto", "La eliminacion fue valida"))
+                .post("/api/v1/partidas/{id}/disputas/{disputa}/respuesta", mesa.id(),
+                        primeraDisputa)
+                .then().statusCode(200);
+
+        UUID arbitroId = jdbc.queryForObject("select arbitro_id from disputa where id = ?",
+                UUID.class, primeraDisputa);
+        assertNotNull(arbitroId);
+        Persona arbitro = mesa.jugadores().stream()
+                .filter(j -> arbitroId.equals(inscripcion(mesa, j)))
+                .findFirst().orElseThrow();
+        given().port(puerto).auth().oauth2(arbitro.token()).contentType(ContentType.JSON)
+                .body(Map.of("razon", "VICTIMA"))
+                .post("/api/v1/partidas/{id}/disputas/{disputa}/decision",
+                        mesa.id(), primeraDisputa)
+                .then().statusCode(200);
+
+        assertEquals("RESUELTA", jdbc.queryForObject(
+                "select estado from disputa where id = ?", String.class, primeraDisputa));
+        assertEquals("SIN_OBJETO", jdbc.queryForObject(
+                "select estado from disputa where id = ?", String.class, segundaDisputa));
+        assertEquals(2, contarEventos(mesa, "DISPUTA_ABIERTA"));
+        assertEquals(1, contarEventos(mesa, "DISPUTA_RESPONDIDA"));
+        assertTrue(contarEventos(mesa, "DISPUTA_ARBITRO_SORTEADO") >= 2);
+        assertEquals(2, contarEventos(mesa, "DISPUTA_RESUELTA"));
+        assertEquals(1, contarEventos(mesa, "ELIMINACION_ANULADA"));
+
+        EstadoReconstruido reconstruido = reproducir(mesa);
+        comprobarJugadores(mesa, reconstruido);
+        assertTrue(reconstruido.eliminados().isEmpty());
+        comprobarCiclo(reconstruido.objetivos(), reconstruido.inscritos());
+    }
+
     private UUID eliminarSuObjetivo(Mesa mesa, Persona cazador, UUID cazadorId) {
         UUID victimaId = jdbc.queryForObject("select objetivo_id from jugador_partida"
                 + " where inscripcion_id = ?", UUID.class, cazadorId);
@@ -219,6 +279,7 @@ class ArranqueAceptacionTest {
         Set<UUID> eliminados = new HashSet<>();
         Map<UUID, Integer> eliminaciones = new HashMap<>();
         Map<UUID, UUID> cazadorPorEvento = new HashMap<>();
+        Map<UUID, Map<String, Object>> disputas = new HashMap<>();
         long secuencia = 1;
         List<Map<String, Object>> eventos = jdbc.queryForList("select id, secuencia, tipo,"
                 + " datos::text as datos from evento where partida_id = ? order by secuencia",
@@ -302,10 +363,50 @@ class ArranqueAceptacionTest {
                                 UUID.fromString(nuevas.get(i)));
                     }
                 }
+                case "DISPUTA_ABIERTA" -> {
+                    UUID id = UUID.fromString(datos.getString("disputaId"));
+                    Map<String, Object> disputa = new HashMap<>();
+                    disputa.put("tipo", datos.getString("tipo"));
+                    disputa.put("estado", "ABIERTA");
+                    disputa.put("cazador_id", uuid(datos.getString("cazadorId")));
+                    disputa.put("victima_id", uuid(datos.getString("victimaId")));
+                    disputa.put("evento_eliminacion_id",
+                            uuid(datos.getString("eventoEliminacionId")));
+                    disputa.put("texto_apertura", datos.getString("texto"));
+                    disputa.put("texto_respuesta", null);
+                    disputa.put("arbitro_id", uuid(datos.getString("arbitroId")));
+                    disputa.put("plazo_hasta", Instant.parse(
+                            datos.getString("plazoHasta")).truncatedTo(ChronoUnit.MILLIS));
+                    disputa.put("razon", null);
+                    disputa.put("resuelta_por", null);
+                    assertNull(disputas.put(id, disputa));
+                }
+                case "DISPUTA_RESPONDIDA" -> {
+                    UUID id = UUID.fromString(datos.getString("disputaId"));
+                    assertNotNull(disputas.get(id));
+                    assertNull(disputas.get(id).put("texto_respuesta",
+                            datos.getString("texto")));
+                }
+                case "DISPUTA_ARBITRO_SORTEADO" -> {
+                    UUID id = UUID.fromString(datos.getString("disputaId"));
+                    assertNotNull(disputas.get(id));
+                    disputas.get(id).put("arbitro_id", uuid(datos.getString("arbitroId")));
+                    disputas.get(id).put("plazo_hasta", Instant.parse(
+                            datos.getString("plazoHasta")).truncatedTo(ChronoUnit.MILLIS));
+                }
+                case "DISPUTA_RESUELTA" -> {
+                    UUID id = UUID.fromString(datos.getString("disputaId"));
+                    assertNotNull(disputas.get(id));
+                    assertEquals("ABIERTA", disputas.get(id).put("estado",
+                            datos.getString("estado")));
+                    disputas.get(id).put("razon", datos.getString("razon"));
+                    disputas.get(id).put("resuelta_por", datos.getString("resueltaPor"));
+                }
                 default -> fail("Evento no previsto en el recorrido de las PBI 4 y 7a: "
                         + evento.get("tipo"));
             }
         }
+        comprobarDisputas(mesa, disputas);
         return new EstadoReconstruido(reconstruido, inscritos, objetivos, misiones, eliminados,
                 eliminaciones);
     }
@@ -327,6 +428,30 @@ class ArranqueAceptacionTest {
                     ((Number) fila.get("eliminaciones")).intValue());
             if (reconstruido.eliminados().contains(id)) {
                 assertNull(fila.get("objetivo_id"));
+            }
+        }
+    }
+
+    private void comprobarDisputas(Mesa mesa,
+            Map<UUID, Map<String, Object>> reconstruidas) {
+        List<Map<String, Object>> filas = jdbc.queryForList("select id, tipo, estado,"
+                + " cazador_id, victima_id, evento_eliminacion_id, texto_apertura,"
+                + " texto_respuesta, arbitro_id, plazo_hasta, razon, resuelta_por"
+                + " from disputa where partida_id = ?", mesa.id());
+        assertEquals(reconstruidas.size(), filas.size());
+        for (Map<String, Object> fila : filas) {
+            UUID id = (UUID) fila.get("id");
+            Map<String, Object> esperada = reconstruidas.get(id);
+            assertNotNull(esperada, "Disputa sin evento de apertura: " + id);
+            for (Map.Entry<String, Object> dato : esperada.entrySet()) {
+                Object actual = fila.get(dato.getKey());
+                if (actual instanceof OffsetDateTime fecha) {
+                    actual = fecha.toInstant().truncatedTo(ChronoUnit.MILLIS);
+                } else if (actual instanceof java.sql.Timestamp fecha) {
+                    actual = fecha.toInstant().truncatedTo(ChronoUnit.MILLIS);
+                }
+                assertEquals(dato.getValue(), actual,
+                        "No coincide " + dato.getKey() + " de la disputa " + id);
             }
         }
     }
