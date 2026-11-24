@@ -305,3 +305,29 @@ GhostMark no avisa antes de que tu objetivo entre en clase ni enseña el horario
 Si estás en «Eliminar» y en ese momento empieza tu clase o la de tu objetivo, al escribir el sexto dígito la app dice «Tu objetivo está en clase. Disponible en 1 h 15 min.» o «Estás en clase. Disponible en 45 min.». El código no se comprueba y el intento no cuenta como fallo: te quedan los mismos intentos. Vuelve a probar cuando acabe la clase.
 
 <img src="img/horario-eliminar-rechazo.png" alt="«Eliminar» con «Tu objetivo está en clase. Disponible en 1 h 15 min.»" width="250">
+
+## 10. La zona segura al eliminar
+
+Cuando escribes el código de tu objetivo, el móvil comprueba si estás en una zona segura. La eliminación cuenta igual estés donde estés: el resultado solo lo ve el árbitro si tu objetivo abre una disputa.
+
+### 10.1 El permiso de ubicación
+
+Para eliminar hace falta que el móvil dé permiso de ubicación a GhostMark, también en una partida sin zonas. Sin él, «Eliminar» dice «Para eliminar hace falta la ubicación» y no deja escribir el código. Pulsa «Dar permiso» y acepta en el aviso del móvil.
+
+Si lo negaste y el móvil ya no vuelve a preguntar, el botón es «Abrir ajustes»: activa allí la ubicación y vuelve a GhostMark, que lo nota sola.
+
+<img src="img/zona-sin-permiso.png" alt="«Para eliminar hace falta la ubicación» con «Dar permiso»" width="250"> <img src="img/zona-teclado.png" alt="«Eliminar» con el teclado, ya con permiso" width="250">
+
+### 10.2 Dentro, fuera o no concluyente
+
+Al escribir el sexto dígito, el móvil mira una vez dónde estás, durante 10 segundos como mucho, y lo compara con las zonas de la partida:
+
+- **Dentro:** estás en una zona segura, sin duda.
+- **Fuera:** estás lejos de todas las zonas.
+- **No concluyente:** estás en el borde de una zona, la ubicación tiene un margen de error de más de 50 m o no llega en 10 segundos.
+
+En una partida sin zonas el resultado es siempre «fuera» y el móvil no mira dónde estás. Si las zonas no se pueden cargar, por ejemplo sin conexión, es «no concluyente».
+
+### 10.3 Tu ubicación no sale del móvil
+
+El móvil solo envía «dentro», «fuera» o «no concluyente», nunca dónde estabas. GhostMark no guarda tu posición en ningún sitio, y nadie ve dónde estás, tampoco el máster.
