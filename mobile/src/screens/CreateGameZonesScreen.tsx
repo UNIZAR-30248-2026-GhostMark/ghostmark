@@ -12,6 +12,7 @@ import { bangers } from "../theme/bangers";
 import { colors } from "../theme/colors";
 import type { SafeZone, ZonePoint } from "../types/game";
 import type { RootStackParamList } from "../types/navigation";
+import { hasCrossedSides, overlappingZone } from "../utils/safeZoneGeometry";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateGameZones">;
 
@@ -62,6 +63,9 @@ export function CreateGameZonesScreen({ navigation, route }: Props) {
 
   function openName() {
     if (draftPoints.length < 3) { setError("Marca al menos 3 puntos para crear una zona."); return; }
+    if (hasCrossedSides(draftPoints)) { setError("Los lados de esta zona se cruzan. Corrige los puntos antes de terminar."); return; }
+    const overlap = overlappingZone(draftPoints, zones);
+    if (overlap) { setError(`Esta zona se solapa con «${overlap.nombre}». Cambia sus puntos antes de terminar.`); return; }
     setName(editing?.nombre ?? "");
     setNameOpen(true);
   }
