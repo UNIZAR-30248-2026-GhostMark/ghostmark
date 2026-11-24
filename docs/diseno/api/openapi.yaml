@@ -413,7 +413,8 @@ paths:
         Sustituye la lista entera: las zonas que no vienen se borran, las que traen `id` se modifican y las
         demás se crean. Solo el máster, juegue o no, y con la partida en inscripción: al arrancar se congelan.
         Hasta 10 zonas; cada una con un nombre de 1 a 30 caracteres, distinto en la partida sin distinguir
-        mayúsculas, y de 3 a 20 puntos sin repetir ni lados que se crucen.
+        mayúsculas, y de 3 a 20 puntos sin repetir ni lados que se crucen. Dos zonas no pueden solaparse ni
+        estar una dentro de otra; compartir un borde sí.
       requestBody:
         required: true
         content:

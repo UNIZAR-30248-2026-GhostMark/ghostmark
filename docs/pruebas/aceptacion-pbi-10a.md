@@ -15,6 +15,7 @@ Las validaciones de geometrías, permisos e identificadores también se prueban 
 | 1. El máster borra una zona y puede vaciar la lista | `criterio1ElMasterBorraUnaZonaYPuedeBorrarlasTodas` |
 | 1. Las zonas valen para todos los inscritos, incluido el máster que no juega, sin filtrarse por jugador ni confundirse entre partidas | `criterio1LasZonasSonLasMismasParaTodosLosInscritos` |
 | 1. Tras el arranque no se pueden añadir, modificar ni borrar zonas; los jugadores las siguen viendo | `criterio1ElArranqueRealCongelaLasZonasPeroPermiteConsultarlas` |
+| 1. Dos zonas no pueden solaparse ni estar una dentro de otra; compartir un borde sí (#343) | `criterio1DosZonasNoPuedenSolaparseNiEstarUnaDentroDeOtra` |
 | 2. La lista contiene solo el dibujo (id, nombre y vértices) y no posiciones de jugadores | `criterio2ElListadoSoloContieneElDibujoSinPosicionesDeJugadores` |
 | 1. Geometrías válidas, límites y permisos de edición | `ZonasTest.geometriasInvalidasDan400YSinEfectosParciales`, `ZonasTest.nombresRepetidosYLimiteDeZonasDan400SinGuardarNada`, `ZonasTest.listadoVisibleParaMasterYJugadorPeroNoParaOtraCuenta` |
 | 1. En la app, el máster dibuja, deshace, termina, modifica y borra zonas en el mapa (`e4-zonas`) | `mobile/tests/zones.test.cjs`: «el paso de zonas permite deshacer, terminar, editar y borrar antes de guardar» y «el mapa muestra los vértices, anticipa el cierre de la zona y no reajusta el zoom al editar» |

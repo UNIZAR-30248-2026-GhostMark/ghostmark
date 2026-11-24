@@ -2,6 +2,7 @@ package es.unizar.ghostmark.backend.zonas;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -159,6 +160,32 @@ class AceptacionZonasTest {
     }
 
     @Test
+    void criterio1DosZonasNoPuedenSolaparseNiEstarUnaDentroDeOtra() {
+        String master = registrar();
+        Juego juego = crear(master, false);
+        guardar(master, juego, List.of(zona("Biblioteca", cuadrado()))).then().statusCode(200);
+        Map<String, Object> antes = ver(master, juego).then().statusCode(200)
+                .extract().jsonPath().getMap("");
+
+        guardar(master, juego, List.of(zona("Biblioteca", cuadrado()),
+                zona("Sala de estudio", dentro())))
+                .then().statusCode(400).body("codigo", equalTo("DATOS_NO_VALIDOS"))
+                .body("errores.campo", hasItems("zonas[1].puntos"));
+        guardar(master, juego, List.of(zona("Biblioteca", cuadrado()),
+                zona("Cafetería", solapada())))
+                .then().statusCode(400).body("errores.campo", hasItems("zonas[1].puntos"));
+        assertEquals(antes, ver(master, juego).then().statusCode(200)
+                .extract().jsonPath().getMap(""));
+        assertEquals(1, contar(juego));
+        assertEquals(1, contarEventos(juego));
+
+        guardar(master, juego, List.of(zona("Biblioteca", cuadrado()),
+                zona("Aulario", pegada())))
+                .then().statusCode(200).body("zonas", hasSize(2));
+        assertEquals(2, contarEventos(juego));
+    }
+
+    @Test
     void criterio2ElListadoSoloContieneElDibujoSinPosicionesDeJugadores() {
         String master = registrar();
         Juego juego = crear(master, false);
@@ -254,6 +281,21 @@ class AceptacionZonasTest {
     private static List<Map<String, Double>> cuadradoMovido() {
         return List.of(punto(41.70, -0.90), punto(41.70, -0.89),
                 punto(41.71, -0.89), punto(41.71, -0.90));
+    }
+
+    private static List<Map<String, Double>> dentro() {
+        return List.of(punto(41.683, -0.887), punto(41.683, -0.883),
+                punto(41.687, -0.883), punto(41.687, -0.887));
+    }
+
+    private static List<Map<String, Double>> solapada() {
+        return List.of(punto(41.685, -0.885), punto(41.685, -0.875),
+                punto(41.695, -0.875), punto(41.695, -0.885));
+    }
+
+    private static List<Map<String, Double>> pegada() {
+        return List.of(punto(41.68, -0.88), punto(41.68, -0.87),
+                punto(41.69, -0.87), punto(41.69, -0.88));
     }
 
     private static Map<String, Double> punto(double lat, double lon) {
