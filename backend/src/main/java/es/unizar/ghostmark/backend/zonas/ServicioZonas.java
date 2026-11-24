@@ -119,6 +119,7 @@ public class ServicioZonas {
         Set<UUID> ids = new HashSet<>();
         Set<String> nombres = new HashSet<>();
         List<ZonaParaGuardar> nuevas = new ArrayList<>();
+        List<ZonaValida> validas = new ArrayList<>();
         for (int i = 0; i < zonas.size(); i++) {
             String campo = "zonas[" + i + "]";
             Zona zona = zonas.get(i);
@@ -141,14 +142,34 @@ public class ServicioZonas {
                     "select ST_IsValid(ST_GeomFromText(?, 4326))",
                     Boolean.class, poligono))) {
                 errores.put(campo + ".puntos", "El polígono se cruza o no es válido");
+            } else if (poligono != null) {
+                validas.add(new ZonaValida(i, nombre, poligono));
             }
             nuevas.add(new ZonaParaGuardar(id == null ? UUID.randomUUID() : id,
                     nombre, poligono, id == null ? ahora : existentes.get(id)));
         }
+        comprobarSolapes(validas, errores);
         if (!errores.isEmpty()) {
             throw new DatosNoValidosException(errores);
         }
         return nuevas;
+    }
+
+    private void comprobarSolapes(List<ZonaValida> validas, Map<String, String> errores) {
+        for (int j = 1; j < validas.size(); j++) {
+            ZonaValida zona = validas.get(j);
+            for (int i = 0; i < j; i++) {
+                ZonaValida otra = validas.get(i);
+                if (Boolean.TRUE.equals(jdbc.queryForObject(
+                        "select ST_Relate(ST_GeomFromText(?, 4326), ST_GeomFromText(?, 4326),"
+                                + " 'T********')", Boolean.class, zona.poligono(),
+                        otra.poligono()))) {
+                    errores.put("zonas[" + zona.indice() + "].puntos",
+                            "Se solapa con la zona «" + otra.nombre() + "»");
+                    break;
+                }
+            }
+        }
     }
 
     private static String validarPuntos(List<Punto> puntos, String campo,
@@ -210,6 +231,9 @@ public class ServicioZonas {
         Zona zona() {
             return new Zona(id, nombre, puntos);
         }
+    }
+
+    private record ZonaValida(int indice, String nombre, String poligono) {
     }
 
     private record ZonaParaGuardar(UUID id, String nombre, String poligono, Instant creadaEn) {
