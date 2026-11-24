@@ -86,6 +86,19 @@ test('#257: el código de la partida va dentro de la tarjeta del QR, no debajo d
   assert.ok(qr.props.size <= 210, 'el QR deja sitio al código en la primera pantalla');
 });
 
+test('#257: el código de invitación ocupa todo el ancho de la tarjeta y no se parte en dos líneas', async () => {
+  const { ShareGameScreen } = load('screens/ShareGameScreen.tsx', { ...common,
+    'expo-clipboard': { setStringAsync: async () => true },
+    'react-native-qrcode-svg': { __esModule: true, default: 'QRCode' },
+  });
+  await mount(ShareGameScreen, { navigation: { popToTop() {}, replace() {} }, route: { params: { game: { id: 'p1', nombre: 'Killer EINA', codigoInvitacion: 'YYURFNMP' } } } });
+  // En Android el ancho del texto se mide sin el espaciado entre letras: si el texto solo ocupa lo que mide, el último carácter no cabe.
+  const code = tree.root.findAllByType('Text').find((node) => node.props.children === 'YYURFNMP');
+  const style = Object.assign({}, ...[code.props.style].flat());
+  assert.equal(code.props.numberOfLines === 1, true, 'el código va en una sola línea');
+  assert.equal(style.alignSelf === 'stretch', true, 'el código ocupa el ancho de la tarjeta');
+});
+
 test('#258: en la pestaña Partida, el máster que no juega solo tiene Feed y Partida (R11-36)', async () => {
   const game = { id: 'p1', nombre: 'Killer EINA', estado: 'EN_JUEGO', inicioEn: '2026-11-16T09:00:00+01:00', finEn: '2026-11-23T21:00:00+01:00', numInscritos: 3, soyMaster: true, soyJugador: false, motivoCancelacion: null, resultado: null };
   const { GameTabScreen } = load('screens/GameTabScreen.tsx', { ...common,
