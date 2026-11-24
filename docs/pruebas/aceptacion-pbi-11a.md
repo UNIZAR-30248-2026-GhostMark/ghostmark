@@ -15,6 +15,7 @@ resolución automática por zona). La presentación de las pantallas `g-cazado` 
 | 2. La disputa de la eliminación bloquea la siguiente eliminación del cazador hasta resolverla | `criterio2UnaDisputaAbiertaBloqueaOtraEliminacionDelCazador` |
 | 3. El máster ve solo los datos previstos, los ajenos no acceden y puede confirmar o desestimar | `criterio3ElMasterArbitraConVistaLimitadaYConfirmaUnaNegativa` |
 | 3. Si el máster está implicado, sorteo sin implicados y reasignación al vencer el plazo | `criterio3ConMasterImplicadoSeSorteaOtroArbitroYSeReasignaAlVencer` |
+| 3. Si el máster no decide en el plazo, se sortea un jugador no implicado y el máster deja de ver la disputa | `criterio3SiElMasterNoDecideEnPlazoSeSorteaUnJugadorNoImplicado` |
 | 4. `DENTRO` resuelve automáticamente a favor de la víctima | `criterio4ConZonaDentroLaDisputaSeResuelveAutomaticamente` |
 | 4. `NO_CONCLUYENTE` requiere decisión del máster | `criterio4ConZonaNoConcluyenteDecideElMaster` |
 | 5. El cierre espera el plazo de diez minutos y las disputas abiertas | `criterio5ElCierreEsperaElPlazoYLaResolucionDeDisputas` |

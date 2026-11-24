@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 import es.unizar.ghostmark.backend.TestcontainersConfiguration;
@@ -194,6 +195,36 @@ class AceptacionDisputasTest {
         assertEquals("ELIMINADO", estadoJugador(inscrito(mesa, victima)));
         decidir(mesa.master(), mesa, disputa, "VICTIMA").then().statusCode(409)
                 .body("codigo", equalTo("DISPUTA_NO_ABIERTA"));
+    }
+
+    @Test
+    void criterio3SiElMasterNoDecideEnPlazoSeSorteaUnJugadorNoImplicado() {
+        Mesa mesa = preparar(false, 4);
+        Persona cazador = mesa.jugadores().getFirst();
+        UUID cazadorId = inscrito(mesa, cazador);
+        UUID victimaId = objetivo(cazadorId);
+        String disputa = abrir(cazador, mesa, "NEGATIVA", "No me da el código")
+                .then().statusCode(201).extract().path("id");
+        obtener(mesa.master(), mesa, disputa).then().statusCode(200)
+                .body("soyArbitro", equalTo(true));
+        assertNull(arbitro(disputa));
+
+        Instant vencimiento = reloj.instant().plus(Duration.ofHours(6));
+        tareaArbitraje.revisar(vencimiento.minusSeconds(1));
+        assertNull(arbitro(disputa));
+        tareaArbitraje.revisar(vencimiento);
+        UUID sorteado = arbitro(disputa);
+        assertNotNull(sorteado);
+        assertNotEquals(cazadorId, sorteado);
+        assertNotEquals(victimaId, sorteado);
+        assertEquals(1, eventos(mesa, "DISPUTA_ARBITRO_SORTEADO"));
+
+        fijarHora(vencimiento.plusSeconds(1));
+        decidir(mesa.master(), mesa, disputa, "CAZADOR").then().statusCode(404);
+        decidir(persona(mesa, sorteado), mesa, disputa, "VICTIMA")
+                .then().statusCode(200)
+                .body("estado", equalTo("RESUELTA"))
+                .body("resueltaPor", equalTo("SORTEADO"));
     }
 
     @Test
