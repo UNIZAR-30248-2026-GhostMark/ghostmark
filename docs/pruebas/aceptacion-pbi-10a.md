@@ -23,7 +23,10 @@ Las validaciones de geometrías, permisos e identificadores también se prueban 
 | 1. En la app, no se pueden guardar modificaciones tras el arranque | `mobile/tests/zones-editor.test.cjs`: «si la partida ya arrancó, «GUARDAR» lo explica y no vuelve» |
 | 1. El cliente consulta y sustituye las zonas de la partida mediante la API | `mobile/tests/zones.test.cjs`: «el cliente lee y sustituye las zonas completas por partida» |
 | 2. El mapa de edición comunica solo puntos dibujados y no consulta la ubicación del jugador | `mobile/tests/zones.test.cjs`: «el mapa no consulta la API ni la ubicación y comunica al móvil solo puntos del dibujo» |
-| 2. En la pestaña Partida (`f-partida-zonas`), se muestran las zonas en modo lectura, sin posiciones personales | **Pendiente de la tarea de app #283**: añadir aquí sus tests específicos cuando se integre |
+| 2. En la pestaña Partida (`f-partida-zonas`), las zonas se ven en un mapa de solo lectura con cuántas hay, y sin zonas no sale el bloque | `mobile/tests/game-tab-zones.test.cjs`: «sin zonas en la partida la pestaña Partida no enseña el bloque de zonas», «con una zona enseña el mapa de solo lectura, «1 zona» y la nota de que nadie ve dónde estás» y «con varias zonas dice cuántas hay y «VER MAPA» abre el mapa entero con las mismas zonas» |
+| 2. El mapa entero de zonas es de solo lectura y vuelve a Partida | `mobile/tests/game-tab-zones.test.cjs`: «el mapa entero de zonas es de solo lectura, sin dibujo, y vuelve a Partida» |
+| 2. Si no se pueden leer las zonas, la pestaña Partida sigue con los jugadores | `mobile/tests/game-tab-zones.test.cjs`: «si no se pueden leer las zonas, la pestaña Partida sigue con los jugadores y sin el bloque» |
+| 2. Ni la pestaña Partida ni el mapa entero piden la ubicación de nadie | `mobile/tests/game-tab-zones.test.cjs`: «ni la pestaña Partida ni el mapa entero piden la ubicación de nadie» |
 
 ## Alcance
 
@@ -43,9 +46,10 @@ La edición visual del mapa (`e4-zonas`), implementada en la tarea de app #282,
 se comprueba con `mobile/tests/zones.test.cjs` y
 `mobile/tests/zones-editor.test.cjs`. Estos tests cubren el dibujo y sus
 controles, la edición desde la sala de espera, el guardado y el bloqueo al
-arrancar. La visualización de solo lectura en la pestaña Partida
-(`f-partida-zonas`), sin posiciones de jugadores, queda **pendiente de los
-tests de la tarea #283**, aún no integrada en `main`.
+arrancar. La vista de solo lectura en la pestaña Partida (`f-partida-zonas`)
+y el mapa entero, de la tarea de app #283, se comprueban con
+`mobile/tests/game-tab-zones.test.cjs`: enseñan las zonas sin dibujo ni
+posiciones de jugadores y no piden la ubicación.
 
 Las comprobaciones del servidor y de la app son complementarias: los tests
 móviles no sustituyen la validación de permisos y persistencia de la API.
@@ -61,9 +65,9 @@ Con Java 21 y Docker disponibles, desde `backend`:
 
 El flujo `ci-backend` ejecuta `verify`; no necesita cambios para estas pruebas.
 
-Las pruebas de la app de la #282, desde `mobile` y con las dependencias
-instaladas (`npm.cmd ci`):
+Las pruebas de la app de la #282 y la #283, desde `mobile` y con las
+dependencias instaladas (`npm.cmd ci`):
 
 ```powershell
-node --test tests/zones.test.cjs tests/zones-editor.test.cjs
+node --test tests/zones.test.cjs tests/zones-editor.test.cjs tests/game-tab-zones.test.cjs
 ```
