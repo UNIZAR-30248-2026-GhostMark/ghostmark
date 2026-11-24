@@ -198,6 +198,23 @@ test('una eliminación anulada en cadena explica por qué se cerró la disputa',
   assert.equal(hasText('DISPUTA CERRADA: YA NO ES SU OBJETIVO'), false);
 });
 
+test('Atrás tras abrir una disputa reinicia una sola vez hacia la carta (#338)', async () => {
+  const { DisputeScreen } = disputeScreen(base());
+  let listener;
+  const navigation = {
+    ...navigationMock(),
+    addListener: (_event, next) => { listener = next; return () => {}; },
+  };
+  await mount(DisputeScreen, { navigation, route: { params: { gameId: 'p1', disputeId: 'd1', returnToCard: 'ESPECTADOR' } } });
+  let prevented = 0;
+  await act(async () => listener({ preventDefault() { prevented += 1; } }));
+  assert.equal(prevented, 1);
+  assert.deepEqual(navigation.destinations, [['reset', { index: 0, routes: [{ name: 'MissionCard', params: { gameId: 'p1' } }] }]]);
+  // El reset elimina Dispute: su beforeRemove ya no lo intercepta otra vez.
+  await act(async () => listener({ preventDefault() { prevented += 1; } }));
+  assert.equal(prevented, 1);
+});
+
 // ---------- CaughtScreen y OpenDisputeScreen ----------
 
 test('la víctima abre la disputa desde «Te han cazado» solo dentro de los 10 minutos', async () => {

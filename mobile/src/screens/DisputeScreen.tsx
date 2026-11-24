@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ApiError } from "../api/client";
@@ -23,8 +23,13 @@ export function DisputeScreen({ navigation, route }: Props) {
   // Al abrir una disputa se reemplaza el formulario para que no vuelva a enviarse al pulsar Atrás.
   // El historial que queda debajo aún contiene «Te han cazado», por eso aquí se reinicia hacia la carta.
   const returnToCard = route.params.returnToCard;
+  const leavingToCard = useRef(false);
   const leaveToCard = useCallback(() => {
     if (!returnToCard) { navigation.goBack(); return; }
+    if (leavingToCard.current) return;
+    // El reset retira esta misma pantalla. Dejar pasar esa segunda retirada evita que
+    // beforeRemove se capture a sí mismo y deje React Navigation sin ruta activa.
+    leavingToCard.current = true;
     navigation.reset({ index: 0, routes: [{ name: "MissionCard", params: {
       gameId: route.params.gameId,
     } }] });
@@ -38,7 +43,7 @@ export function DisputeScreen({ navigation, route }: Props) {
   }, [route.params.disputeId, route.params.gameId]);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1_000); return () => clearInterval(timer); }, []);
   useEffect(() => navigation.addListener("beforeRemove", (event) => {
-    if (!returnToCard) return;
+    if (!returnToCard || leavingToCard.current) return;
     event.preventDefault();
     leaveToCard();
   }), [navigation, returnToCard, leaveToCard]); // También captura el botón físico Atrás de Android.

@@ -112,12 +112,12 @@ test('un empate de muchos muestra un resumen y deja abrir la lista completa', as
   assert.match(texts(), /Alias muy largo seis/);
 });
 
-function gameTab({ games = [inPlay], players, close = async () => closedGame(result('GANADOR', ['Marta'], 4, 'MASTER')) } = {}) {
+function gameTab({ games = [inPlay], players, disputes = [], close = async () => closedGame(result('GANADOR', ['Marta'], 4, 'MASTER')) } = {}) {
   const calls = [];
   const navigation = { destinations: [], replaced: [], navigate(...args) { this.destinations.push(args); }, replace(...args) { this.replaced.push(args); } };
   const { GameTabScreen } = load('screens/GameTabScreen.tsx', { ...common,
     '../api/auth': { getCurrentAccount: () => ({ alias: 'fantasmilla' }) },
-    '../api/game': { getMyGames: async () => games, getSafeZones: async () => ({ zonas: [] }), closeGame: (...args) => { calls.push(args); return close(...args); } },
+    '../api/game': { getMyGames: async () => games, getSafeZones: async () => ({ zonas: [] }), getDisputes: async () => disputes, closeGame: (...args) => { calls.push(args); return close(...args); } },
     '../api/inscription': { getPlayers: async () => players ?? [{ id: 'i1', alias: 'fantasmilla', esMaster: true }, { id: 'i2', alias: 'Marta', esMaster: false }] },
     '../components/MapZones': { MapZones: 'MapZones' },
   });
@@ -256,12 +256,24 @@ test('la pestaña Feed de Partida abre el feed y dice si quien mira juega', asyn
   }
 });
 
-test('«Tareas de máster» cuenta las disputas que arbitra y abre su lista (11a.4)', async () => {
+test('«Tareas de máster» solo informa y «Ver disputas» abre la lista (11a.4, #339, #340)', async () => {
   const { GameTabScreen, navigation } = gameTab({ games: [{ ...inPlay, disputasPorArbitrar: 2 }] });
   await mount(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } });
-  const card = byLabel('Ver disputas');
-  const numbers = card.findAllByType('Text').map((node) => [node.props.children].flat().join(''));
-  assert.deepEqual(numbers, ['2', 'Disputas']);
-  await act(async () => card.props.onPress());
+  assert.match(texts(), /2 \| Disputas/);
+  const button = byLabel('Ver disputas');
+  assert.equal(button !== undefined, true);
+  await act(async () => button.props.onPress());
+  assert.deepEqual(navigation.destinations, [['DisputeList', { gameId: 'p1' }]]);
+});
+
+test('un implicado consulta también una disputa cerrada desde Partida (#339)', async () => {
+  const { GameTabScreen, navigation } = gameTab({
+    games: [{ ...inPlay, soyMaster: false, soyJugador: true }],
+    disputes: [{ id: 'd1', estado: 'SIN_OBJETO' }],
+  });
+  await mount(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } });
+  const button = byLabel('Ver disputas');
+  assert.equal(button !== undefined, true);
+  await act(async () => button.props.onPress());
   assert.deepEqual(navigation.destinations, [['DisputeList', { gameId: 'p1' }]]);
 });

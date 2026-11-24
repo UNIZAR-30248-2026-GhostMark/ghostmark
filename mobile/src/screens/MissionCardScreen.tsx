@@ -21,30 +21,37 @@ export function MissionCardScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   const flip = useMemo(() => new Animated.Value(0), []);
+  const latestCardRequest = useRef(0);
 
   const loadCard = useCallback(() => {
+    const request = ++latestCardRequest.current;
     let active = true;
+    const isLatest = () => active && request === latestCardRequest.current;
     getMyMissionCard(gameId).then(async (result) => {
+      if (!isLatest()) return;
       // El eliminado ve «Te han cazado» la primera vez que abre la carta (R11-25).
       if (result.estado === "ELIMINADO" && !(await hasSeenCaught(gameId))) {
-        if (active) navigation.navigate("Caught", { gameId, ...(result.disputarHasta ? { disputarHasta: result.disputarHasta } : {}) });
+        if (isLatest()) navigation.navigate("Caught", { gameId, ...(result.disputarHasta ? { disputarHasta: result.disputarHasta } : {}) });
       }
+      if (!isLatest()) return;
       // Vivo otra vez tras una anulación (11b.3): si lo vuelven a eliminar, «Te han cazado» sale de nuevo.
       if (result.estado === "VIVO") void clearCaughtSeen(gameId);
-      if (active) setCard(result);
+      setCard(result);
+      setError(undefined);
       // La lista es la fuente de verdad también para una negativa: esa disputa se puede consultar,
       // pero solo una disputa de eliminación activa bloquea según «bloqueadoPorDisputa».
       void getDisputes(gameId).then((disputes) => {
-        if (active) setHasOpenDispute(disputes.some((dispute) => dispute.estado === "ABIERTA"));
+        if (isLatest()) setHasOpenDispute(disputes.some((dispute) => dispute.estado === "ABIERTA"));
       }).catch(() => undefined);
     }).catch(async (requestError: unknown) => {
-      if (!active) return;
+      if (!isLatest()) return;
       // Si la partida se ha cerrado mientras tanto, se lleva al jugador a la pantalla de fin.
       if (requestError instanceof ApiError && requestError.code === "PARTIDA_NO_EN_JUEGO") {
         const closed = await getMyGames().then((games) => games.find((game) => game.id === gameId && game.estado === "CERRADA")).catch(() => undefined);
-        if (!active) return;
+        if (!isLatest()) return;
         if (closed) { navigation.replace("GameEnded", { game: closed }); return; }
       }
+      if (!isLatest()) return;
       setError(requestError instanceof ApiError ? requestError.message : "No hemos podido cargar tu carta. Comprueba la conexión e inténtalo de nuevo.");
     });
     return () => { active = false; };
@@ -81,9 +88,8 @@ export function MissionCardScreen({ navigation, route }: Props) {
   const unavailable = card?.noDisponible ?? null;
   const hunting = Boolean(card) && !spectator && !lastAlive;
 
-  // El servidor solo cambia la disponibilidad en punto o a y media, también cuando el objetivo
-  // entra en clase. Mientras la carta tenga objetivo se vuelve a pedir 2 s después del siguiente,
-  // por si el reloj del móvil va algo adelantado; disponibleEn siempre cae en uno de ellos.
+  // El horario de una partida queda congelado al arrancar. Al recuperar el foco se consulta
+  // de inmediato; mientras está abierta solo cambia al comenzar o acabar una franja de 30 min.
   useEffect(() => {
     if (!hunting) return undefined;
     const now = Date.now();
@@ -102,7 +108,12 @@ export function MissionCardScreen({ navigation, route }: Props) {
 
   return <Screen padded={false}><View style={styles.screen}>
     <View style={styles.content}>
-      <Tabs gameId={gameId} navigation={navigation} spectator={spectator} />
+      <View style={styles.topNavigation}>
+        <Pressable accessibilityLabel="Volver a mis partidas" accessibilityRole="button" onPress={() => navigation.reset({ index: 0, routes: [{ name: "Home" }] })} style={styles.homeButton}>
+          <Text style={styles.homeButtonText}>←</Text>
+        </Pressable>
+        <Tabs gameId={gameId} navigation={navigation} spectator={spectator} />
+      </View>
       {spectator ? null : <Text style={styles.objectiveLabel}>Tu objetivo</Text>}
       {error ? <View style={styles.errorState}>
         <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
@@ -124,8 +135,7 @@ export function MissionCardScreen({ navigation, route }: Props) {
       </Pressable> : <View style={styles.loadingCard}><Text style={styles.loading}>CARGANDO TU CARTA…</Text></View>}
     </View>
     {/* El espectador ya no tiene código ni objetivo; el último vivo, nadie a quien eliminar (R11-26). */}
-    {spectator ? (hasOpenDispute ? <View style={styles.footer}><Pressable accessibilityRole="button" onPress={() => navigation.navigate("DisputeList", { gameId })} style={styles.disputesButton}><Text style={styles.disputesText}>VER MIS DISPUTAS</Text></Pressable><Text style={styles.disputeBlocked}>Sigues como espectador hasta que se resuelva la disputa.</Text></View> : null) : <View style={styles.footer}>
-      {hasOpenDispute ? <Pressable accessibilityRole="button" onPress={() => navigation.navigate("DisputeList", { gameId })} style={styles.disputesButton}><Text style={styles.disputesText}>VER MIS DISPUTAS</Text></Pressable> : null}
+    {spectator ? (hasOpenDispute ? <View style={styles.footer}><Text style={styles.disputeBlocked}>Sigues como espectador hasta que se resuelva la disputa.</Text></View> : null) : <View style={styles.footer}>
       <Pressable accessibilityRole="button" onPress={() => navigation.navigate("LifeCode", { gameId })} style={styles.codeButton}><Text style={styles.codeText}>MI CÓDIGO</Text></Pressable>
       {lastAlive ? null : <><Pressable accessibilityLabel="Eliminar objetivo" accessibilityRole="button" disabled={Boolean(unavailable) || card?.bloqueadoPorDisputa} onPress={() => navigation.navigate("Eliminate", { gameId, targetAlias: card?.aliasObjetivo, attemptsLeft: card?.intentosRestantes, ...(card?.bloqueadoPorDisputa ? { blockedByDispute: true } : {}), blockedUntil: card?.bloqueadoHasta })} style={[styles.removeButton, unavailable && styles.removeDisabled, card?.bloqueadoPorDisputa && styles.removeBlocked]}><Text style={[styles.removeText, unavailable && styles.removeDisabledText]}>{card?.bloqueadoPorDisputa ? "DISPUTA ABIERTA" : "ELIMINAR"}</Text></Pressable>{card?.bloqueadoPorDisputa ? <Text style={styles.disputeBlocked}>Tienes una disputa abierta</Text> : null}{unavailable ? <Text accessibilityLiveRegion="polite" style={styles.unavailableHint}>{unavailable.motivo === "CAZADOR" ? "Estás en horario lectivo" : "Tu objetivo está en horario lectivo"}</Text> : null}</>}
     </View>}
@@ -213,7 +223,10 @@ function RevealedCard({ card }: { card: MissionCard }) {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background, flex: 1 },
   content: { alignItems: "center", flex: 1, paddingHorizontal: 24, paddingTop: 18 },
-  tabs: { backgroundColor: colors.ink, borderRadius: 15, flexDirection: "row", height: 49, padding: 4, width: "100%" },
+  topNavigation: { alignItems: "center", flexDirection: "row", gap: 8, width: "100%" },
+  homeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 12, borderWidth: 2, height: 45, justifyContent: "center", width: 45 },
+  homeButtonText: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 27, lineHeight: 32, marginTop: -2 },
+  tabs: { backgroundColor: colors.ink, borderRadius: 15, flex: 1, flexDirection: "row", height: 49, padding: 4 },
   tab: { alignItems: "center", flex: 1, justifyContent: "center" },
   tabOn: { alignItems: "center", backgroundColor: colors.white, borderColor: colors.ink, borderRadius: 11, borderWidth: 2, boxShadow: `0px 3px 0px ${colors.border}`, flex: 1, justifyContent: "center" },
   tabText: { color: colors.textMuted, fontFamily: "ZenMaruBold", fontSize: 14 },
@@ -231,11 +244,11 @@ const styles = StyleSheet.create({
   lastAliveCard: { position: "relative" },
   lastAliveTitle: { color: colors.ink, ...bangers(34), letterSpacing: 0.4, lineHeight: 38, marginTop: 24 },
   lastAliveText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 15, lineHeight: 21, marginTop: 12 },
-  dormantCard: { backgroundColor: "#453566", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, boxShadow: `0px 8px 0px ${colors.ink}`, height: 348, overflow: "hidden", transform: [{ rotate: "2deg" }] },
-  dormantInner: { alignItems: "center", borderColor: "#A69AC5", borderRadius: 21, borderStyle: "dashed", borderWidth: 3, flex: 1, margin: 11, paddingHorizontal: 16, paddingTop: 20 },
-  dormantGhost: { height: 182, resizeMode: "contain", width: 194 },
+  dormantCard: { backgroundColor: "#453566", borderColor: colors.ink, borderRadius: 28, borderWidth: 4, boxShadow: `0px 8px 0px ${colors.ink}`, minHeight: 348, overflow: "hidden", transform: [{ rotate: "2deg" }] },
+  dormantInner: { alignItems: "center", borderColor: "#A69AC5", borderRadius: 21, borderStyle: "dashed", borderWidth: 3, flex: 1, margin: 11, paddingBottom: 14, paddingHorizontal: 16, paddingTop: 16 },
+  dormantGhost: { height: 166, resizeMode: "contain", width: 194 },
   dormantTitle: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 15, marginTop: 8, textAlign: "center" },
-  dormantCountdown: { color: colors.white, ...bangers(29), letterSpacing: 0.3, lineHeight: 31, marginTop: 8, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 2, width: 1 }, textShadowRadius: 0 },
+  dormantCountdown: { color: colors.white, ...bangers(29), letterSpacing: 0.3, lineHeight: 38, marginTop: 8, minHeight: 76, textAlign: "center", textShadowColor: colors.ink, textShadowOffset: { height: 2, width: 1 }, textShadowRadius: 0 },
   loadingCard: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 28, borderWidth: 3, height: 392, justifyContent: "center", marginTop: 12, width: 286 },
   loading: { color: colors.lime, ...bangers(25) },
   errorState: { flex: 1, gap: 20, justifyContent: "center", width: "100%" },
@@ -251,12 +264,12 @@ const styles = StyleSheet.create({
   cardFront: { backgroundColor: colors.white, flex: 1, paddingHorizontal: 20, paddingTop: 22 },
   objectiveTag: { alignSelf: "flex-start", backgroundColor: colors.textMuted, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, paddingHorizontal: 12, paddingVertical: 5 },
   objectiveTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
-  targetName: { color: colors.ink, ...bangers(55), height: 62, letterSpacing: 1, marginTop: 16, width: "100%" },
+  targetName: { color: colors.ink, ...bangers(55), height: 76, letterSpacing: 1, marginTop: 16, width: "100%" },
   ruleDivider: { backgroundColor: colors.ink, height: 3, marginTop: 10, opacity: 0.2, width: "100%" },
   missionTag: { alignSelf: "flex-start", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 9, borderWidth: 2, marginTop: 17, paddingHorizontal: 12, paddingVertical: 5 },
   missionTagText: { color: colors.ink, fontFamily: "ZenMaruBold", fontSize: 11 },
   missionText: { color: colors.ink, flex: 1, ...bangers(31), letterSpacing: 0.4, lineHeight: 34, marginTop: 12 },
-  footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 }, disputesButton: { alignItems: "center", backgroundColor: colors.lime, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, justifyContent: "center", paddingVertical: 12 }, disputesText: { alignSelf: "stretch", color: colors.ink, ...bangers(21), lineHeight: 28, paddingTop: 3, textAlign: "center" },
+  footer: { gap: 13, paddingBottom: 10, paddingHorizontal: 24, paddingTop: 8 },
   codeButton: { alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.ink}`, paddingVertical: 12 },
   codeText: { alignSelf: "stretch", color: colors.text, ...bangers(21), letterSpacing: 0.7, textAlign: "center" },
   removeButton: { alignItems: "center", backgroundColor: colors.danger, borderColor: colors.ink, borderRadius: 15, borderWidth: 3, boxShadow: `0px 5px 0px ${colors.border}`, paddingVertical: 10 },

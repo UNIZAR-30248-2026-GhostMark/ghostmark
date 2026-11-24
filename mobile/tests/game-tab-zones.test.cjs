@@ -55,7 +55,7 @@ async function mountTab(zones) {
   const requested = [];
   const navigation = { destinations: [], navigate(...args) { this.destinations.push(args); }, replace() {} };
   const { GameTabScreen } = load('screens/GameTabScreen.tsx', { ...common,
-    '../api/game': { getMyGames: async () => [game], closeGame: async () => game, getSafeZones: async (id) => { requested.push(id); if (zones instanceof Error) throw zones; return { zonas: zones }; } },
+    '../api/game': { getMyGames: async () => [game], closeGame: async () => game, getDisputes: async () => [], getSafeZones: async (id) => { requested.push(id); if (zones instanceof Error) throw zones; return { zonas: zones }; } },
   });
   await act(async () => { tree = create(React.createElement(GameTabScreen, { navigation, route: { params: { gameId: 'p1' } } })); });
   return { navigation, requested };
