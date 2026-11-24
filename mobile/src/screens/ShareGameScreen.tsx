@@ -40,8 +40,8 @@ export function ShareGameScreen({ navigation, route }: Props) {
           <View accessible accessibilityLabel={`QR de invitación a ${game.nombre}. Enlace: ${link}`} accessibilityRole="image">
             <QRCode value={link} size={Math.min(210, Math.max(120, width - 150))} quietZone={16} color="#000000" backgroundColor="#FFFFFF" />
           </View>
-          {/* El código va junto al QR, visible sin desplazar (R11-35). */}
-          <Text accessibilityLabel={`Código de la partida: ${game.codigoInvitacion}`} selectable style={styles.cardCode}>{game.codigoInvitacion}</Text>
+          {/* El código va junto al QR, visible sin desplazar (R11-35). Ocupa todo el ancho de la tarjeta y una sola línea: en Android el ancho se mide sin el espaciado entre letras y el último carácter se cortaba (#257). */}
+          <Text accessibilityLabel={`Código de la partida: ${game.codigoInvitacion}`} numberOfLines={1} selectable style={styles.cardCode}>{game.codigoInvitacion}</Text>
           <View style={styles.cardFooter}>
             <Text style={styles.gameName}>{game.nombre}</Text>
             <Image accessible={false} source={require("../../assets/ghosts/fantasma-saluda.png")} style={styles.ghost} />
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   cardFooter: { alignItems: "center", flexDirection: "row", width: "100%" },
   gameName: { flex: 1, color: colors.ink, ...bangers(25), maxWidth: "100%", paddingHorizontal: 12, paddingBottom: 12, textAlign: "center" },
   ghost: { height: 60, resizeMode: "contain", width: 60 },
-  cardCode: { color: colors.ink, ...bangers(30), letterSpacing: 2, marginTop: 4, textAlign: "center" },
+  cardCode: { alignSelf: "stretch", color: colors.ink, ...bangers(30), letterSpacing: 2, marginTop: 4, textAlign: "center" },
   link: { color: colors.textMuted, fontFamily: "ZenMaru", fontSize: 13, marginTop: 8, textAlign: "center" },
   message: { color: colors.text, fontFamily: "ZenMaruBold", fontSize: 13, textAlign: "center" },
   actions: { gap: 14, paddingTop: 12, paddingBottom: 4 },
