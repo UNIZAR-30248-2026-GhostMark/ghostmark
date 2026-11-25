@@ -383,7 +383,7 @@ El árbitro ve la misión, las dos versiones y, en una disputa por eliminación,
 
 | Disputa | Da la razón al cazador | Da la razón a la víctima |
 |--|--|--|
-| Por eliminación | «Confirmar eliminación»: la eliminación queda firme y el cazador puede volver a eliminar | «Anular»: la eliminación se anula y la víctima vuelve a la partida |
+| Por eliminación | «Confirmar eliminación»: la eliminación queda firme y el cazador puede volver a eliminar | «Anular»: la eliminación se anula y la víctima vuelve a la partida (apartado 12) |
 | Por negativa | «Eliminar a Lucia» (el alias de la víctima): la víctima queda eliminada como si hubiera enseñado el código | «Rechazar»: no cambia nada y el cazador sigue con su objetivo |
 
 Al final de la disputa sale quién gana: «Gana el cazador» o «Gana la víctima».
