@@ -17,6 +17,8 @@ function load(file, imports = {}) {
   return module.exports;
 }
 
+const geometry = () => load('utils/safeZoneGeometry.ts');
+
 class ApiError extends Error { constructor(message, status, fieldErrors = [], code) { super(message); this.status = status; this.fieldErrors = fieldErrors; this.code = code; } }
 const common = {
   'react-native': { Modal: 'Modal', Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', TextInput: 'TextInput', View: 'View', StyleSheet: { create: (styles) => styles } },
@@ -37,12 +39,14 @@ const map = () => tree.root.findByType('MapZones');
 const tap = async (point) => act(async () => map().props.onAddPoint(point));
 const pressLabel = async (label) => act(async () => tree.root.findAll((node) => node.props.accessibilityLabel === label && typeof node.props.onPress === 'function')[0].props.onPress());
 const primary = () => tree.root.findByType('PrimaryButton');
+const finish = () => tree.root.findAll((node) => node.props.accessibilityLabel === 'Terminar zona' && typeof node.props.onPress === 'function')[0];
 
 async function mountEditor(params, api = {}) {
   const calls = [];
   const navigation = { back: 0, goBack() { this.back += 1; }, reset() {} };
   const { CreateGameZonesScreen } = load('screens/CreateGameZonesScreen.tsx', { ...common,
     '../api/game': { createGame: async () => ({ id: 'nueva' }), getSafeZones: async (id) => { calls.push(['get', id]); return { zonas: api.zones ?? [] }; }, saveSafeZones: async (...args) => { calls.push(['put', ...args]); if (api.saveError) throw api.saveError; return { zonas: args[1] }; } },
+    '../utils/safeZoneGeometry': geometry(),
   });
   await act(async () => { tree = create(React.createElement(CreateGameZonesScreen, { navigation, route: { params } })); });
   return { calls, navigation };
@@ -54,6 +58,23 @@ test('un punto ya marcado no se repite y avisa', async () => {
   await tap({ lat: 41.68, lon: -0.88 });
   assert.equal(map().props.draftPoints.length, 1);
   assert.equal(texts().includes('Ese punto ya está marcado.'), true);
+});
+
+test('no deja terminar una zona cuyos lados se cruzan y explica el motivo (#344)', async () => {
+  await mountEditor({ configuration: {} });
+  // Rectángulo recorrido en cruz: 1-3-2-4.
+  for (const point of [{ lat: 0, lon: 0 }, { lat: 2, lon: 2 }, { lat: 0, lon: 2 }, { lat: 2, lon: 0 }]) await tap(point);
+  await act(async () => finish().props.onPress());
+  assert.equal(texts().includes('Los lados de esta zona se cruzan. Corrige los puntos antes de terminar.'), true);
+  assert.equal(tree.root.findAllByType('Modal').some((node) => node.props.visible), false, 'la pantalla conserva el editor y no abre el nombre');
+});
+
+test('no deja terminar una zona que se solapa con otra y dice cuál (#344)', async () => {
+  const biblioteca = { id: 'biblioteca', nombre: 'Biblioteca', puntos: [{ lat: 0, lon: 0 }, { lat: 2, lon: 0 }, { lat: 2, lon: 2 }, { lat: 0, lon: 2 }] };
+  await mountEditor({ editGameId: 'p1' }, { zones: [biblioteca] });
+  for (const point of [{ lat: .5, lon: .5 }, { lat: 1, lon: .5 }, { lat: .5, lon: 1 }]) await tap(point);
+  await act(async () => finish().props.onPress());
+  assert.equal(texts().includes('Esta zona se solapa con «Biblioteca». Cambia sus puntos antes de terminar.'), true);
 });
 
 test('con 10 zonas no deja empezar otra, pero sí editar una de ellas', async () => {
