@@ -224,13 +224,15 @@ Si dos eliminaciones de la misma cadena llegan a la vez, por ejemplo tú elimina
 
 Con el código correcto sale «¡Eliminado!»: tu objetivo queda fuera de la partida y se te suma una eliminación. Heredas su objetivo y su misión, así que la cadena sigue cerrada: cuando solo quedan dos jugadores, cada uno es el objetivo del otro.
 
-Pulsa «Ver mi nueva carta». La carta se gira sola una vez para enseñarte tu nuevo objetivo y tu nueva misión, y vuelve a taparse. Si no queda nadie más en juego, la carta dice «Ya no tienes objetivo: eres la última persona en juego».
+Pulsa «Ver mi nueva carta». La carta se gira sola una vez para enseñarte tu nuevo objetivo y tu nueva misión, y vuelve a taparse. Si no queda nadie más en juego, la pantalla dice «Ya no tienes objetivo. ¡Eres la última persona en juego!» y el botón es «Ver mi carta». La carta dice «Esperando el plazo de disputa» y la partida se cierra cuando ya no se puede disputar tu última eliminación (apartado 7.1).
 
 <img src="img/eliminar-acierto.png" alt="«¡Eliminado!» con el objetivo heredado" width="250"> <img src="img/eliminar-carta-heredada.png" alt="La carta enseña el nuevo objetivo y la nueva misión" width="250">
 
 ### 6.5 Te han cazado
 
 Si te eliminan, la primera vez que abres tu carta sale «Te han cazado». Pulsa «Cerrar». Desde entonces eres espectador: tu carta queda en gris, sin objetivo ni misión, y ya no tienes código ni puedes eliminar. Puedes seguir la partida en Feed y en Partida hasta el final.
+
+Si crees que tu eliminación no fue limpia, «Te han cazado» te deja abrir una disputa durante 10 minutos (apartado 11.1).
 
 <img src="img/cazado.png" alt="«Te han cazado»" width="250"> <img src="img/cazado-espectador.png" alt="Carta de espectador" width="250">
 
@@ -246,15 +248,17 @@ La pestaña Feed, en la carta y en Partida, lista las eliminaciones de la partid
 
 Una partida termina de tres formas:
 
-- **Queda un solo jugador vivo.** Al eliminar a su último rival, la partida se cierra en ese momento.
-- **Llega la fecha de fin** que puso el máster al crearla.
+- **Queda un solo jugador vivo.** La partida se cierra 10 minutos después de la última eliminación, cuando ya no se puede disputar; si la víctima la disputa, espera a que se decida. Mientras tanto, la carta del último vivo dice «Esperando el plazo de disputa».
+- **Llega la fecha de fin** que puso el máster al crearla. Desde esa hora ya no se puede eliminar. Si queda alguna disputa abierta o una eliminación de los 10 minutos anteriores, la partida se cierra cuando se resuelven.
 - **El máster la cierra** antes de tiempo, juegue o no.
+
+<img src="img/cierre-esperando-plazo.png" alt="Carta del último vivo: «Esperando el plazo de disputa»" width="250">
 
 Cuando termina, ya no se puede ver la carta, ni el código de vida, ni eliminar. El feed se sigue viendo.
 
 ### 7.2 Cerrar la partida (máster)
 
-En la pestaña Partida, el máster ve la lista de jugadores con su estado y, abajo, el botón «Cerrar partida». La app pregunta «¿Cerrar la partida?» y avisa de que termina para todos y no se puede deshacer; con «Cerrar» se cierra y con «Cancelar» sigue en juego.
+En la pestaña Partida, el máster ve la lista de jugadores con su estado y, abajo, el botón «Cerrar partida». La app pregunta «¿Cerrar la partida?» y avisa de que termina para todos y no se puede deshacer; con «Cerrar» se cierra y con «Cancelar» sigue en juego. Mientras quede una disputa abierta o una eliminación que todavía se pueda disputar, no se puede cerrar: la app dice «Hay una disputa abierta o una eliminación que aún se puede disputar».
 
 <img src="img/cierre-pestana-partida.png" alt="Pestaña Partida del máster con los jugadores y «Cerrar partida»" width="250">
 
@@ -331,3 +335,59 @@ En una partida sin zonas el resultado es siempre «fuera» y el móvil no mira d
 ### 10.3 Tu ubicación no sale del móvil
 
 El móvil solo envía «dentro», «fuera» o «no concluyente», nunca dónde estabas. GhostMark no guarda tu posición en ningún sitio, y nadie ve dónde estás, tampoco el máster.
+
+## 11. Disputas
+
+Si crees que una eliminación no fue limpia, o tu objetivo se niega a enseñarte su código, puedes abrir una disputa. La decide un árbitro, que da la razón al cazador o a la víctima. Las disputas solo las ven los dos implicados y el árbitro: no salen en el feed.
+
+### 11.1 Disputar tu eliminación (víctima)
+
+Tienes 10 minutos desde que te eliminan. En «Te han cazado» sale «¿No fue limpio? Tienes 9:48 para abrir una disputa» con la cuenta atrás y el botón «Abrir disputa».
+
+1. Pulsa «Abrir disputa» y cuenta qué pasó, en 280 caracteres como mucho.
+2. Pulsa «Enviar disputa». Se abre la disputa, con tu versión a la izquierda.
+
+Cada eliminación se disputa una sola vez. Pasados los 10 minutos, «Te han cazado» ya no ofrece la disputa. Una eliminación que decidió un árbitro, como la de una disputa por negativa, no se puede disputar.
+
+Mientras la disputa está abierta, tu cazador no puede eliminar: su carta enseña «Disputa abierta» en lugar de «Eliminar» y debajo «Tienes una disputa abierta».
+
+<img src="img/disputa-cazado.png" alt="«Te han cazado» con la cuenta atrás y «Abrir disputa»" width="250"> <img src="img/disputa-abrir.png" alt="«Abrir disputa» con la versión de la víctima" width="250"> <img src="img/disputa-carta-bloqueada.png" alt="Carta del cazador con «Disputa abierta»" width="250">
+
+### 11.2 Tu objetivo no te enseña el código (cazador)
+
+En «Eliminar», bajo las casillas, pulsa «No me enseña el código», cuenta qué pasó y pulsa «Enviar disputa». Puedes tener abierta una de estas como mucho, y hasta la fecha de fin de la partida.
+
+Esta disputa no te impide seguir jugando. Si tu objetivo deja de serlo antes de que se decida, porque lo eliminas con su código o porque eliminan a alguno de los dos, la disputa se cierra sola: «Disputa cerrada: ya no es su objetivo».
+
+### 11.3 Responder
+
+El otro implicado puede contar su versión una vez: el cazador en una disputa por eliminación y la víctima en una por negativa. Abre la disputa, escribe en «Escribe tu versión…» y pulsa «Responder». Mientras tanto sale «Esperando la respuesta de la otra persona.» y, cuando ya están las dos versiones, «Esperando la decisión del árbitro.». El árbitro puede decidir sin esperar la respuesta.
+
+Todas tus disputas, abiertas o cerradas, como implicado o como árbitro, se abren desde la pestaña Partida con el botón «Ver disputas», que sale encima de los de abajo en cuanto tienes alguna. En la lista, cada una dice si está abierta o resuelta. Mientras tienes una abierta, tu carta te lo recuerda: «Tienes una disputa abierta» o, si eres la víctima, «Sigues como espectador hasta que se resuelva la disputa».
+
+<img src="img/disputa-victima.png" alt="Disputa vista por la víctima, esperando la respuesta" width="250"> <img src="img/disputa-cazador.png" alt="Disputa con las dos versiones, esperando al árbitro" width="250">
+
+### 11.4 Quién arbitra
+
+Arbitra el máster. Si el máster juega y es el cazador o la víctima de la disputa, o si ha borrado su cuenta, la app sortea un árbitro entre los demás jugadores con cuenta, vivos o eliminados.
+
+El árbitro tiene para decidir el plazo de disputas de la partida (2, 6, 12 o 24 horas, apartado 2.2). Si no decide a tiempo, la app sortea otro árbitro, que tiene el mismo plazo, y evita a quien ya la tuvo mientras haya otros.
+
+El máster ve en la pestaña Partida, en «Tareas de máster», cuántas disputas tiene por decidir, y las abre con el botón «Ver disputas», que a él le sale siempre. Un jugador sorteado la encuentra con el mismo botón.
+
+<img src="img/disputa-tareas-master.png" alt="«Tareas de máster» con 2 disputas y el botón «Ver disputas»" width="250"> <img src="img/disputa-lista.png" alt="Lista de disputas del árbitro" width="250">
+
+### 11.5 Decidir (árbitro)
+
+El árbitro ve la misión, las dos versiones y, en una disputa por eliminación, el resultado de zona de esa eliminación: «Dentro», «Fuera» o «No concluyente» (apartado 10). Nadie más lo ve. Abajo tiene dos botones:
+
+| Disputa | Da la razón al cazador | Da la razón a la víctima |
+|--|--|--|
+| Por eliminación | «Confirmar eliminación»: la eliminación queda firme y el cazador puede volver a eliminar | «Anular»: la eliminación se anula y la víctima vuelve a la partida (apartado 12) |
+| Por negativa | «Eliminar a Lucia» (el alias de la víctima): la víctima queda eliminada como si hubiera enseñado el código | «Rechazar»: no cambia nada y el cazador sigue con su objetivo |
+
+Al final de la disputa sale quién gana: «Gana el cazador» o «Gana la víctima».
+
+Si la eliminación disputada se hizo dentro de una zona segura, la disputa no espera a nadie: al abrirla se resuelve a favor de la víctima y debajo pone «Estaba en una zona segura».
+
+<img src="img/disputa-arbitro.png" alt="Disputa por eliminación vista por el árbitro, con la zona y los dos botones" width="250"> <img src="img/disputa-negativa.png" alt="Disputa por negativa con «Eliminar a Lucia» y «Rechazar»" width="250"> <img src="img/disputa-resuelta.png" alt="Disputa por negativa resuelta: «Gana la víctima»" width="250">
