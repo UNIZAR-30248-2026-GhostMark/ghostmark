@@ -50,7 +50,7 @@ Se borran tu alias, tus datos de acceso y tu horario, y no se puede deshacer. De
 
 ## 2. Crear una partida
 
-En Inicio, pulsa «Crear partida». El asistente tiene cuatro pasos: nombre y fechas, reglas, misiones y, con la partida ya creada, compartirla.
+En Inicio, pulsa «Crear partida». El asistente tiene cinco pasos: nombre y fechas, reglas, misiones, zonas seguras (apartado 9.1) y, con la partida ya creada, compartirla.
 
 ### 2.1 Nombre y fechas
 
@@ -309,6 +309,40 @@ GhostMark no avisa antes de que tu objetivo entre en clase ni enseña el horario
 Si estás en «Eliminar» y en ese momento empieza tu clase o la de tu objetivo, al escribir el sexto dígito la app dice «Tu objetivo está en clase. Disponible en 1 h 15 min.» o «Estás en clase. Disponible en 45 min.». El código no se comprueba y el intento no cuenta como fallo: te quedan los mismos intentos. Vuelve a probar cuando acabe la clase.
 
 <img src="img/horario-eliminar-rechazo.png" alt="«Eliminar» con «Tu objetivo está en clase. Disponible en 1 h 15 min.»" width="250">
+
+## 9. Zonas seguras
+
+Las zonas seguras son lugares del campus, como la biblioteca o un aulario, que el máster marca en un mapa al crear la partida. Dentro de una zona segura no se elimina a nadie.
+
+### 9.1 Dibujar las zonas (máster)
+
+Es el paso 4 del asistente, después de las misiones.
+
+1. Toca el mapa en cada esquina de la zona. La app une los puntos con una línea discontinua; con «Deshacer punto» quitas el último.
+2. Con 3 puntos o más, pulsa «Terminar», escribe el nombre de la zona y pulsa «Guardar». La zona sale debajo del mapa, con su nombre y cuántos puntos tiene.
+3. Repite con cada zona y pulsa «Siguiente» para pasar a compartir la partida. Si no quieres zonas, pulsa «Siguiente» sin dibujar ninguna.
+
+Una partida puede tener hasta 10 zonas. Cada una lleva de 3 a 20 puntos, sin repetir ninguno y sin que sus lados se crucen, y un nombre de hasta 30 caracteres que no tenga otra zona de la partida. Dos zonas no pueden pisarse, tocarse ni estar una dentro de otra. Si una zona no cumple alguna de estas reglas, la app avisa y no la guarda: por ejemplo, al pulsar «Terminar» con una zona dibujada dentro de «Biblioteca» sale «Esta zona se solapa con «Biblioteca». Cambia sus puntos antes de terminar.»
+
+Para cambiar una zona, pulsa «Editar»: sus puntos vuelven al mapa, quitas los que sobren con «Deshacer punto», marcas los nuevos y pulsas «Terminar». «Eliminar» la borra, después de confirmar «¿Borrar zona?».
+
+<img src="img/zonas-asistente-puntos.png" alt="Mapa con cuatro puntos marcados" width="250"> <img src="img/zonas-asistente-nombre.png" alt="«Nombra la zona» con «Biblioteca»" width="250"> <img src="img/zonas-asistente-guardada.png" alt="La zona «Biblioteca» dibujada y en la lista" width="250">
+
+### 9.2 Cambiarlas antes de empezar (máster)
+
+En la sala de espera, el máster ve el botón «Zonas seguras · 2» encima de «Arrancar ya»; el número es el de zonas de la partida. Abre el mismo mapa con las zonas ya dibujadas: cambia lo que quieras como en el asistente y pulsa «Guardar» para volver a la sala.
+
+Las zonas se pueden cambiar hasta que la partida arranca. Desde entonces quedan fijas.
+
+<img src="img/zonas-sala-espera.png" alt="Sala de espera del máster con «Zonas seguras · 2»" width="250"> <img src="img/zonas-sala-editor.png" alt="Mapa con las zonas de la partida para cambiarlas" width="250">
+
+### 9.3 Ver las zonas
+
+Con la partida en juego, todos ven en la pestaña Partida el bloque «Zonas seguras»: cuántas zonas hay y un mapa con cada zona y su nombre. «Ver mapa» lo abre a pantalla completa, donde se mueve y se amplía con dos dedos; «Cerrar» vuelve a Partida.
+
+El mapa no enseña dónde está nadie, tampoco tú, y para verlo no hace falta dar la ubicación.
+
+<img src="img/zonas-partida.png" alt="Pestaña Partida con el mapa de las zonas" width="250"> <img src="img/zonas-mapa.png" alt="Mapa de las zonas a pantalla completa" width="250">
 
 ## 10. La zona segura al eliminar
 
