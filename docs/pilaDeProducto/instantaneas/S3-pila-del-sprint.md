@@ -1,5 +1,7 @@
 <!-- Instantánea congelada: no se edita. -->
 > **Instantánea S3 · Pila del sprint**, tal como quedó en la planificación del 14 de noviembre de 2026: objetivo, capacidad, PBI elegidas y sus tareas estimadas en horas-persona, comprobadas contra los issues #275-#300 de GitHub, los defectos #248 y #254-#268 que vienen del sprint 2 y los #301-#303. La pila del producto de la que se partió está en [`S3-antes-de-planificar.md`](S3-antes-de-planificar.md), con los criterios de cada PBI.
+>
+> **Nota (28 de noviembre de 2026):** las PBI se re-estimaron en puntos de historia tras la corrección del informe de los sprints 1 y 2: 9 = 5, 10a = 5, 10b = 3, 11a = 8 y 11b = 8 (29 puntos; referencia: la 10b = 3). Se quitó la escala de tallas con la que se calcularon las horas; las horas de las tareas no cambian.
 
 # Pila del sprint 3
 
@@ -11,7 +13,7 @@ Lo decidió el Dueño del Producto, Imad Habib Jali, el 2026-11-14. Al acabar el
 
 ## Capacidad del equipo
 
-Las tareas de los sprints 1 y 2 se hicieron más rápido de lo estimado, así que el sprint 3 se estima de forma optimista, con la escala de tallas de la previsión del 8 de octubre (S 6, M 12, L 20, XL 32 h), y las tareas de menos de 1 h cuentan 0 h por triviales. El equipo trabaja las horas que haga falta para lo planificado: la capacidad es la suma de las tareas y los defectos, y cada persona confirma las suyas. Las actividades Scrum y la gestión van aparte, en el 27 % que la hoja de costes suma sobre el desarrollo.
+Las tareas de los sprints 1 y 2 se hicieron más rápido de lo estimado, así que el sprint 3 se estima de forma optimista, con la escala de horas de la previsión del 8 de octubre, y las tareas de menos de 1 h cuentan 0 h por triviales. El equipo trabaja las horas que haga falta para lo planificado: la capacidad es la suma de las tareas y los defectos, y cada persona confirma las suyas. Las actividades Scrum y la gestión van aparte, en el 27 % que la hoja de costes suma sobre el desarrollo.
 
 | Persona | Desarrollo (h) | Scrum y gestión, 27 % (h) | Total del sprint (h) |
 |--|--|--|--|
