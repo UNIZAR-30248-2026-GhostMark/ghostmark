@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 220" width="100%" role="img" aria-label="Burnup del sprint 3 en puntos de historia" style="font-family:Lato,DejaVu Sans,sans-serif">
+<line x1="40" x2="400" y1="190.0" y2="190.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="193.0" font-size="8" fill="#7d6d99" text-anchor="end">0</text>
+<line x1="40" x2="400" y1="161.0" y2="161.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="164.0" font-size="8" fill="#7d6d99" text-anchor="end">5</text>
+<line x1="40" x2="400" y1="132.0" y2="132.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="135.0" font-size="8" fill="#7d6d99" text-anchor="end">10</text>
+<line x1="40" x2="400" y1="103.0" y2="103.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="106.0" font-size="8" fill="#7d6d99" text-anchor="end">15</text>
+<line x1="40" x2="400" y1="74.0" y2="74.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="77.0" font-size="8" fill="#7d6d99" text-anchor="end">20</text>
+<line x1="40" x2="400" y1="45.0" y2="45.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="48.0" font-size="8" fill="#7d6d99" text-anchor="end">25</text>
+<line x1="40" x2="400" y1="16.0" y2="16.0" stroke="#E6DCF2" stroke-width="1"/>
+<text x="34" y="19.0" font-size="8" fill="#7d6d99" text-anchor="end">30</text>
+<text x="40.0" y="208" font-size="8" fill="#7d6d99" text-anchor="middle">12 nov</text>
+<text x="142.9" y="208" font-size="8" fill="#7d6d99" text-anchor="middle">16 nov</text>
+<text x="220.0" y="208" font-size="8" fill="#7d6d99" text-anchor="middle">19 nov</text>
+<text x="322.9" y="208" font-size="8" fill="#7d6d99" text-anchor="middle">23 nov</text>
+<text x="400.0" y="208" font-size="8" fill="#7d6d99" text-anchor="middle">26 nov</text>
+<text x="34" y="11" font-size="8" fill="#7d6d99" text-anchor="end">puntos</text>
+<polyline points="40.0,21.8 400.0,21.8" fill="none" stroke="#9A91A8" stroke-width="1.5" stroke-dasharray="4 3"/>
+<polyline points="40.0,190.0 142.9,190.0 245.7,190.0 322.9,190.0 348.6,143.6 374.3,21.8 400.0,21.8" fill="none" stroke="#6B2FA8" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="40.0" cy="190.0" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="142.9" cy="190.0" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="245.7" cy="190.0" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="322.9" cy="190.0" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="348.6" cy="143.6" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="374.3" cy="21.8" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<circle cx="400.0" cy="21.8" r="3" fill="#6B2FA8" stroke="#fff" stroke-width="1.5"/>
+<text x="407.0" y="24.8" font-size="8.5" fill="#1A0B2E" font-weight="700">Hechos</text>
+<text x="407.0" y="15.8" font-size="8.5" fill="#7d6d99">Alcance (29)</text>
+</svg>
